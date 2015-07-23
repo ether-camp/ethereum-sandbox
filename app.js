@@ -6,8 +6,11 @@ var _ = require('lodash');
 var crypto = require('crypto');
 
 var jsonrpc = jayson.server({
-  echo: function(phrase, callback) {
-    callback(null, phrase);
+  sandbox_id: function(cb) {
+    cb(null, 'asdf');
+  },
+  net_version: function(cb) {
+    cb(null, '59');
   }
 });
 

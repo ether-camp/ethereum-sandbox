@@ -3,6 +3,7 @@ var jayson = require('jayson');
 var http = require('http');
 var urlparser = require('url');
 var _ = require('lodash');
+var async = require('async');
 
 require('jasmine-expect');
 
@@ -38,14 +39,32 @@ describe('Sandbox', function() {
       done();
     });
   });
-
-  it('Echoes', function(done) {
-    var phrase = 'I am the one who knocks!';
+  
+  it('Handle net_version call', function(done) {
     var client = jayson.client.http('http://localhost:8545');
-    client.request('echo', [phrase], function(err, reply) {
-      if (err) done.fail(err);
-      expect(reply.result).toBe(phrase);
+    client.request('net_version', [], function(err, reply) {
+      if (err) return done.fail(err);
+      expect(reply.result).toMatch(/^\d+$/);
       done();
+    });
+  });
+
+  xit('Route messages to sandboxes by id', function(done) {
+    var client = jayson.client.http('http://localhost:8545');
+    async.parallel([
+      createSandbox,
+      createSandbox
+    ], function (err, ids) {
+      async.each(ids, function(id, cb) {
+        client.request('sandbox_id', [], function(err, reply) {
+          if (err) return cb(err);
+          expect(reply.result).toBe(id);
+          cb();
+        });
+      }, function(err) {
+        if (err) done.fail(err);
+        else done();
+      });
     });
   });
 });
@@ -67,4 +86,11 @@ function post(url, cb) {
   });
   req.on('error', cb);
   req.end();
+}
+
+function createSandbox(cb) {
+  post('http://localhost:8545/create-sandbox', function(err, res, reply) {
+    if (err) cb(err);
+    else cb(null, reply.id);
+  });
 }
