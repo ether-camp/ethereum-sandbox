@@ -1,0 +1,16 @@
+{
+  "name": "ethereum-sandbox",
+  "version": "0.0.1",
+  "description": "Ethereum Sandbox",
+  "main": "app.js",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-jasmine-nodejs": "^1.4.2",
+    "jasmine-expect": "^2.0.0-beta1"
+  },
+  "dependencies": {
+    "body-parser": "^1.13.2",
+    "express": "^4.13.1",
+    "jayson": "^1.2.0"
+  }
+}
