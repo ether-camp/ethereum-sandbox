@@ -1,6 +1,7 @@
 var spawn = require('child_process').spawn;
 var jayson = require('jayson');
 var http = require('http');
+var urlparser = require('url');
 
 require('jasmine-expect');
 
@@ -14,7 +15,6 @@ describe('Sandbox', function() {
         client = jayson.client.http('http://localhost:8545');
         done();
       }
-      console.log(data.toString());
     });
     app.stderr.on('data', function(data) {
       done.fail(console.log(data.toString()));
@@ -22,30 +22,15 @@ describe('Sandbox', function() {
   });
 
   it('Create a new sandbox', function(done) {
-    var req = http.request({
-      host: 'localhost',
-      port: '8545',
-      path: '/create-sandbox',
-      method: 'POST'
-    }, function(res) {
+    request('http://localhost:8545/create-sandbox', function(err, res, reply) {
+      if (err) return done.fail(err);
       expect(res.statusCode).toBe(200);
-      expect(res.headers['Content-Type']).toStartWith('application/json');
-      var body;
-      res.on('data', function(chunk) { body += chunk; });
-      res.on('end', function() {
-        try {
-          var reply = JSON.parse(body);
-        } catch (e) {
-          return done.fail(e);
-        }
-        expect(reply).toHaveNonEmptyString('id');
-        done();
-      });
+      expect(res.headers['content-type']).toStartWith('application/json');
+      expect(reply).toHaveNonEmptyString('id');
+      done();
     });
-    req.on('error', done.fail);
-    req.end();
   });
-  
+
   it('Echoes', function(done) {
     var phrase = 'I am the one who knocks!';
     client.request('echo', [phrase], function(err, reply) {
@@ -55,3 +40,22 @@ describe('Sandbox', function() {
     });
   });
 });
+
+function request(url, cb) {
+  var options = urlparser.parse(url);
+  options.method = 'POST';
+  var req = http.request(options, function(res) {
+    var body = '';
+    res.on('data', function(chunk) { body += chunk; });
+    res.on('end', function() {
+      try {
+        var reply = JSON.parse(body);
+      } catch (e) {
+        return cb(e);
+      }
+      cb(null, res, reply);
+    });
+  });
+  req.on('error', cb);
+  req.end();
+}

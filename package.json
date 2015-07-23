@@ -11,6 +11,7 @@
   "dependencies": {
     "body-parser": "^1.13.2",
     "express": "^4.13.1",
-    "jayson": "^1.2.0"
+    "jayson": "^1.2.0",
+    "lodash": "^3.10.0"
   }
 }
