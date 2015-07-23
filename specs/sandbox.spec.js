@@ -2,27 +2,35 @@ var spawn = require('child_process').spawn;
 var jayson = require('jayson');
 var http = require('http');
 var urlparser = require('url');
+var _ = require('lodash');
 
 require('jasmine-expect');
 
 describe('Sandbox', function() {
-  var client;
+  var app;
   
   beforeAll(function(done) {
-    var app = spawn('node', ['app.js'], { detached: true });
+    app = spawn('node', ['app.js']);
+    app.on('error', function(err) {
+      console.error(err);
+      done.fail();
+    });
     app.stdout.on('data', function(data) {
-      if (data.toString().indexOf('Sandbox is listening') !== -1) {
-        client = jayson.client.http('http://localhost:8545');
-        done();
-      }
+      if (_.startsWith(data.toString(), 'Sandbox is listening')) done();
     });
     app.stderr.on('data', function(data) {
-      done.fail(console.log(data.toString()));
+      var err = data.toString();
+      console.log(err);
+      done.fail(err);
     });
   });
 
+  afterAll(function() {
+    app.kill();
+  });
+
   it('Create a new sandbox', function(done) {
-    request('http://localhost:8545/create-sandbox', function(err, res, reply) {
+    post('http://localhost:8545/create-sandbox', function(err, res, reply) {
       if (err) return done.fail(err);
       expect(res.statusCode).toBe(200);
       expect(res.headers['content-type']).toStartWith('application/json');
@@ -33,6 +41,7 @@ describe('Sandbox', function() {
 
   it('Echoes', function(done) {
     var phrase = 'I am the one who knocks!';
+    var client = jayson.client.http('http://localhost:8545');
     client.request('echo', [phrase], function(err, reply) {
       if (err) done.fail(err);
       expect(reply.result).toBe(phrase);
@@ -41,7 +50,7 @@ describe('Sandbox', function() {
   });
 });
 
-function request(url, cb) {
+function post(url, cb) {
   var options = urlparser.parse(url);
   options.method = 'POST';
   var req = http.request(options, function(res) {
