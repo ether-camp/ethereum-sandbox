@@ -41,21 +41,28 @@ describe('Sandbox', function() {
   });
   
   it('Handle net_version call', function(done) {
-    var client = jayson.client.http('http://localhost:8545');
-    client.request('net_version', [], function(err, reply) {
+    async.waterfall([
+      createSandbox,
+      call
+    ], function(err, reply) {
       if (err) return done.fail(err);
       expect(reply.result).toMatch(/^\d+$/);
       done();
     });
+
+    function call(id, cb) {
+      var client = jayson.client.http('http://localhost:8545/' + id);
+      client.request('net_version', [], cb);
+    }
   });
 
-  xit('Route messages to sandboxes by id', function(done) {
-    var client = jayson.client.http('http://localhost:8545');
+  it('Route messages to sandboxes by id', function(done) {
     async.parallel([
       createSandbox,
       createSandbox
     ], function (err, ids) {
       async.each(ids, function(id, cb) {
+        var client = jayson.client.http('http://localhost:8545/' + id);
         client.request('sandbox_id', [], function(err, reply) {
           if (err) return cb(err);
           expect(reply.result).toBe(id);

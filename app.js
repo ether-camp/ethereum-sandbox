@@ -5,21 +5,23 @@ var bodyParser = require('body-parser');
 var _ = require('lodash');
 var crypto = require('crypto');
 
-var jsonrpc = jayson.server({
-  sandbox_id: function(cb) {
-    cb(null, 'asdf');
-  },
-  net_version: function(cb) {
-    cb(null, '59');
-  }
-});
+function createSandbox(id) {
+  return jayson.server({
+    sandbox_id: function(cb) {
+      cb(null, id);
+    },
+    net_version: function(cb) {
+      cb(null, '59');
+    }
+  }).middleware();
+}
 
 app.use(bodyParser.json());
 app.post('/create-sandbox', function(req, res) {
-  var reply = { id: generateId() };
-  res.json(reply);
+  var id = generateId();
+  app.post('/' + id, createSandbox(id));
+  res.json({ id: id });
 });
-app.post('/', jsonrpc.middleware());
 
 var server = app.listen(8545, function () {
   var host = server.address().address;
