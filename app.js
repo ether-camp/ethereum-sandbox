@@ -10,6 +10,9 @@ function createSandbox(id) {
     sandbox_id: function(cb) {
       cb(null, id);
     },
+    sandbox_start: function(cb) {
+      cb(null, '');
+    },
     net_version: function(cb) {
       cb(null, '59');
     }

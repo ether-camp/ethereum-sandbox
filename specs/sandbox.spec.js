@@ -5,12 +5,16 @@ var urlparser = require('url');
 var _ = require('lodash');
 var async = require('async');
 var web3 = require('web3');
-var util = require('util');
 
 web3._extend({
   property: 'sandbox',
-  properties:
-  [
+  methods: [
+    new web3._extend.Method({
+      name: 'start',
+      call: 'sandbox_start'
+    })
+  ],
+  properties: [
     new web3._extend.Property({
       name: 'id',
       getter: 'sandbox_id'
@@ -95,6 +99,19 @@ describe('Sandbox', function() {
       web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
       try {
         expect(web3.sandbox.id).toBe(id);
+      } catch (e) {
+        return done.fail(e);
+      }
+      done();
+    });
+  });
+
+  it('Handle sandbox_start call', function(done) {
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        web3.sandbox.start();
       } catch (e) {
         return done.fail(e);
       }
