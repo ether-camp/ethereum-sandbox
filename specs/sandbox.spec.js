@@ -4,6 +4,19 @@ var http = require('http');
 var urlparser = require('url');
 var _ = require('lodash');
 var async = require('async');
+var web3 = require('web3');
+var util = require('util');
+
+web3._extend({
+  property: 'sandbox',
+  properties:
+  [
+    new web3._extend.Property({
+      name: 'id',
+      getter: 'sandbox_id'
+    })
+  ]
+});
 
 require('jasmine-expect');
 
@@ -18,6 +31,7 @@ describe('Sandbox', function() {
     });
     app.stdout.on('data', function(data) {
       if (_.startsWith(data.toString(), 'Sandbox is listening')) done();
+      else console.log(data.toString());
     });
     app.stderr.on('data', function(data) {
       var err = data.toString();
@@ -72,6 +86,19 @@ describe('Sandbox', function() {
         if (err) done.fail(err);
         else done();
       });
+    });
+  });
+
+  it('Handle sandbox_id call', function(done) {
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        expect(web3.sandbox.id).toBe(id);
+      } catch (e) {
+        return done.fail(e);
+      }
+      done();
     });
   });
 });
