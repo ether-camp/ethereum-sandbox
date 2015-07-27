@@ -26,6 +26,9 @@ function createSandbox(id) {
     sandbox_accounts: function(cb) {
       sandbox.getAccounts(jsonRpcCallback(cb));
     },
+    sandbox_env: function(cb) {
+      cb(null, sandbox.env);
+    },
     net_version: function(cb) {
       cb(null, '59');
     }

@@ -18,6 +18,11 @@ web3._extend({
       name: 'accounts',
       call: 'sandbox_accounts',
       params: 0
+    }),
+    new web3._extend.Method({
+      name: 'env',
+      call: 'sandbox_env',
+      params: 0
     })
   ],
   properties: [
@@ -178,6 +183,51 @@ describe('Sandbox', function() {
             expect(accounts).toHaveMember(address);
             expect(_.isEqual(expectedAccounts[address], account)).toBeTrue();
           });
+          done();
+        });
+      } catch (e) {
+        done.fail(e);
+      }
+    });
+  });
+
+  it('Handle sandbox_env call', function(done) {
+    var env = {
+      accounts: {
+        'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+          pkey: '974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015',
+          balance: '1234',
+          nonce: '62',
+          default: true
+        },
+        '5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337': {
+          balance: '012345',
+          nonce: 0
+        }
+      }
+    };
+    var expectedEnv = {
+      'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+        address: 'dedb49385ad5b94a16f236a6890cf9e0b1e30392',
+        pkey: '974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015',
+        nonce: 98
+      },
+      '5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337': {
+        address: '5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337',
+        pkey: null,
+        nonce: 0
+      }
+    };
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        async.series([
+          web3.sandbox.start.bind(null, env),
+          web3.sandbox.env
+        ], function(err, results) {
+          if (err) return done.fail(err);
+          expect(_.isEqual(expectedEnv, results[1])).toBeTrue();
           done();
         });
       } catch (e) {
