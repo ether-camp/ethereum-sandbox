@@ -12,8 +12,12 @@
   "dependencies": {
     "async": "^1.4.0",
     "body-parser": "^1.13.2",
+    "ethereumjs-lib": "^0.5.0",
     "express": "^4.13.1",
     "jayson": "^1.2.0",
-    "lodash": "^3.10.0"
+    "levelup": "^1.2.1",
+    "lodash": "^3.10.0",
+    "memdown": "^1.0.0",
+    "sha3": "^1.1.0"
   }
 }

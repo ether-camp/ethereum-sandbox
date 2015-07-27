@@ -4,14 +4,27 @@ var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
 var crypto = require('crypto');
+var Sandbox = require('./sandbox');
+
+function jsonRpcCallback(cb) {
+  return function(err, reply) {
+    if (err) err = { code: 0, message: err };
+    if (reply === undefined) reply = null;
+    cb(err, reply);
+  };
+}
 
 function createSandbox(id) {
+  var sandbox = Object.create(Sandbox).init();
   return jayson.server({
     sandbox_id: function(cb) {
       cb(null, id);
     },
-    sandbox_start: function(cb) {
-      cb(null, '');
+    sandbox_start: function(env, cb) {
+      sandbox.start(env, jsonRpcCallback(cb));
+    },
+    sandbox_accounts: function(cb) {
+      sandbox.getAccounts(jsonRpcCallback(cb));
     },
     net_version: function(cb) {
       cb(null, '59');

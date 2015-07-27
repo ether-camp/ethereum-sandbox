@@ -11,7 +11,13 @@ web3._extend({
   methods: [
     new web3._extend.Method({
       name: 'start',
-      call: 'sandbox_start'
+      call: 'sandbox_start',
+      params: 1
+    }),
+    new web3._extend.Method({
+      name: 'accounts',
+      call: 'sandbox_accounts',
+      params: 0
     })
   ],
   properties: [
@@ -111,11 +117,72 @@ describe('Sandbox', function() {
       if (err) return done.fail(err);
       web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
       try {
-        web3.sandbox.start();
+        web3.sandbox.start({
+          accounts: {
+            'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+              pkey: 'secret',
+              default: true
+            }
+          }
+        }, function(err, reply) {
+          if (err) done.fail(err);
+          else done(err);
+        });
       } catch (e) {
-        return done.fail(e);
+        done.fail(e);
       }
-      done();
+    });
+  });
+
+  it('Handle sandbox_accounts call', function(done) {
+    var env = {
+      accounts: {
+        'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+          pkey: '974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015',
+          balance: '1234',
+          nonce: '62',
+          default: true
+        },
+        '5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337': {
+          balance: '012345',
+          nonce: 0
+        }
+      }
+    };
+    var expectedAccounts = {
+      'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+        balance: '1234',
+        nonce: '62',
+        storage: {},
+        code: ''
+      },
+      '5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337': {
+        balance: '012345',
+        nonce: '',
+        storage: {},
+        code: ''
+      }
+    };
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        async.series([
+          web3.sandbox.start.bind(null, env),
+          web3.sandbox.accounts
+        ], function(err, results) {
+          if (err) return done.fail(err);
+          var accounts = results[1];
+          expect(_.keys(accounts).length).toBe(_.keys(expectedAccounts).length);
+          _.each(expectedAccounts, function(account, address) {
+            expect(accounts).toHaveMember(address);
+            expect(_.isEqual(expectedAccounts[address], account)).toBeTrue();
+          });
+          done();
+        });
+      } catch (e) {
+        done.fail(e);
+      }
     });
   });
 });
