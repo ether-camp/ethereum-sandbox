@@ -32,6 +32,15 @@ function createSandbox(id) {
     sandbox_runTx: function(options, cb) {
       sandbox.runTx(options, jsonRpcCallback(cb));
     },
+    eth_newPendingTransactionFilter: function(cb) {
+      sandbox.newFilter('pending', jsonRpcCallback(cb));
+    },
+    eth_uninstallFilter: function(filterId, cb) {
+      sandbox.removeFilter(filterId, jsonRpcCallback(cb));
+    },
+    eth_getFilterChanges: function(filterId, cb) {
+      sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
+    },
     net_version: function(cb) {
       cb(null, '59');
     }

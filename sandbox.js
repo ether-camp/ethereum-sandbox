@@ -14,6 +14,8 @@ var Sandbox = {
     this.state = 'CLEAN';
     this.defaultAccount = null;
     this.transactions = [];
+    this.filtersCounter = 0;
+    this.filters = {};
     return this;
   },
   createVM: function(block) {
@@ -233,6 +235,9 @@ var Sandbox = {
       if (options.contract) {
         this.contracts[results.createdAddress.toString('hex')] = options.contract;
       }
+      _.each(this.filters, function(events) {
+        events.push('0x' + tx.hash().toString('hex'));
+      });
       cb(null, {
         returnValue: results.vm.returnValue ?
           results.vm.returnValue.toString('hex') : null
@@ -325,6 +330,26 @@ var Sandbox = {
         cb(err);
       });
     }
+  },
+  newFilter: function(type, cb) {
+    if (type == 'pending') {
+      var num = '0x' + pad((this.filtersCounter++).toString(16));
+      this.filters[num] = [];
+      cb(null, num);
+    } else cb('Unknow type: ' + type);
+  },
+  removeFilter: function(id, cb) {
+    if (!this.filters.hasOwnProperty(id))
+      return cb('Could not find filter with id ' + id);
+    delete this.filter[id];
+    cb(null, true);
+  },
+  getFilterChanges: function(id, cb) {
+    if (!this.filters.hasOwnProperty(id))
+      return cb('Could not find filter with id ' + id);
+    var changes = this.filters[id];
+    this.filters[id] = [];
+    cb(null, changes);
   }
 };
 

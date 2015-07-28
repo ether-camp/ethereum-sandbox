@@ -265,12 +265,52 @@ describe('Sandbox', function() {
           }),
           web3.sandbox.accounts
         ], function(err, results) {
+          if (err) return done.fail(err);
           expect(results[1]).toHaveMember('returnValue');
           expect(_.size(results[2])).toBeGreaterThan(1);
           done();
         });
       } catch (e) {
         done.fail(e);
+      }
+    });
+  });
+
+  it('Notifies about a pending transaction', function(done) {
+    var env = {
+      accounts: {
+        'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+          pkey: '974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015',
+          balance: '10000000000000',
+          default: true
+        }
+      }
+    };
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        async.series([
+          web3.sandbox.start.bind(null, env),
+          setupFilter,
+          web3.sandbox.runTx.bind(null, {
+            from: 'dedb49385ad5b94a16f236a6890cf9e0b1e30392',
+            value: '01'
+          })
+        ], function(err) {
+          if (err) return done.fail(err);
+        });
+      } catch (e) {
+        done.fail(e);
+      }
+
+      function setupFilter(cb) {
+        var filter = web3.eth.filter('pending');
+        filter.watch(function(err, result) {
+          expect(result).toBeString();
+          done();
+        });
+        cb();
       }
     });
   });
