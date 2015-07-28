@@ -36,13 +36,13 @@ var Sandbox = {
     }
     
     this.vm.onStep = (function(info, done) {
-      if (info.opcode === 'LOG') sendLog.call(this, info);
+      if (info.opcode === 'LOG') notify.call(this, info);
       done();
     }).bind(this);
     
-    function sendLog(info) {
+    function notify(info) {
       var stack = info.stack.slice();
-      info.account.getCode(this.vm.trie, function(err, code) {
+      info.account.getCode(this.vm.trie, (function(err, code) {
         if (code.length !== 0) {
           var topicNum = code.readUInt8(info.pc) - 0xa0;
           var offset = parseInt(stack.pop().toString('hex'), 16);
@@ -58,15 +58,23 @@ var Sandbox = {
                 })
                 .value();
           var topics = _.times(topicNum, function() {
-            return stack.pop().toString('hex');
+            return '0x' + stack.pop().toString('hex');
           });
-          client.emit('data', {
-            address: info.address.toString('hex'),
-            topics: topics,
-            data: data
+          var log = {
+            logIndex: null,
+            transactionIndex: null,
+            transactionHash: null,
+            blockHash: null,
+            blockNumber: null,
+            address: '0x' + info.address.toString('hex'),
+            data: '0x' +  data.join(''),
+            topics: topics
+          };
+          _.each(this.filters, function(filter) {
+            if (filter.type === 'log') filter.entries.push(log);
           });
         }
-      });
+      }).bind(this));
     }
   },
   start: function(env, cb) {
@@ -235,8 +243,9 @@ var Sandbox = {
       if (options.contract) {
         this.contracts[results.createdAddress.toString('hex')] = options.contract;
       }
-      _.each(this.filters, function(events) {
-        events.push('0x' + tx.hash().toString('hex'));
+      _.each(this.filters, function(filter) {
+        if (filter.type === 'pending')
+          filter.entries.push('0x' + tx.hash().toString('hex'));
       });
       cb(null, {
         returnValue: results.vm.returnValue ?
@@ -332,11 +341,18 @@ var Sandbox = {
     }
   },
   newFilter: function(type, cb) {
-    if (type == 'pending') {
+    if (typeof type === 'object') cb(null, addFilter.call(this, 'log'));
+    else if (type == 'pending') cb(null, addFilter.call(this, 'pending'));
+    else cb('Unknow type: ' + type);
+
+    function addFilter(type) {
       var num = '0x' + pad((this.filtersCounter++).toString(16));
-      this.filters[num] = [];
-      cb(null, num);
-    } else cb('Unknow type: ' + type);
+      this.filters[num] = {
+        type: type,
+        entries: []
+      };
+      return num;
+    }
   },
   removeFilter: function(id, cb) {
     if (!this.filters.hasOwnProperty(id))
@@ -347,8 +363,8 @@ var Sandbox = {
   getFilterChanges: function(id, cb) {
     if (!this.filters.hasOwnProperty(id))
       return cb('Could not find filter with id ' + id);
-    var changes = this.filters[id];
-    this.filters[id] = [];
+    var changes = this.filters[id].entries;
+    this.filters[id].entries = [];
     cb(null, changes);
   }
 };
