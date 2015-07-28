@@ -29,6 +29,9 @@ function createSandbox(id) {
     sandbox_env: function(cb) {
       cb(null, sandbox.env);
     },
+    sandbox_runTx: function(options, cb) {
+      sandbox.runTx(options, jsonRpcCallback(cb));
+    },
     net_version: function(cb) {
       cb(null, '59');
     }

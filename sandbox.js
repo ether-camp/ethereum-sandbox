@@ -13,6 +13,7 @@ var Sandbox = {
   init: function() {
     this.state = 'CLEAN';
     this.defaultAccount = null;
+    this.transactions = [];
     return this;
   },
   createVM: function(block) {
@@ -211,23 +212,22 @@ var Sandbox = {
     return tx;
   },
   runTx: function(options, cb) {
-    var address = options.hasOwnProperty('from') ? options.from : this.defaultAccount;
-    var account = this.env[address];
-    if (!account) return cb({ code: '', message: 'Could not find account with address ' + address });
+    var account = this.env[options.from];
+    if (!account) return cb('Could not find an account with the address ' + options.from);
     if (!options.hasOwnProperty('pkey')) {
       if (!account.hasOwnProperty('pkey'))
-        return cb({ code: '', message: 'Please, specify the private key for account ' + address });
+        return cb('Please, specify the private key for account ' + options.from);
       options.pkey = account.pkey;
     }
     options.nonce = pad(account.nonce.toString(16));
     try {
       var tx = this.createTx(options);
     } catch (e) {
-      return cb({ code: '', message: e });
+      return cb(e);
     }
-
+    
     this.vm.runTx({ tx: tx, block: this.block }, (function(err, results) {
-      if (err) return cb({ code: '', message: err });
+      if (err) return cb(err);
       account.nonce++;
       this.transactions.push(parseTransaction(tx, results));
       if (options.contract) {

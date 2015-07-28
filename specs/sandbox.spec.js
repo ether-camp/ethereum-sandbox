@@ -6,6 +6,8 @@ var _ = require('lodash');
 var async = require('async');
 var web3 = require('web3');
 
+var EMPTY_CONTRACT = '60606040525b33600060006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908302179055505b600a80603e6000396000f30060606040526008565b00';// '6060604052600a8060116000396000f30060606040526008565b00';
+
 web3._extend({
   property: 'sandbox',
   methods: [
@@ -23,6 +25,11 @@ web3._extend({
       name: 'env',
       call: 'sandbox_env',
       params: 0
+    }),
+    new web3._extend.Method({
+      name: 'runTx',
+      call: 'sandbox_runTx',
+      params: 1
     })
   ],
   properties: [
@@ -178,7 +185,7 @@ describe('Sandbox', function() {
         ], function(err, results) {
           if (err) return done.fail(err);
           var accounts = results[1];
-          expect(_.keys(accounts).length).toBe(_.keys(expectedAccounts).length);
+          expect(_.size(accounts)).toBe(_.size(expectedAccounts));
           _.each(expectedAccounts, function(account, address) {
             expect(accounts).toHaveMember(address);
             expect(_.isEqual(expectedAccounts[address], account)).toBeTrue();
@@ -228,6 +235,38 @@ describe('Sandbox', function() {
         ], function(err, results) {
           if (err) return done.fail(err);
           expect(_.isEqual(expectedEnv, results[1])).toBeTrue();
+          done();
+        });
+      } catch (e) {
+        done.fail(e);
+      }
+    });
+  });
+
+  it('Handle sandbox_runTx call', function(done) {
+    var env = {
+      accounts: {
+        'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
+          pkey: '974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015',
+          balance: '10000000000000',
+          default: true
+        }
+      }
+    };
+    createSandbox(function(err, id) {
+      if (err) return done.fail(err);
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545/' + id));
+      try {
+        async.series([
+          web3.sandbox.start.bind(null, env),
+          web3.sandbox.runTx.bind(null, {
+            from: 'dedb49385ad5b94a16f236a6890cf9e0b1e30392',
+            data: EMPTY_CONTRACT
+          }),
+          web3.sandbox.accounts
+        ], function(err, results) {
+          expect(results[1]).toHaveMember('returnValue');
+          expect(_.size(results[2])).toBeGreaterThan(1);
           done();
         });
       } catch (e) {
