@@ -11,14 +11,14 @@ var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
 
   init: function() {
-    this.state = 'CLEAN';
     this.defaultAccount = null;
     this.transactions = [];
     this.filtersCounter = 0;
     this.filters = {};
+    this.createVM();
     return this;
   },
-  createVM: function(block) {
+  createVM: function() {
     var blockDB = levelup('', { db: require('memdown') });
     var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
 
@@ -27,13 +27,9 @@ var Sandbox = {
       cb(null, { hash: function() { return new Buffer(sha3(number), 'hex'); } });
     };
 
-    this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
-    
     this.block = new Ethereum.Block();
-    if (block) {
-      _.each([ 'coinbase', 'difficulty', 'gasLimit', 'number', 'timestamp' ],
-             _.partial(setField, this.block.header, block));
-    }
+
+    this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
     
     this.vm.onStep = (function(info, done) {
       if (info.opcode === 'LOG') notify.call(this, info);
@@ -77,17 +73,15 @@ var Sandbox = {
       }).bind(this));
     }
   },
-  start: function(env, cb) {
-    if (this.state !== 'CLEAN')
-      return cb('Could not start sandbox with state ' + this.state);
-
-    try {
-      if (!this.vm) this.createVM(env.block);
-    } catch (e) {
-      return this.stop(cb.bind(null, e));
+  setBlock: function(block) {
+    this.block = new Ethereum.Block();
+    if (block) {
+      _.each([ 'coinbase', 'difficulty', 'gasLimit', 'number', 'timestamp' ],
+             _.partial(setField, this.block.header, block));
     }
-
-    this.env = _(env.accounts).map(function(account, address) {
+  },
+  createAccounts: function(accounts, cb) {
+    this.accounts = _(accounts).map(function(account, address) {
       return {
         address: address,
         pkey: account.hasOwnProperty('pkey') ? account.pkey : null,
@@ -95,15 +89,12 @@ var Sandbox = {
       };
     }).indexBy('address').value();
 
-    async.forEachOfSeries(env.accounts, processAccount.bind(this), (function(err) {
+    async.forEachOfSeries(accounts, processAccount.bind(this), (function(err) {
       if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));
       else {
         if (this.defaultAccount === null) {
           this.stop(cb.bind(null, 'Please, specify a default account in ethereum.json'));
-        } else {
-          this.state = 'ACTIVE';
-          cb();
-        }
+        } else cb();
       }
     }).bind(this));
 
@@ -125,10 +116,11 @@ var Sandbox = {
     this.blockchain = null;
     this.block = null;
     this.defaultAccount = null;
-    this.transactions = [];
-    this.contracts = {};
-    this.env = {};
-    this.state = 'CLEAN';
+    this.transactions = null;
+    this.contracts = null;
+    this.accounts = null;
+    this.filters = null;
+    this.filtersCounter = null;
     cb();
   },
   createAccount: function(address, options, cb) {
@@ -222,7 +214,7 @@ var Sandbox = {
     return tx;
   },
   runTx: function(options, cb) {
-    var account = this.env[options.from];
+    var account = this.accounts[options.from];
     if (!account) return cb('Could not find an account with the address ' + options.from);
     if (!options.hasOwnProperty('pkey')) {
       if (!account.hasOwnProperty('pkey'))

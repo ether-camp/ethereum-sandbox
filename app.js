@@ -6,6 +6,8 @@ var _ = require('lodash');
 var crypto = require('crypto');
 var Sandbox = require('./sandbox');
 
+var sandboxes = {};
+
 function jsonRpcCallback(cb) {
   return function(err, reply) {
     if (err) err = { code: 0, message: err };
@@ -16,18 +18,23 @@ function jsonRpcCallback(cb) {
 
 function createSandbox(id) {
   var sandbox = Object.create(Sandbox).init();
+  sandboxes[id].instance = sandbox;
   return jayson.server({
     sandbox_id: function(cb) {
       cb(null, id);
     },
-    sandbox_start: function(env, cb) {
-      sandbox.start(env, jsonRpcCallback(cb));
+    sandbox_createAccounts: function(accounts, cb) {
+      sandbox.createAccounts(accounts, jsonRpcCallback(cb));
+    },
+    sandbox_setBlock: function(block, cb) {
+      sandbox.setBlock(block);
+      cb(null, true);
+    },
+    sandbox_predefinedAccounts: function(cb) {
+      cb(null, sandbox.accounts);
     },
     sandbox_accounts: function(cb) {
       sandbox.getAccounts(jsonRpcCallback(cb));
-    },
-    sandbox_env: function(cb) {
-      cb(null, sandbox.env);
     },
     sandbox_runTx: function(options, cb) {
       sandbox.runTx(options, jsonRpcCallback(cb));
@@ -46,21 +53,40 @@ function createSandbox(id) {
     },
     eth_getFilterLogs: function(filterId, cb) {
       sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
-    },
-    net_version: function(cb) {
-      cb(null, '59');
     }
   }).middleware();
 }
 
 app.use(bodyParser.json());
-app.post('/create-sandbox', function(req, res) {
+app.post('/sandbox', function(req, res) {
   var id = generateId();
-  app.post('/' + id, createSandbox(id));
+  sandboxes[id] = {};
+  sandboxes[id].middleware = createSandbox(id);
   res.json({ id: id });
 });
+app.post('/sandbox/:id', function(req, res, next) {
+  if (!sandboxes.hasOwnProperty(req.params.id)) res.sendStatus(404);
+  else sandboxes[req.params.id].middleware(req, res, next);
+});
+app.delete('/sandbox/:id', function(req, res, next) {
+  if (!sandboxes.hasOwnProperty(req.params.id)) res.sendStatus(404);
+  else {
+    sandboxes[req.params.id].instance.stop(function() {});
+    delete sandboxes[req.params.id];
+    res.sendStatus(200);
+  }
+});
+app.get('/sandboxes', function(req, res) {
+  res.json(_.keys(sandboxes));
+});
+app.post('/reset', function(req, res) {
+  _.each(sandboxes, function(sandbox, key) {
+    sandbox.instance.stop(function() {});
+  });
+  sandboxes = [];
+});
 
-var server = app.listen(8545, function () {
+var server = app.listen(8555, function () {
   var host = server.address().address;
   var port = server.address().port;
   console.log('Sandbox is listening at http://%s:%s', host, port);
