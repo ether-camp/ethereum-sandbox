@@ -6,7 +6,8 @@ var _ = require('lodash');
 var async = require('async');
 var web3 = require('web3');
 
-var sandboxUrl = 'http://localhost:8555/';
+var baseUrl = 'http://localhost:8555/',
+    sandboxUrl = baseUrl + 'sandbox/';
 
 var EMPTY_CONTRACT = '6060604052600a8060116000396000f30060606040526008565b00';
 var CONTRACT_WITH_LOG = '606060405260808060116000396000f30060606040526000357c010000000000000000000000000000000000000000000000000000000090048063b0bea725146037576035565b005b60406004506042565b005b7f686579000000000000000000000000000000000000000000000000000000000060016040518082600102815260200191505060405180910390a15b56';
@@ -74,11 +75,11 @@ describe('Sandbox', function() {
   });
 
   afterEach(function() {
-    request('POST', sandboxUrl + 'reset', function(){});
+    request('POST', baseUrl + 'reset', function(){});
   });
 
   it('Creates a new sandbox', function(done) {
-    request('POST', sandboxUrl + 'sandbox', function(err, res, reply) {
+    request('POST', sandboxUrl, function(err, res, reply) {
       if (err) return done.fail(err);
       expect(res.statusCode).toBe(200);
       expect(res.headers['content-type']).toStartWith('application/json');
@@ -90,7 +91,7 @@ describe('Sandbox', function() {
   it('Provides list of active sandboxes', function(done) {
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      request('GET', sandboxUrl + 'sandboxes', function(err, res, reply) {
+      request('GET', sandboxUrl, function(err, res, reply) {
         if (err) return done.fail(err);
         expect(res.statusCode).toBe(200);
         expect(reply).toBeArrayOfSize(1);
@@ -109,7 +110,7 @@ describe('Sandbox', function() {
     ], done);
     
     function check(id, cb) {
-      request('GET', sandboxUrl + 'sandboxes', function(err, res, reply) {
+      request('GET', sandboxUrl, function(err, res, reply) {
         if (err) return cb(err);
         expect(res.statusCode).toBe(200);
         if (id) {
@@ -122,7 +123,7 @@ describe('Sandbox', function() {
       });
     }
     function stop(id, cb) {
-      request('DELETE', sandboxUrl + 'sandbox/' + id, function(err, res) {
+      request('DELETE', sandboxUrl + id, function(err, res) {
         if (err) return cb(err);
         expect(res.statusCode).toBe(200);
         cb();
@@ -136,7 +137,7 @@ describe('Sandbox', function() {
       createSandbox
     ], function (err, ids) {
       async.each(ids, function(id, cb) {
-        var client = jayson.client.http(sandboxUrl + 'sandbox/' + id);
+        var client = jayson.client.http(sandboxUrl + id);
         client.request('sandbox_id', [], function(err, reply) {
           if (err) return cb(err);
           expect(reply.result).toBe(id);
@@ -152,7 +153,7 @@ describe('Sandbox', function() {
   it('Handle sandbox_id call', function(done) {
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         expect(web3.sandbox.id).toBe(id);
       } catch (e) {
@@ -165,7 +166,7 @@ describe('Sandbox', function() {
   it('Handle sandbox_createAccounts call', function(done) {
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         web3.sandbox.createAccounts({
           'dedb49385ad5b94a16f236a6890cf9e0b1e30392': {
@@ -211,7 +212,7 @@ describe('Sandbox', function() {
     };
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         async.series([
           web3.sandbox.createAccounts.bind(null, predefinedAccounts),
@@ -259,7 +260,7 @@ describe('Sandbox', function() {
     };
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         async.series([
           web3.sandbox.createAccounts.bind(null, predefinedAccounts),
@@ -285,7 +286,7 @@ describe('Sandbox', function() {
     };
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         async.series([
           web3.sandbox.createAccounts.bind(null, predefinedAccounts),
@@ -316,7 +317,7 @@ describe('Sandbox', function() {
     };
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         async.series([
           web3.sandbox.createAccounts.bind(null, predefinedAccounts),
@@ -353,7 +354,7 @@ describe('Sandbox', function() {
     };
     createSandbox(function(err, id) {
       if (err) return done.fail(err);
-      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + 'sandbox/' + id));
+      web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
       try {
         async.series([
           web3.sandbox.createAccounts.bind(null, predefinedAccounts),
@@ -409,7 +410,7 @@ function request(method, url, cb) {
 }
 
 function createSandbox(cb) {
-  request('POST', sandboxUrl + 'sandbox', function(err, res, reply) {
+  request('POST', sandboxUrl, function(err, res, reply) {
     if (err) cb(err);
     else cb(null, reply.id);
   });

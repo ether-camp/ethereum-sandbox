@@ -84,7 +84,7 @@ app.delete('/sandbox/:id', function(req, res, next) {
     res.sendStatus(200);
   }
 });
-app.get('/sandboxes', function(req, res) {
+app.get('/sandbox', function(req, res) {
   res.json(_.keys(sandboxes));
 });
 app.post('/reset', function(req, res) {
