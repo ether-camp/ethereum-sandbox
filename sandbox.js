@@ -13,6 +13,7 @@ var Sandbox = {
   init: function() {
     this.defaultAccount = null;
     this.transactions = [];
+    this.contracts = {};
     this.filtersCounter = 0;
     this.filters = {};
     this.createVM();
@@ -214,6 +215,7 @@ var Sandbox = {
     return tx;
   },
   runTx: function(options, cb) {
+    if (!options.from) options.from = this.defaultAccount;
     var account = this.accounts[options.from];
     if (!account) return cb('Could not find an account with the address ' + options.from);
     if (!options.hasOwnProperty('pkey')) {
@@ -349,7 +351,7 @@ var Sandbox = {
   removeFilter: function(id, cb) {
     if (!this.filters.hasOwnProperty(id))
       return cb('Could not find filter with id ' + id);
-    delete this.filter[id];
+    delete this.filters[id];
     cb(null, true);
   },
   getFilterChanges: function(id, cb) {

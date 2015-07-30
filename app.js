@@ -1,4 +1,5 @@
 var express = require('express');
+var cors = require('cors');
 var app = express();
 var jayson = require('jayson');
 var bodyParser = require('body-parser');
@@ -39,6 +40,12 @@ function createSandbox(id) {
     sandbox_runTx: function(options, cb) {
       sandbox.runTx(options, jsonRpcCallback(cb));
     },
+    sandbox_transactions: function(cb) {
+      cb(null, sandbox.transactions);
+    },
+    sandbox_contracts: function(cb) {
+      cb(null, sandbox.contracts);
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },
@@ -57,6 +64,7 @@ function createSandbox(id) {
   }).middleware();
 }
 
+app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
   var id = generateId();
