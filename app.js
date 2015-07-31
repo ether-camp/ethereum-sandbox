@@ -60,6 +60,9 @@ function createSandbox(id) {
     },
     eth_getFilterLogs: function(filterId, cb) {
       sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
+    },
+    net_listening: function(cb) {
+      cb(null, true);
     }
   }).middleware();
 }
