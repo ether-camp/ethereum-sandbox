@@ -12,6 +12,7 @@ describe('Sandbox JSON RPC', function() {
   afterEach(request.post.bind(request, baseUrl + 'reset'));
 
   describe('sandbox_* calls', run.bind(null, './specs/sandbox-json-rpc.json'));
+  describe('web3_* calls', run.bind(null, './specs/web3-json-rpc.json'));
 });
 
 function run(file) {

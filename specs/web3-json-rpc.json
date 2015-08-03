@@ -1,0 +1,8 @@
+{
+  "Provides client version": {
+    "web3_clientVersion": {
+      "params": [],
+      "result": "ethereum-sandbox/v0.0.1"
+    }
+  }
+}
