@@ -54,6 +54,12 @@ function createSandbox(id) {
     eth_coinbase: function(cb) {
       cb(null, util.toHex(sandbox.coinbase));
     },
+    eth_mining: function(cb) {
+      cb(null, false);
+    },
+    eth_hashrate: function(cb) {
+      cb(null, '0x0');
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },
