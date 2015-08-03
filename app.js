@@ -63,6 +63,9 @@ function createSandbox(id) {
     },
     net_listening: function(cb) {
       cb(null, true);
+    },
+    web3_clientVersion: function(cb) {
+      cb(null, 'ethereum-sandbox/v0.0.1');
     }
   }).middleware();
 }
@@ -95,6 +98,7 @@ app.post('/reset', function(req, res) {
     sandbox.instance.stop(function() {});
   });
   sandboxes = [];
+  res.sendStatus(200);
 });
 
 var server = app.listen(8555, function () {
