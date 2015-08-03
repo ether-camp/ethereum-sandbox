@@ -60,6 +60,9 @@ function createSandbox(id) {
     eth_hashrate: function(cb) {
       cb(null, '0x0');
     },
+    eth_gasPrice: function(cb) {
+      cb(null, '0x0');
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },
