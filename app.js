@@ -6,6 +6,8 @@ var bodyParser = require('body-parser');
 var _ = require('lodash');
 var crypto = require('crypto');
 var Sandbox = require('./sandbox');
+var SHA3Hash = require('sha3').SHA3Hash;
+var util = require('./util');
 
 var sandboxes = {};
 
@@ -66,6 +68,17 @@ function createSandbox(id) {
     },
     web3_clientVersion: function(cb) {
       cb(null, 'ethereum-sandbox/v0.0.1');
+    },
+    web3_sha3: function(str, cb) {
+      cb = jsonRpcCallback(cb);
+      try {
+        var buf = new Buffer(util.fromHex(str), 'hex');
+      } catch (e) {
+        return cb(e.message);
+      }
+      var sha = new SHA3Hash(256);
+      sha.update(buf);
+      cb(null, util.toHex(sha.digest('hex')));
     }
   }).middleware();
 }
