@@ -13,6 +13,7 @@ describe('Sandbox JSON RPC', function() {
 
   describe('sandbox_* calls', run.bind(null, './specs/sandbox-json-rpc.json'));
   describe('web3_* calls', run.bind(null, './specs/web3-json-rpc.json'));
+  describe('net_* calls', run.bind(null, './specs/net-json-rpc.json'));
 });
 
 function run(file) {

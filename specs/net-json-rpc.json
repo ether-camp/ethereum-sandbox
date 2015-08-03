@@ -1,0 +1,8 @@
+{
+  "Returns the current network protocol version": {
+    "net_version": {
+      "params": [],
+      "result": "59"
+    }
+  }
+}
