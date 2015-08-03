@@ -48,6 +48,9 @@ function createSandbox(id) {
     sandbox_contracts: function(cb) {
       cb(null, sandbox.contracts);
     },
+    eth_protocolVersion: function(cb) {
+      cb(null, '54');
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },

@@ -11,7 +11,7 @@
       "result": true
     }
   },
-  "Returns number of peers currenly connected to the client": {
+  "Returns number of peers currently connected to the client": {
     "net_peerCount": {
       "params": [],
       "result": "0x0"

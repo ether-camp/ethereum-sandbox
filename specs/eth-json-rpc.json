@@ -1,0 +1,9 @@
+{
+  "Returns the current ethereum protocol version": {
+    "eth_protocolVersion": {
+      "params": [],
+      "result": "54"
+    }
+  }
+}
+    
