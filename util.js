@@ -7,6 +7,9 @@ var util = {
   // adds 0x
   toHex: function(str) {
     return '0x' + str;
+  },
+  pad: function(str) {
+    return str.length % 2 === 0 ? str : '0' + str;
   }
 };
 

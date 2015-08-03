@@ -69,13 +69,16 @@ function createSandbox(id) {
     net_listening: function(cb) {
       cb(null, true);
     },
+    net_peerCount: function(cb) {
+      cb(null, "0x0");
+    },
     web3_clientVersion: function(cb) {
       cb(null, 'ethereum-sandbox/v0.0.1');
     },
     web3_sha3: function(str, cb) {
       cb = jsonRpcCallback(cb);
       try {
-        var buf = new Buffer(util.fromHex(str), 'hex');
+        var buf = new Buffer(util.pad(util.fromHex(str)), 'hex');
       } catch (e) {
         return cb(e.message);
       }
