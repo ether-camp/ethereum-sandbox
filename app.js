@@ -51,6 +51,9 @@ function createSandbox(id) {
     eth_protocolVersion: function(cb) {
       cb(null, '54');
     },
+    eth_coinbase: function(cb) {
+      cb(null, util.toHex(sandbox.coinbase));
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },

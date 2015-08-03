@@ -11,7 +11,7 @@ var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
 
   init: function() {
-    this.defaultAccount = null;
+    this.coinbase = null;
     this.transactions = [];
     this.contracts = {};
     this.filtersCounter = 0;
@@ -93,7 +93,7 @@ var Sandbox = {
     async.forEachOfSeries(accounts, processAccount.bind(this), (function(err) {
       if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));
       else {
-        if (this.defaultAccount === null) {
+        if (this.coinbase === null) {
           this.stop(cb.bind(null, 'Please, specify a default account in ethereum.json'));
         } else cb();
       }
@@ -101,13 +101,13 @@ var Sandbox = {
 
     function processAccount(options, address, cb) {
       if (options.default) {
-        if (this.defaultAccount !== null)
+        if (this.coinbase !== null)
           return cb('There is should be only one default account. Please, correct ethereum.json.');
         
         if (!options.hasOwnProperty('pkey'))
           return cb('Default account in ethereum.json should have a pkey.');
         
-        this.defaultAccount = address;
+        this.coinbase = address;
       }
       this.createAccount(address, options, cb);
     }
@@ -116,7 +116,7 @@ var Sandbox = {
     this.vm = null;
     this.blockchain = null;
     this.block = null;
-    this.defaultAccount = null;
+    this.coinbase = null;
     this.transactions = null;
     this.contracts = null;
     this.accounts = null;
@@ -215,7 +215,7 @@ var Sandbox = {
     return tx;
   },
   runTx: function(options, cb) {
-    if (!options.from) options.from = this.defaultAccount;
+    if (!options.from) options.from = this.coinbase;
     var account = this.accounts[options.from];
     if (!account) return cb('Could not find an account with the address ' + options.from);
     if (!options.hasOwnProperty('pkey')) {
