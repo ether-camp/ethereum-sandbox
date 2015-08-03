@@ -63,6 +63,9 @@ function createSandbox(id) {
     eth_gasPrice: function(cb) {
       cb(null, '0x0');
     },
+    eth_accounts: function(cb) {
+      cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
+    },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));
     },

@@ -37,6 +37,25 @@
       "params": [],
       "result": "0x0"
     }
+  },
+  "Returns a list of addresses owned by client": {
+    "sandbox_createAccounts": {
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        },
+        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {}
+      }],
+      "result": null
+    },
+    "eth_accounts": {
+      "params": [],
+      "result": [
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337"
+      ]
+    }
   }
 }
     
