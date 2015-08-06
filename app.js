@@ -31,7 +31,7 @@ function createSandbox(id) {
     },
     sandbox_setBlock: function(block, cb) {
       sandbox.setBlock(block);
-      cb(null, true);
+      cb(null, null);
     },
     sandbox_predefinedAccounts: function(cb) {
       cb(null, sandbox.accounts);
@@ -52,7 +52,7 @@ function createSandbox(id) {
       cb(null, '54');
     },
     eth_coinbase: function(cb) {
-      cb(null, util.toHex(sandbox.coinbase));
+      cb(null, util.toHex(sandbox.coinbase.toString('hex')));
     },
     eth_mining: function(cb) {
       cb(null, false);
@@ -65,6 +65,12 @@ function createSandbox(id) {
     },
     eth_accounts: function(cb) {
       cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
+    },
+    eth_blockNumber: function(cb) {
+      cb(null, util.toHex(sandbox.block.header.number.toString('hex')));
+    },
+    eth_sendTransaction: function(options, cb) {
+      sandbox.sendTx(options, jsonRpcCallback(cb));
     },
     eth_newFilter: function(options, cb) {
       sandbox.newFilter(options, jsonRpcCallback(cb));

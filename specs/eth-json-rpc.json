@@ -6,18 +6,9 @@
     }
   },
   "Returns the client coinbase address": {
-    "sandbox_createAccounts": {
-      "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "default": true
-        }
-      }],
-      "result": null
-    },
     "eth_coinbase": {
       "params": [],
-      "result": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392"
+      "result": "0x1337133713371337133713371337133713371337"
     }
   },
   "Returns true if client is actively mining new blocks": {
@@ -56,6 +47,52 @@
         "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337"
       ]
     }
+  },
+  "Transfers ether by tx": {
+    "sandbox_createAccounts": {
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "1000000",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    "eth_sendTransaction": {
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x10",
+        "data": ""
+      }],
+      "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
+    },
+    "sandbox_accounts": {
+      "wait": true,
+      "params": [],
+      "result": {
+        "1337133713371337133713371337133713371337": {
+          "nonce":"",
+          "balance":"14d1120d7b16a410",
+          "storage":{},
+          "code":""
+        },
+        "d46e8dd67c5d32be8058bb8eb970870f07244567": {
+          "nonce":"",
+          "balance":"10",
+          "storage":{},
+          "code":""
+        },
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "nonce":"01",
+          "balance":"ff5be0",
+          "storage":{},
+          "code":""
+        }
+      }
+    }
   }
 }
-    

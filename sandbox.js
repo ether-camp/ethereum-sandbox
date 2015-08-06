@@ -1,22 +1,27 @@
 var Ethereum = require('ethereumjs-lib');
 var Transaction = Ethereum.Transaction;
 var rlp = Ethereum.rlp;
-var utils = Ethereum.utils;
+var ethUtils = Ethereum.utils;
 var async = require('async');
 var SHA3Hash = require('sha3').SHA3Hash;
 var _ = require('lodash');
 var levelup = require('levelup');
+var util = require('./util');
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
+  DEFAULT_TX_GAS_PRICE: 1000000,
+  DEFAULT_TX_GAS_LIMIT: 100000,
 
   init: function() {
-    this.coinbase = null;
+    this.coinbase = new Buffer('1337133713371337133713371337133713371337', 'hex');
+    this.defaultAccount = null;
     this.transactions = [];
     this.contracts = {};
     this.filtersCounter = 0;
     this.filters = {};
     this.createVM();
+    this.gasLimit = 3141592;
     return this;
   },
   createVM: function() {
@@ -24,12 +29,7 @@ var Sandbox = {
     var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
 
     this.blockchain = new Ethereum.Blockchain(blockDB, detailsDB);
-    this.blockchain.getBlockByNumber = function(number, cb) {
-      cb(null, { hash: function() { return new Buffer(sha3(number), 'hex'); } });
-    };
-
-    this.block = new Ethereum.Block();
-
+    
     this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
     
     this.vm.onStep = (function(info, done) {
@@ -82,34 +82,35 @@ var Sandbox = {
     }
   },
   createAccounts: function(accounts, cb) {
-    this.accounts = _(accounts).map(function(account, address) {
-      return {
-        address: address,
-        pkey: account.hasOwnProperty('pkey') ? account.pkey : null,
-        nonce: account.hasOwnProperty('nonce') ? parseInt(account.nonce, 16) : 0
-      };
-    }).indexBy('address').value();
+    accounts = _.map(accounts, function(account, address) {
+      account.address = address;
+      return util.toBuffers(account, ['address', 'nonce', 'balance', 'code', 'pkey']);
+    });
+    this.accounts = _.transform(accounts, function(result, account) {
+      result[account.address.toString('hex')] = account.hasOwnProperty('pkey') ?
+        account.pkey : null;
+    });
 
-    async.forEachOfSeries(accounts, processAccount.bind(this), (function(err) {
+    async.each(accounts, processAccount.bind(this), (function(err) {
       if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));
       else {
-        if (this.coinbase === null) {
+        if (this.defaultAccount === null) {
           this.stop(cb.bind(null, 'Please, specify a default account in ethereum.json'));
         } else cb();
       }
     }).bind(this));
 
-    function processAccount(options, address, cb) {
+    function processAccount(options, cb) {
       if (options.default) {
-        if (this.coinbase !== null)
+        if (this.defaultAccount !== null)
           return cb('There is should be only one default account. Please, correct ethereum.json.');
         
         if (!options.hasOwnProperty('pkey'))
           return cb('Default account in ethereum.json should have a pkey.');
         
-        this.coinbase = address;
+        this.defaultAccount = options.address;
       }
-      this.createAccount(address, options, cb);
+      this.createAccount(options, cb);
     }
   },
   stop: function(cb) {
@@ -117,6 +118,7 @@ var Sandbox = {
     this.blockchain = null;
     this.block = null;
     this.coinbase = null;
+    this.defaultAccount = null;
     this.transactions = null;
     this.contracts = null;
     this.accounts = null;
@@ -124,27 +126,15 @@ var Sandbox = {
     this.filtersCounter = null;
     cb();
   },
-  createAccount: function(address, options, cb) {
-    var account = new Ethereum.Account();
-
-    try {
-      address = new Buffer(address, 'hex');
-    } catch (e) {
-      return cb('Could not parse account address ' + address + ': ' + e.message);
-    }
-    
-    try {
-      _.each(['balance', 'nonce'], _.partial(setField, account, options));
-    } catch (e) {
-      return cb(e);
-    }
+  createAccount: function(options, cb) {
+    var account = new Ethereum.Account(options);
 
     async.series([
       runCode.bind(this),
       storeCode.bind(this),
       saveStorage.bind(this),
       (function(cb) {
-        this.vm.trie.put(address, account.serialize(), cb);
+        this.vm.trie.put(options.address, account.serialize(), cb);
       }).bind(this)
     ], cb);
 
@@ -161,23 +151,19 @@ var Sandbox = {
         code: code,
         data: code,
         account: account,
-        gasLimit: 1000000,
+        gasLimit: this.DEFAULT_TX_GAS_LIMIT,
         address: from,
         caller: from,
-        block: this.block
+        block: this.createNextBlock()
       }, (function(err, result) {
         if (err) return cb(err);
-        this.contracts[address.toString('hex')] = options.runCode;
+        this.contracts[options.address.toString('hex')] = options.runCode;
         account.storeCode(this.vm.trie, result.returnValue, cb);
       }).bind(this));
     }
     function storeCode(cb) {
-      if (!options.hasOwnProperty('code')) return cb();
-      try {
-        account.storeCode(this.vm.trie, new Buffer(options.code, 'hex'), cb);
-      } catch (e) {
-        cb('Could not parse code: ' + e);
-      }
+      if (!options.hasOwnProperty('code')) cb();
+      else account.storeCode(this.vm.trie, options.code, cb);
     }
     function saveStorage(cb) {
       if (!options.hasOwnProperty('storage')) return cb();
@@ -204,58 +190,58 @@ var Sandbox = {
     }
   },
   createTx: function(options) {
-    var tx = new Transaction();
-    _.each(['nonce', 'to', 'gasLimit', 'gasPrice', 'value', 'data'],
-           _.partial(setField, tx, options));
-
-    if (!options.hasOwnProperty('gasPrice')) tx.gasPrice = 100000;
-    if (!options.hasOwnProperty('gasLimit')) tx.gasLimit = 1000000;
-    
-    tx.sign(new Buffer(options.pkey, 'hex'));
+    var tx = new Transaction(options);
+    tx.sign(options.pkey);
     return tx;
   },
   runTx: function(options, cb) {
-    if (!options.from) options.from = this.coinbase;
-    var account = this.accounts[options.from];
-    if (!account) return cb('Could not find an account with the address ' + options.from);
+    options = util.toBuffers(options);
+    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
+    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.DEFAULT_TX_GAS_PRICE;
+    if (!options.from) options.from = this.defaultAccount;
+    var address = options.from.toString('hex');
+    if (!this.accounts.hasOwnProperty(address))
+      return cb('Could not find a private key for ' + address);
+
     if (!options.hasOwnProperty('pkey')) {
-      if (!account.hasOwnProperty('pkey'))
-        return cb('Please, specify the private key for account ' + options.from);
-      options.pkey = account.pkey;
+      if (!this.accounts[address])
+        return cb('Please, specify the private key for account ' + address);
+      options.pkey = this.accounts[address];
     }
-    options.nonce = pad(account.nonce.toString(16));
-    try {
-      var tx = this.createTx(options);
-    } catch (e) {
-      return cb(e);
+
+    async.waterfall([
+      this.addNonce.bind(this, options),
+      async.asyncify(this.createTx.bind(this)),
+      runTx.bind(this)
+    ], cb);
+    
+    function runTx(tx, cb) {
+      var block = this.createNextBlock([tx]);
+      this.vm.runTx({ tx: tx, block: block }, (function(err, results) {
+        if (err) return cb(err);
+        this.transactions.push(parseTx(tx, results));
+        if (options.contract) {
+          this.contracts[results.createdAddress.toString('hex')] = options.contract;
+        }
+        _.each(this.filters, function(filter) {
+          if (filter.type === 'pending')
+            filter.entries.push('0x' + tx.hash().toString('hex'));
+        });
+        cb(null, {
+          returnValue: results.vm.returnValue ?
+            results.vm.returnValue.toString('hex') : null
+        });
+      }).bind(this));
     }
-    
-    this.vm.runTx({ tx: tx, block: this.block }, (function(err, results) {
-      if (err) return cb(err);
-      account.nonce++;
-      this.transactions.push(parseTransaction(tx, results));
-      if (options.contract) {
-        this.contracts[results.createdAddress.toString('hex')] = options.contract;
-      }
-      _.each(this.filters, function(filter) {
-        if (filter.type === 'pending')
-          filter.entries.push('0x' + tx.hash().toString('hex'));
-      });
-      cb(null, {
-        returnValue: results.vm.returnValue ?
-          results.vm.returnValue.toString('hex') : null
-      });
-    }).bind(this));
-    
-    function parseTransaction(tx, results) {
+    function parseTx(tx, results) {
       return {
         from: tx.getSenderAddress().toString('hex'),
-        nonce: utils.bufferToInt(tx.nonce),
-        gasPrice: utils.bufferToInt(tx.gasPrice),
-        gasLimit: utils.bufferToInt(tx.gasLimit),
+        nonce: ethUtils.bufferToInt(tx.nonce),
+        gasPrice: ethUtils.bufferToInt(tx.gasPrice),
+        gasLimit: ethUtils.bufferToInt(tx.gasLimit),
         to: tx.to.toString('hex'),
         gasUsed: results.gasUsed.toString('hex'),
-        value: utils.bufferToInt(tx.value),
+        value: ethUtils.bufferToInt(tx.value),
         data: tx.data.toString('hex'),
         createdAddress: results.createdAddress ? results.createdAddress.toString('hex') : '',
         returnValue: results.returnValue ? results.returnValue.toString('hex') : '',
@@ -267,6 +253,39 @@ var Sandbox = {
         hash: tx.hash().toString('hex')
       };
     }
+  },
+  sendTx: function(options, cb) {
+    options = util.toBuffers(options);
+    options.gasLimit = options.gas;
+    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
+    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.DEFAULT_TX_GAS_PRICE;
+    var address = options.from.toString('hex');
+    if (!this.accounts.hasOwnProperty(address))
+      return cb('Could not find a private key for ' + address);
+    options.pkey = this.accounts[address];
+
+    async.waterfall([
+      this.addNonce.bind(this, options),
+      async.asyncify(this.createTx.bind(this)),
+      this.addTx.bind(this)
+    ], function(err, tx) {
+      if (err) cb(err);
+      else cb(null, util.toHex(tx.hash().toString('hex')));
+    });
+  },
+  addNonce: function(options, cb) {
+    this.vm.trie.get(options.from, function(err, raw) {
+      if (err) return cb(err);
+      options.nonce = new Ethereum.Account(raw).nonce;
+      cb(null, options);
+    });
+  },
+  addTx: function(tx, cb) {
+    var block = this.createNextBlock([tx]);
+    this.vm.runBlock({ blockchain: this.blockchain, block: block, gen: true }, function(err) {
+      if (err) console.error(err);
+    });
+    cb(null, tx);
   },
   getAccounts: function(cb) {
     var stream = this.vm.trie.createReadStream();
@@ -360,6 +379,17 @@ var Sandbox = {
     var changes = this.filters[id].entries;
     this.filters[id].entries = [];
     cb(null, changes);
+  },
+  createNextBlock: function(transactions) {
+    return new Ethereum.Block({
+      header: {
+        coinbase: this.coinbase,
+        gasLimit: this.gasLimit,
+        number: this.blockchain.head ? this.blockchain.head.number + 1 : 0,
+        timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
+      }, transactions: transactions || [],
+      uncleHeaders: []
+    });
   }
 };
 
