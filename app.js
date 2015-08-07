@@ -19,107 +19,120 @@ function jsonRpcCallback(cb) {
   };
 }
 
-function createSandbox(id) {
-  var sandbox = Object.create(Sandbox).init();
-  sandboxes[id].instance = sandbox;
-  return jayson.server({
-    sandbox_id: function(cb) {
-      cb(null, id);
-    },
-    sandbox_createAccounts: function(accounts, cb) {
-      sandbox.createAccounts(accounts, jsonRpcCallback(cb));
-    },
-    sandbox_setBlock: function(block, cb) {
-      sandbox.setBlock(block);
-      cb(null, null);
-    },
-    sandbox_predefinedAccounts: function(cb) {
-      cb(null, sandbox.accounts);
-    },
-    sandbox_accounts: function(cb) {
-      sandbox.getAccounts(jsonRpcCallback(cb));
-    },
-    sandbox_runTx: function(options, cb) {
-      sandbox.runTx(options, jsonRpcCallback(cb));
-    },
-    sandbox_transactions: function(cb) {
-      cb(null, sandbox.transactions);
-    },
-    sandbox_contracts: function(cb) {
-      cb(null, sandbox.contracts);
-    },
-    eth_protocolVersion: function(cb) {
-      cb(null, '54');
-    },
-    eth_coinbase: function(cb) {
-      cb(null, util.toHex(sandbox.coinbase.toString('hex')));
-    },
-    eth_mining: function(cb) {
-      cb(null, false);
-    },
-    eth_hashrate: function(cb) {
-      cb(null, '0x0');
-    },
-    eth_gasPrice: function(cb) {
-      cb(null, '0x0');
-    },
-    eth_accounts: function(cb) {
-      cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
-    },
-    eth_blockNumber: function(cb) {
-      cb(null, util.toHex(sandbox.block.header.number.toString('hex')));
-    },
-    eth_sendTransaction: function(options, cb) {
-      sandbox.sendTx(options, jsonRpcCallback(cb));
-    },
-    eth_newFilter: function(options, cb) {
-      sandbox.newFilter(options, jsonRpcCallback(cb));
-    },
-    eth_newPendingTransactionFilter: function(cb) {
-      sandbox.newFilter('pending', jsonRpcCallback(cb));
-    },
-    eth_uninstallFilter: function(filterId, cb) {
-      sandbox.removeFilter(filterId, jsonRpcCallback(cb));
-    },
-    eth_getFilterChanges: function(filterId, cb) {
-      sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
-    },
-    eth_getFilterLogs: function(filterId, cb) {
-      sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
-    },
-    net_version: function(cb) {
-      cb(null, "59");
-    },
-    net_listening: function(cb) {
-      cb(null, true);
-    },
-    net_peerCount: function(cb) {
-      cb(null, "0x0");
-    },
-    web3_clientVersion: function(cb) {
-      cb(null, 'ethereum-sandbox/v0.0.1');
-    },
-    web3_sha3: function(str, cb) {
-      cb = jsonRpcCallback(cb);
-      try {
-        var buf = new Buffer(util.pad(util.fromHex(str)), 'hex');
-      } catch (e) {
-        return cb(e.message);
-      }
-      var sha = new SHA3Hash(256);
-      sha.update(buf);
-      cb(null, util.toHex(sha.digest('hex')));
-    }
-  }).middleware();
+function createSandbox(id, cb) {
+  var sandbox = Object.create(Sandbox);
+  sandbox.init(function(err) {
+    if (err) return cb(err);
+    sandboxes[id] = {
+      instance: sandbox,
+      middleware: jayson.server({
+        sandbox_id: function(cb) {
+          cb(null, id);
+        },
+        sandbox_createAccounts: function(accounts, cb) {
+          sandbox.createAccounts(accounts, jsonRpcCallback(cb));
+        },
+        sandbox_setBlock: function(block, cb) {
+          sandbox.setBlock(block);
+          cb(null, null);
+        },
+        sandbox_predefinedAccounts: function(cb) {
+          var accounts = _.transform(sandbox.accounts, function(result, pkey, address) {
+            result[address] = pkey.toString('hex');
+          });
+          cb(null, accounts);
+        },
+        sandbox_accounts: function(cb) {
+          sandbox.getAccounts(jsonRpcCallback(cb));
+        },
+        sandbox_runTx: function(options, cb) {
+          sandbox.runTx(options, jsonRpcCallback(cb));
+        },
+        sandbox_transactions: function(cb) {
+          cb(null, sandbox.transactions);
+        },
+        sandbox_contracts: function(cb) {
+          cb(null, sandbox.contracts);
+        },
+        eth_protocolVersion: function(cb) {
+          cb(null, '54');
+        },
+        eth_coinbase: function(cb) {
+          cb(null, util.toHex(sandbox.coinbase.toString('hex')));
+        },
+        eth_mining: function(cb) {
+          cb(null, false);
+        },
+        eth_hashrate: function(cb) {
+          cb(null, '0x0');
+        },
+        eth_gasPrice: function(cb) {
+          cb(null, '0x0');
+        },
+        eth_accounts: function(cb) {
+          cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
+        },
+        eth_blockNumber: function(cb) {
+          if (sandbox.blockchain.head) {
+            //console.log(sandbox.blockchain.head);
+            cb(null, util.toHex(sandbox.blockchain.head.header.number.toString('hex')));
+          } else cb(null, null);
+        },
+        eth_sendTransaction: function(options, cb) {
+          sandbox.sendTx(options, jsonRpcCallback(cb));
+        },
+        eth_newFilter: function(options, cb) {
+          sandbox.newFilter(options, jsonRpcCallback(cb));
+        },
+        eth_newPendingTransactionFilter: function(cb) {
+          sandbox.newFilter('pending', jsonRpcCallback(cb));
+        },
+        eth_uninstallFilter: function(filterId, cb) {
+          sandbox.removeFilter(filterId, jsonRpcCallback(cb));
+        },
+        eth_getFilterChanges: function(filterId, cb) {
+          sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
+        },
+        eth_getFilterLogs: function(filterId, cb) {
+          sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
+        },
+        net_version: function(cb) {
+          cb(null, "59");
+        },
+        net_listening: function(cb) {
+          cb(null, true);
+        },
+        net_peerCount: function(cb) {
+          cb(null, "0x0");
+        },
+        web3_clientVersion: function(cb) {
+          cb(null, 'ethereum-sandbox/v0.0.1');
+        },
+        web3_sha3: function(str, cb) {
+          cb = jsonRpcCallback(cb);
+          try {
+            var buf = new Buffer(util.pad(util.fromHex(str)), 'hex');
+          } catch (e) {
+            return cb(e.message);
+          }
+          var sha = new SHA3Hash(256);
+          sha.update(buf);
+          cb(null, util.toHex(sha.digest('hex')));
+        }
+      }).middleware()
+    };
+    cb();
+  });
 }
 
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
   var id = generateId();
-  sandboxes[id] = {};
-  sandboxes[id].middleware = createSandbox(id);
-  res.json({ id: id });
+  createSandbox(id, function(err, middleware) {
+    if (err) res.status(500).send(err);
+    else res.json({ id: id });
+  });
 });
 app.post('/sandbox/:id', function(req, res, next) {
   if (!sandboxes.hasOwnProperty(req.params.id)) res.sendStatus(404);

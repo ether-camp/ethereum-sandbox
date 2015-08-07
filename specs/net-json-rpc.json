@@ -1,20 +1,23 @@
 {
-  "Returns the current network protocol version": {
-    "net_version": {
+  "Returns the current network protocol version": [
+    {
+      "name": "net_version",
       "params": [],
       "result": "59"
     }
-  },
-  "Returns true if client is actively listening for network connections": {
-    "net_listening": {
+  ],
+  "Returns true if client is actively listening for network connections": [
+    {
+      "name": "net_listening",
       "params": [],
       "result": true
     }
-  },
-  "Returns number of peers currently connected to the client": {
-    "net_peerCount": {
+  ],
+  "Returns number of peers currently connected to the client": [
+    {
+      "name": "net_peerCount",
       "params": [],
       "result": "0x0"
     }
-  }
+  ]
 }

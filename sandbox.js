@@ -10,33 +10,50 @@ var util = require('./util');
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
-  DEFAULT_TX_GAS_PRICE: 1000000,
-  DEFAULT_TX_GAS_LIMIT: 100000,
-
-  init: function() {
+  DEFAULT_TX_GAS_PRICE: 1000000000,
+  DEFAULT_TX_GAS_LIMIT: 1000000000,
+  
+  init: function(cb) {
     this.coinbase = new Buffer('1337133713371337133713371337133713371337', 'hex');
     this.defaultAccount = null;
     this.transactions = [];
     this.contracts = {};
     this.filtersCounter = 0;
     this.filters = {};
-    this.createVM();
-    this.gasLimit = 3141592;
-    return this;
+    this.gasLimit = 1000000000;
+    this.runningPendingTx = false;
+    this.pendingTransactions = [];
+    this.createVM(cb);
   },
-  createVM: function() {
-    var blockDB = levelup('', { db: require('memdown') });
-    var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
+  createVM: function(cb) {
+    async.series([
+      createBlockchain.bind(this),
+      createVM.bind(this)
+    ], cb);
 
-    this.blockchain = new Ethereum.Blockchain(blockDB, detailsDB);
-    
-    this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
-    
-    this.vm.onStep = (function(info, done) {
-      if (info.opcode === 'LOG') notify.call(this, info);
-      done();
-    }).bind(this);
-    
+    function createBlockchain(cb) {
+      var blockDB = levelup('', { db: require('memdown') });
+      var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
+      this.blockchain = new Ethereum.Blockchain(blockDB, detailsDB);
+      var block = new Ethereum.Block({
+        header: {
+          coinbase: this.coinbase,
+          gasLimit: this.gasLimit,
+          number: 0,
+          timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
+        }, transactions: [],
+        uncleHeaders: []
+      });
+      this.blockchain.addBlock(block, cb);
+    }
+    function createVM(cb) {
+      this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
+      this.vm.onStep = (function(info, done) {
+        if (info.opcode === 'LOG') notify.call(this, info);
+        done();
+      }).bind(this);
+      cb();
+    }
     function notify(info) {
       var stack = info.stack.slice();
       info.account.getCode(this.vm.trie, (function(err, code) {
@@ -96,7 +113,9 @@ var Sandbox = {
       else {
         if (this.defaultAccount === null) {
           this.stop(cb.bind(null, 'Please, specify a default account in ethereum.json'));
-        } else cb();
+        } else {
+          cb();
+        }
       }
     }).bind(this));
 
@@ -264,11 +283,7 @@ var Sandbox = {
       return cb('Could not find a private key for ' + address);
     options.pkey = this.accounts[address];
 
-    async.waterfall([
-      this.addNonce.bind(this, options),
-      async.asyncify(this.createTx.bind(this)),
-      this.addTx.bind(this)
-    ], function(err, tx) {
+    this.addPendingTx(options, function(err, tx) {
       if (err) cb(err);
       else cb(null, util.toHex(tx.hash().toString('hex')));
     });
@@ -280,12 +295,47 @@ var Sandbox = {
       cb(null, options);
     });
   },
-  addTx: function(tx, cb) {
-    var block = this.createNextBlock([tx]);
-    this.vm.runBlock({ blockchain: this.blockchain, block: block, gen: true }, function(err) {
-      if (err) console.error(err);
-    });
-    cb(null, tx);
+  addPendingTx: function(options, cb) {
+    getNonce.call(this, (function(err, nonce) {
+      if (err) return cb(err);
+      options.nonce = nonce;
+      var tx = this.createTx(options);
+      this.pendingTransactions.push(tx);
+      cb(null, tx);
+      runPendingTx.call(this);
+    }).bind(this));
+    
+    function getNonce(cb) {
+      var prevTx = _.find(this.pendingTransactions, function(tx) {
+        return tx.getSenderAddress().equals(options.from);
+      });
+      if (prevTx) cb(null, ethUtils.bufferToInt(prevTx.nonce) + 1);
+      else {
+        this.vm.trie.get(options.from, function(err, raw) {
+          if (err) cb(err);
+          else cb(null, new Ethereum.Account(raw).nonce);
+        });
+      }
+    }
+    function runPendingTx() {
+      if (this.runningPendingTx || this.pendingTransactions.length === 0) return;
+      this.runningPendingTx = true;
+
+      var block = this.createNextBlock([this.pendingTransactions[0]]);
+      async.series([
+        this.vm.runBlock.bind(this.vm, {
+          blockchain: this.blockchain,
+          block: block,
+          gen: true
+        }),
+        this.blockchain.addBlock.bind(this.blockchain, block)
+      ], (function(err) {
+        this.pendingTransactions.shift();
+        this.runningPendingTx = false;
+        runPendingTx.call(this);
+        if (err) console.error(err);
+      }).bind(this));
+    }
   },
   getAccounts: function(cb) {
     var stream = this.vm.trie.createReadStream();
@@ -385,8 +435,9 @@ var Sandbox = {
       header: {
         coinbase: this.coinbase,
         gasLimit: this.gasLimit,
-        number: this.blockchain.head ? this.blockchain.head.number + 1 : 0,
-        timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
+        number: ethUtils.bufferToInt(this.blockchain.head.header.number) + 1,
+        timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
+        parentHash: this.blockchain.head.hash()
       }, transactions: transactions || [],
       uncleHeaders: []
     });

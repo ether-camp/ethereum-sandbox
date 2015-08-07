@@ -1,36 +1,42 @@
 {
-  "Returns the current ethereum protocol version": {
-    "eth_protocolVersion": {
+  "Returns the current ethereum protocol version": [
+    {
+      "name": "eth_protocolVersion",
       "params": [],
       "result": "54"
     }
-  },
-  "Returns the client coinbase address": {
-    "eth_coinbase": {
+  ],
+  "Returns the client coinbase address": [
+    {
+      "name": "eth_coinbase",
       "params": [],
       "result": "0x1337133713371337133713371337133713371337"
     }
-  },
-  "Returns true if client is actively mining new blocks": {
-    "eth_mining": {
+  ],
+  "Returns true if client is actively mining new blocks": [
+    {
+      "name": "eth_mining",
       "params": [],
       "result": false
     }
-  },
-  "Returns the number of hashes per second that the node is mining with": {
-    "eth_hashrate": {
+  ],
+  "Returns the number of hashes per second that the node is mining with": [
+    {
+      "name": "eth_hashrate",
       "params": [],
       "result": "0x0"
     }
-  },
-  "Returns the current price per gas in wei": {
-    "eth_gasPrice": {
+  ],
+  "Returns the current price per gas in wei": [
+    {
+      "name": "eth_gasPrice",
       "params": [],
       "result": "0x0"
     }
-  },
-  "Returns a list of addresses owned by client": {
-    "sandbox_createAccounts": {
+  ],
+  "Returns a list of addresses owned by client": [
+    {
+      "name": "sandbox_createAccounts",
       "params": [{
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
@@ -40,16 +46,18 @@
       }],
       "result": null
     },
-    "eth_accounts": {
+    {
+      "name": "eth_accounts",
       "params": [],
       "result": [
         "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
         "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337"
       ]
     }
-  },
-  "Transfers ether by tx": {
-    "sandbox_createAccounts": {
+  ],
+  "Returns the number of most recent block": [
+    {
+      "name": "sandbox_createAccounts",
       "params": [{
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
@@ -59,7 +67,8 @@
       }],
       "result": null
     },
-    "eth_sendTransaction": {
+    {
+      "name": "eth_sendTransaction",
       "params": [{
         "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
@@ -70,7 +79,51 @@
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
-    "sandbox_accounts": {
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x10",
+        "data": ""
+      }],
+      "result": "0xe71290c71f1ce825693359e381ebd2625160ffe277be908a8c68cdd841d6ad1f"
+    },
+    {
+      "name": "eth_blockNumber",
+      "wait": true,
+      "params": [],
+      "result": "0x02"
+    }
+  ],
+  "Transfers ether by tx": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "1000000",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x10",
+        "data": ""
+      }],
+      "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
+    },
+    {
+      "name": "sandbox_accounts",
       "wait": true,
       "params": [],
       "result": {
@@ -94,5 +147,5 @@
         }
       }
     }
-  }
+  ]
 }

@@ -1,6 +1,7 @@
 {
-  "Provides accounts": {
-    "sandbox_createAccounts": {
+  "Provides accounts": [
+    {
+      "name": "sandbox_createAccounts",
       "params": [{
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
@@ -15,7 +16,8 @@
       }],
       "result": null
     },
-    "sandbox_accounts": {
+    {
+      "name": "sandbox_accounts",
       "params": [],
       "result": {
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
@@ -32,9 +34,10 @@
         }
       }
     }
-  },
-  "Creates a contract by a tx": {
-    "sandbox_createAccounts": {
+  ],
+  "Creates a contract by a tx": [
+    {
+      "name": "sandbox_createAccounts",
       "params": [{
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
@@ -44,7 +47,8 @@
       }],
       "result": null
     },
-    "sandbox_runTx": {
+    {
+      "name": "sandbox_runTx",
       "params": [{
         "from": "dedb49385ad5b94a16f236a6890cf9e0b1e30392",
         "data": "6060604052600a8060116000396000f30060606040526008565b00"
@@ -53,12 +57,13 @@
         "returnValue": "60606040526008565b00"
       }
     },
-    "sandbox_accounts": {
+    {
+      "name": "sandbox_accounts",
       "params": [],
       "result": {
         "1337133713371337133713371337133713371337": {
           "nonce":"",
-          "balance":"05bb6820c0",
+          "balance":"16640ebfee00",
           "storage":{},
           "code":""
         },
@@ -70,11 +75,11 @@
         },
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "nonce":"01",
-          "balance":"0ffffffa4497df40",
+          "balance":"0fffe99bf1401200",
           "storage":{},
           "code":""
         }
       }
     }
-  }
+  ]
 }
