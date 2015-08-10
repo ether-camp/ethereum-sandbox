@@ -49,7 +49,9 @@ var Sandbox = {
     function createVM(cb) {
       this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
       this.vm.onStep = (function(info, done) {
-        if (info.opcode === 'LOG') notify.call(this, info);
+        if (info.opcode === 'LOG') {
+            notify.call(this, info);
+        }
         done();
       }).bind(this);
       cb();
@@ -103,10 +105,12 @@ var Sandbox = {
       account.address = address;
       return util.toBuffers(account, ['address', 'nonce', 'balance', 'code', 'pkey']);
     });
-    this.accounts = _.transform(accounts, function(result, account) {
-      result[account.address.toString('hex')] = account.hasOwnProperty('pkey') ?
-        account.pkey : null;
-    });
+    this.accounts = _(accounts).map(function(account) {
+      return [
+        account.address.toString('hex'),
+        account.hasOwnProperty('pkey') ? account.pkey : null
+      ];
+    }).zipObject().value();
 
     async.each(accounts, processAccount.bind(this), (function(err) {
       if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));

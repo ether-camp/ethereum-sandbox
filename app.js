@@ -37,10 +37,9 @@ function createSandbox(id, cb) {
           cb(null, null);
         },
         sandbox_predefinedAccounts: function(cb) {
-          var accounts = _.transform(sandbox.accounts, function(result, pkey, address) {
-            result[address] = pkey.toString('hex');
-          });
-          cb(null, accounts);
+          cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {
+            result[address] = pkey ? pkey.toString('hex') : null;
+          }));
         },
         sandbox_accounts: function(cb) {
           sandbox.getAccounts(jsonRpcCallback(cb));
@@ -74,7 +73,6 @@ function createSandbox(id, cb) {
         },
         eth_blockNumber: function(cb) {
           if (sandbox.blockchain.head) {
-            //console.log(sandbox.blockchain.head);
             cb(null, util.toHex(sandbox.blockchain.head.header.number.toString('hex')));
           } else cb(null, null);
         },
