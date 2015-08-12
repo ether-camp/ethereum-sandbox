@@ -53,8 +53,8 @@ var Sandbox = {
     function createVM(cb) {
       this.vm = new VM(new Trie(), this.blockchain);
       this.vm.onStep = (function(info, done) {
-        if (info.opcode === 'LOG') {
-            notify.call(this, info);
+        if (_.startsWith(info.opcode.opcode, 'LOG')) {
+          notify.call(this, info);
         }
         done();
       }).bind(this);
@@ -62,39 +62,35 @@ var Sandbox = {
     }
     function notify(info) {
       var stack = info.stack.slice();
-      info.account.getCode(this.vm.trie, (function(err, code) {
-        if (code.length !== 0) {
-          var topicNum = code.readUInt8(info.pc) - 0xa0;
-          var offset = parseInt(stack.pop().toString('hex'), 16);
-          var size = parseInt(stack.pop().toString('hex'), 16);
-          var data = _(info.memory).slice(offset, offset + size)
-                .chunk(32)
-                .map(function(val) {
-                  return val
-                    .map(function(cell) {
-                      return pad(cell.toString(16));
-                    })
-                    .join('');
+      var topicNum = parseInt(info.opcode.opcode.substr(3));
+      var offset = parseInt(stack.pop().toString('hex'), 16);
+      var size = parseInt(stack.pop().toString('hex'), 16);
+      var data = _(info.memory).slice(offset, offset + size)
+            .chunk(32)
+            .map(function(val) {
+              return val
+                .map(function(cell) {
+                  return pad(cell.toString(16));
                 })
-                .value();
-          var topics = _.times(topicNum, function() {
-            return '0x' + stack.pop().toString('hex');
-          });
-          var log = {
-            logIndex: null,
-            transactionIndex: null,
-            transactionHash: null,
-            blockHash: null,
-            blockNumber: null,
-            address: '0x' + info.address.toString('hex'),
-            data: '0x' +  data.join(''),
-            topics: topics
-          };
-          _.each(this.filters, function(filter) {
-            if (filter.type === 'log') filter.entries.push(log);
-          });
-        }
-      }).bind(this));
+                .join('');
+            })
+            .value();
+      var topics = _.times(topicNum, function() {
+        return '0x' + stack.pop().toString('hex');
+      });
+      var log = {
+        logIndex: null,
+        transactionIndex: null,
+        transactionHash: null,
+        blockHash: null,
+        blockNumber: null,
+        address: '0x' + info.address.toString('hex'),
+        data: '0x' +  data.join(''),
+        topics: topics
+      };
+      _.each(this.filters, function(filter) {
+        if (filter.type === 'log') filter.entries.push(log);
+      });
     }
   },
   setBlock: function(block) {
