@@ -182,7 +182,7 @@ var Sandbox = {
         data: code,
         account: account,
         gasLimit: this.DEFAULT_TX_GAS_LIMIT,
-        address: from,
+        address: options.address,
         caller: from,
         block: this.createNextBlock()
       }, (function(err, result) {
