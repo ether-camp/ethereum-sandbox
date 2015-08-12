@@ -33,8 +33,7 @@ function createSandbox(id, cb) {
           sandbox.createAccounts(accounts, jsonRpcCallback(cb));
         },
         sandbox_setBlock: function(block, cb) {
-          sandbox.setBlock(block);
-          cb(null, null);
+          sandbox.setBlock(block, jsonRpcCallback(cb));
         },
         sandbox_predefinedAccounts: function(cb) {
           cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {

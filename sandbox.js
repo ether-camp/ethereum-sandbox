@@ -24,7 +24,8 @@ var Sandbox = {
     this.contracts = {};
     this.filtersCounter = 0;
     this.filters = {};
-    this.gasLimit = 1000000000;
+    this.gasLimit = new Buffer('1000000000', 'hex');
+    this.difficulty = new Buffer('010000', 'hex');
     this.runningPendingTx = false;
     this.pendingTransactions = [];
     this.createVM(cb);
@@ -93,12 +94,18 @@ var Sandbox = {
       });
     }
   },
-  setBlock: function(block) {
-    this.block = new Block();
-    if (block) {
-      _.each([ 'coinbase', 'difficulty', 'gasLimit', 'number', 'timestamp' ],
-             _.partial(setField, this.block.header, block));
-    }
+  setBlock: function(block, cb) {
+    if (!block) return cb();
+    _.each(['coinbase', 'difficulty', 'gasLimit'], (function(field) {
+      if (block.hasOwnProperty(field)) {
+        try {
+          this[field] = new Buffer(block[field], 'hex');
+        } catch (e) {
+          return cb('Could not parse block.' + field + ': ' + e);
+        }
+      }
+    }).bind(this));
+    cb();
   },
   createAccounts: function(accounts, cb) {
     accounts = _.map(accounts, function(account, address) {
@@ -438,6 +445,7 @@ var Sandbox = {
       header: {
         coinbase: this.coinbase,
         gasLimit: this.gasLimit,
+        difficulty: this.difficulty,
         number: ethUtils.bufferToInt(this.blockchain.head.header.number) + 1,
         timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
         parentHash: this.blockchain.head.hash()
