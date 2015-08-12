@@ -1,7 +1,11 @@
-var Ethereum = require('ethereumjs-lib');
-var Transaction = Ethereum.Transaction;
-var rlp = Ethereum.rlp;
-var ethUtils = Ethereum.utils;
+var VM = require('ethereumjs-vm');
+var Transaction = require('ethereumjs-tx');
+var Account = require('ethereumjs-account');
+var Block = require('ethereumjs-block');
+var Blockchain = require('ethereumjs-blockchain');
+var Trie = require('merkle-patricia-tree');
+var rlp = require('rlp');
+var ethUtils = require('ethereumjs-util');
 var async = require('async');
 var SHA3Hash = require('sha3').SHA3Hash;
 var _ = require('lodash');
@@ -34,8 +38,8 @@ var Sandbox = {
     function createBlockchain(cb) {
       var blockDB = levelup('', { db: require('memdown') });
       var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
-      this.blockchain = new Ethereum.Blockchain(blockDB, detailsDB);
-      var block = new Ethereum.Block({
+      this.blockchain = new Blockchain(blockDB, detailsDB);
+      var block = new Block({
         header: {
           coinbase: this.coinbase,
           gasLimit: this.gasLimit,
@@ -47,7 +51,7 @@ var Sandbox = {
       this.blockchain.addBlock(block, cb);
     }
     function createVM(cb) {
-      this.vm = new Ethereum.VM(new Ethereum.Trie(), this.blockchain);
+      this.vm = new VM(new Trie(), this.blockchain);
       this.vm.onStep = (function(info, done) {
         if (info.opcode === 'LOG') {
             notify.call(this, info);
@@ -94,7 +98,7 @@ var Sandbox = {
     }
   },
   setBlock: function(block) {
-    this.block = new Ethereum.Block();
+    this.block = new Block();
     if (block) {
       _.each([ 'coinbase', 'difficulty', 'gasLimit', 'number', 'timestamp' ],
              _.partial(setField, this.block.header, block));
@@ -150,7 +154,7 @@ var Sandbox = {
     cb();
   },
   createAccount: function(options, cb) {
-    var account = new Ethereum.Account(options);
+    var account = new Account(options);
 
     async.series([
       runCode.bind(this),
@@ -181,12 +185,12 @@ var Sandbox = {
       }, (function(err, result) {
         if (err) return cb(err);
         this.contracts[options.address.toString('hex')] = options.runCode;
-        account.storeCode(this.vm.trie, result.returnValue, cb);
+        account.setCode(this.vm.trie, result.return, cb);
       }).bind(this));
     }
     function storeCode(cb) {
       if (!options.hasOwnProperty('code')) cb();
-      else account.storeCode(this.vm.trie, options.code, cb);
+      else account.setCode(this.vm.trie, options.code, cb);
     }
     function saveStorage(cb) {
       if (!options.hasOwnProperty('storage')) return cb();
@@ -251,8 +255,7 @@ var Sandbox = {
             filter.entries.push('0x' + tx.hash().toString('hex'));
         });
         cb(null, {
-          returnValue: results.vm.returnValue ?
-            results.vm.returnValue.toString('hex') : null
+          returnValue: results.vm.return ? results.vm.return.toString('hex') : null
         });
       }).bind(this));
     }
@@ -267,7 +270,7 @@ var Sandbox = {
         value: ethUtils.bufferToInt(tx.value),
         data: tx.data.toString('hex'),
         createdAddress: results.createdAddress ? results.createdAddress.toString('hex') : '',
-        returnValue: results.returnValue ? results.returnValue.toString('hex') : '',
+        returnValue: results.return ? results.return.toString('hex') : '',
         exception: results.exception,
         rlp: tx.serialize().toString('hex'),
         r : tx.r.toString('hex'),
@@ -295,7 +298,7 @@ var Sandbox = {
   addNonce: function(options, cb) {
     this.vm.trie.get(options.from, function(err, raw) {
       if (err) return cb(err);
-      options.nonce = new Ethereum.Account(raw).nonce;
+      options.nonce = new Account(raw).nonce;
       cb(null, options);
     });
   },
@@ -317,7 +320,7 @@ var Sandbox = {
       else {
         this.vm.trie.get(options.from, function(err, raw) {
           if (err) cb(err);
-          else cb(null, new Ethereum.Account(raw).nonce);
+          else cb(null, new Account(raw).nonce);
         });
       }
     }
@@ -330,7 +333,7 @@ var Sandbox = {
         this.vm.runBlock.bind(this.vm, {
           blockchain: this.blockchain,
           block: block,
-          gen: true
+          generate: true
         }),
         this.blockchain.addBlock.bind(this.blockchain, block)
       ], (function(err) {
@@ -374,7 +377,7 @@ var Sandbox = {
     }).bind(this));
   },
   parseAccount: function(data, cb) {
-    var raw = new Ethereum.Account(data);
+    var raw = new Account(data);
     var account = {
       nonce: raw.nonce.toString('hex'),
       balance: raw.balance.toString('hex'),
@@ -435,7 +438,7 @@ var Sandbox = {
     cb(null, changes);
   },
   createNextBlock: function(transactions) {
-    return new Ethereum.Block({
+    return new Block({
       header: {
         coinbase: this.coinbase,
         gasLimit: this.gasLimit,
