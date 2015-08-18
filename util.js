@@ -1,7 +1,18 @@
 var BigNumber = require('bignumber.js');
 var _ = require('lodash');
+var SHA3Hash = require('sha3').SHA3Hash;
+var crypto = require('crypto');
 
 var util = {};
+
+util.sha3 = function(strOrBuf, encoding) {
+  var sha = new SHA3Hash(256);
+  if (!Buffer.isBuffer(strOrBuf))
+    strOrBuf = new Buffer(util.pad(util.fromHex(strOrBuf)), 'hex');
+  sha.update(strOrBuf);
+  var out = sha.digest(encoding);
+  return Buffer.isBuffer(out) ? out : util.toHex(out);
+};
 
 util.fromHex = function(str) {
   if (str.substr(0, 2) === '0x') return str.substr(2);
@@ -43,6 +54,29 @@ util.toBigNumber = function(number) {
 
 util.toBuffer = function(number) {
   return new Buffer(number.toString(16), 'hex');
+};
+
+util.jsonRpcCallback = function(cb) {
+  return function(err, reply) {
+    if (err) err = { code: 0, message: err };
+    if (reply === undefined) reply = null;
+    cb(err, reply);
+  };
+};
+
+util.generateId = function() {
+  var now = (new Date()).valueOf().toString();
+  var seed = Math.random().toString();
+  return crypto.createHash('sha1').update(now + seed).digest('hex');
+};
+
+util.collapse = function(stem, sep) {
+  return function(map, value, key) {
+    var prop = stem ? stem + sep + key : key;
+    if(_.isFunction(value)) map[prop] = value;
+    else if(_.isObject(value)) map = _.reduce(value, util.collapse(prop, sep), map);
+    return map;
+  };
 };
 
 module.exports = util;

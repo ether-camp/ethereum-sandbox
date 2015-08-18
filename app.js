@@ -4,153 +4,69 @@ var app = express();
 var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
-var crypto = require('crypto');
 var Sandbox = require('./sandbox');
-var SHA3Hash = require('sha3').SHA3Hash;
 var util = require('./util');
+var sandboxApi = require('./api/sandbox');
+var ethApi = require('./api/eth');
+var netApi = require('./api/net');
+var web3Api = require('./api/web3');
 
-var sandboxes = {};
+var services = {};
 
-function jsonRpcCallback(cb) {
-  return function(err, reply) {
-    if (err) err = { code: 0, message: err };
-    if (reply === undefined) reply = null;
-    cb(err, reply);
+function service(sandbox) {
+  return {
+    sandbox: sandboxApi(sandbox),
+    eth: ethApi(sandbox),
+    net: netApi(sandbox),
+    web3: web3Api(sandbox)
   };
 }
 
-function createSandbox(id, cb) {
+function createSandboxService(id, cb) {
   var sandbox = Object.create(Sandbox);
-  sandbox.init(function(err) {
-    if (err) return cb(err);
-    sandboxes[id] = {
+  sandbox.init(id, function(err) {
+    if (err) cb(err);
+    else cb(null, {
       instance: sandbox,
-      middleware: jayson.server({
-        sandbox_id: function(cb) {
-          cb(null, id);
-        },
-        sandbox_createAccounts: function(accounts, cb) {
-          sandbox.createAccounts(accounts, jsonRpcCallback(cb));
-        },
-        sandbox_setBlock: function(block, cb) {
-          sandbox.setBlock(block, jsonRpcCallback(cb));
-        },
-        sandbox_predefinedAccounts: function(cb) {
-          cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {
-            result[address] = pkey ? pkey.toString('hex') : null;
-          }));
-        },
-        sandbox_accounts: function(cb) {
-          sandbox.getAccounts(jsonRpcCallback(cb));
-        },
-        sandbox_runTx: function(options, cb) {
-          sandbox.runTx(options, jsonRpcCallback(cb));
-        },
-        sandbox_transactions: function(cb) {
-          cb(null, sandbox.transactions);
-        },
-        sandbox_contracts: function(cb) {
-          cb(null, sandbox.contracts);
-        },
-        eth_protocolVersion: function(cb) {
-          cb(null, '54');
-        },
-        eth_coinbase: function(cb) {
-          cb(null, util.toHex(sandbox.coinbase.toString('hex')));
-        },
-        eth_mining: function(cb) {
-          cb(null, false);
-        },
-        eth_hashrate: function(cb) {
-          cb(null, '0x0');
-        },
-        eth_gasPrice: function(cb) {
-          cb(null, '0x0');
-        },
-        eth_accounts: function(cb) {
-          cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
-        },
-        eth_blockNumber: function(cb) {
-          if (sandbox.blockchain.head) {
-            cb(null, util.toHex(sandbox.blockchain.head.header.number.toString('hex')));
-          } else cb(null, null);
-        },
-        eth_sendTransaction: function(options, cb) {
-          sandbox.sendTx(options, jsonRpcCallback(cb));
-        },
-        eth_newFilter: function(options, cb) {
-          sandbox.newFilter(options, jsonRpcCallback(cb));
-        },
-        eth_newPendingTransactionFilter: function(cb) {
-          sandbox.newFilter('pending', jsonRpcCallback(cb));
-        },
-        eth_uninstallFilter: function(filterId, cb) {
-          sandbox.removeFilter(filterId, jsonRpcCallback(cb));
-        },
-        eth_getFilterChanges: function(filterId, cb) {
-          sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
-        },
-        eth_getFilterLogs: function(filterId, cb) {
-          sandbox.getFilterChanges(filterId, jsonRpcCallback(cb));
-        },
-        net_version: function(cb) {
-          cb(null, "59");
-        },
-        net_listening: function(cb) {
-          cb(null, true);
-        },
-        net_peerCount: function(cb) {
-          cb(null, "0x0");
-        },
-        web3_clientVersion: function(cb) {
-          cb(null, 'ethereum-sandbox/v0.0.1');
-        },
-        web3_sha3: function(str, cb) {
-          cb = jsonRpcCallback(cb);
-          try {
-            var buf = new Buffer(util.pad(util.fromHex(str)), 'hex');
-          } catch (e) {
-            return cb(e.message);
-          }
-          var sha = new SHA3Hash(256);
-          sha.update(buf);
-          cb(null, util.toHex(sha.digest('hex')));
-        }
-      }).middleware()
-    };
-    cb();
+      middleware: jayson.server(
+        _.reduce(service(sandbox), util.collapse('', '_'), {})
+      ).middleware()
+    });
   });
 }
 
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
-  var id = generateId();
-  createSandbox(id, function(err, middleware) {
+  var id = util.generateId();
+  createSandboxService(id, function(err, service) {
     if (err) res.status(500).send(err);
-    else res.json({ id: id });
+    else {
+      services[id] = service;
+      res.json({ id: id });
+    }
   });
 });
 app.post('/sandbox/:id', function(req, res, next) {
-  if (!sandboxes.hasOwnProperty(req.params.id)) res.sendStatus(404);
-  else sandboxes[req.params.id].middleware(req, res, next);
+  if (!services.hasOwnProperty(req.params.id)) res.sendStatus(404);
+  else services[req.params.id].middleware(req, res, next);
 });
 app.delete('/sandbox/:id', function(req, res, next) {
-  if (!sandboxes.hasOwnProperty(req.params.id)) res.sendStatus(404);
+  if (!services.hasOwnProperty(req.params.id)) res.sendStatus(404);
   else {
-    sandboxes[req.params.id].instance.stop(function() {});
-    delete sandboxes[req.params.id];
+    services[req.params.id].instance.stop(function() {});
+    delete services[req.params.id];
     res.sendStatus(200);
   }
 });
 app.get('/sandbox', function(req, res) {
-  res.json(_.keys(sandboxes));
+  res.json(_.keys(services));
 });
 app.post('/reset', function(req, res) {
-  _.each(sandboxes, function(sandbox, key) {
+  _.each(services, function(sandbox, key) {
     sandbox.instance.stop(function() {});
   });
-  sandboxes = [];
+  services = [];
   res.sendStatus(200);
 });
 
@@ -159,9 +75,3 @@ var server = app.listen(8555, function () {
   var port = server.address().port;
   console.log('Sandbox is listening at http://%s:%s', host, port);
 });
-
-function generateId() {
-  var now = (new Date()).valueOf().toString();
-  var seed = Math.random().toString();
-  return crypto.createHash('sha1').update(now + seed).digest('hex');
-}

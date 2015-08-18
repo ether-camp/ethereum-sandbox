@@ -17,7 +17,8 @@ var Sandbox = {
   DEFAULT_TX_GAS_PRICE: 1000000000,
   DEFAULT_TX_GAS_LIMIT: 1000000000,
   
-  init: function(cb) {
+  init: function(id, cb) {
+    this.id = id;
     this.coinbase = new Buffer('1337133713371337133713371337133713371337', 'hex');
     this.defaultAccount = null;
     this.transactions = [];
