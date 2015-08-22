@@ -10,7 +10,7 @@ var async = require('async');
 var SHA3Hash = require('sha3').SHA3Hash;
 var _ = require('lodash');
 var levelup = require('levelup');
-var util = require('./util');
+var util = require('../util');
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
@@ -21,11 +21,12 @@ var Sandbox = {
     this.id = id;
     this.coinbase = new Buffer('1337133713371337133713371337133713371337', 'hex');
     this.defaultAccount = null;
+    this.accounts = [];
     this.transactions = [];
     this.contracts = {};
     this.filtersCounter = 0;
     this.filters = {};
-    this.gasLimit = new Buffer('1000000000', 'hex');
+    this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
     this.difficulty = new Buffer('010000', 'hex');
     this.runningPendingTx = false;
     this.pendingTransactions = [];

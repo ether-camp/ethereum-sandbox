@@ -6,7 +6,6 @@ module.exports = function(sandbox) {
       cb(null, 'ethereum-sandbox/v0.0.1');
     },
     sha3: function(str, cb) {
-      console.log(str);
       cb(null, util.sha3(str, 'hex'));
     }
   };

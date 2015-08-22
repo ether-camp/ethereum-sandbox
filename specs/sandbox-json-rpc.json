@@ -1,4 +1,30 @@
 {
+  "Provides predefined accounts": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "1234",
+          "nonce": "62",
+          "default": true
+        },
+        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
+          "balance": "012345",
+          "nonce": 0
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "sandbox_predefinedAccounts",
+      "params": [],
+      "result": {
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": null
+      }
+    }
+  ],
   "Provides accounts": [
     {
       "name": "sandbox_createAccounts",
