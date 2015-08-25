@@ -30,6 +30,7 @@ var Sandbox = {
     this.difficulty = new Buffer('010000', 'hex');
     this.runningPendingTx = false;
     this.pendingTransactions = [];
+    this.rejectedTransactions = [];
     this.createVM(cb);
   },
   createVM: function(cb) {
@@ -342,10 +343,12 @@ var Sandbox = {
         }),
         this.blockchain.addBlock.bind(this.blockchain, block)
       ], (function(err) {
-        this.pendingTransactions.shift();
+        var tx = this.pendingTransactions.shift();
         this.runningPendingTx = false;
         runPendingTx.call(this);
-        if (err) console.error(err);
+        if (err) {
+          this.rejectedTransactions.push({ tx: tx, error: err });
+        }
       }).bind(this));
     }
   },

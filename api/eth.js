@@ -26,6 +26,13 @@ module.exports = function(sandbox) {
         cb(null, util.toHex(sandbox.blockchain.head.header.number.toString('hex')));
       } else cb(null, null);
     },
+    getBalance: function(address, block, cb) {
+      cb = util.jsonRpcCallback(cb);
+      sandbox.getAccount(address.substr(2), function(err, account) {
+        if (err) cb(err);
+        else cb(null, '0x' + account.balance);
+      });
+    },
     sendTransaction: function(options, cb) {
       sandbox.sendTx(options, util.jsonRpcCallback(cb));
     },
