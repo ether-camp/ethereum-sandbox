@@ -201,7 +201,7 @@ var Sandbox = {
         function(val, key, cb) {
           try {
             strie.put(
-              createBuffer(key),
+              new Buffer(util.pad(key), 'hex'),
               rlp.encode(new Buffer(val, 'hex')),
               function(err) {
                 account.stateRoot = strie.root;

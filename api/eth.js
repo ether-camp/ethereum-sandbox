@@ -1,5 +1,6 @@
 var util = require('../util');
 var _ = require('lodash');
+var BigNumber = require('bignumber.js');
 
 module.exports = function(sandbox) {
   return {
@@ -31,6 +32,17 @@ module.exports = function(sandbox) {
       sandbox.getAccount(address.substr(2), function(err, account) {
         if (err) cb(err);
         else cb(null, '0x' + account.balance);
+      });
+    },
+    getStorageAt: function(address, position, block, cb) {
+      cb = util.jsonRpcCallback(cb);
+      position = position.substr(2);
+      sandbox.getAccount(address.substr(2), function(err, account) {
+        if (err) cb(err);
+        else if (account.storage.hasOwnProperty(position)) {
+          var value = new BigNumber(account.storage[position], 16);
+          cb(null, '0x' + value.toString(16));
+        } else cb(null, null);
       });
     },
     sendTransaction: function(options, cb) {

@@ -190,5 +190,25 @@
       "params": ["0xdedb49385ad5b94a16f236a6890cf9e0b1e30392", "latest"],
       "result": "0x123456"
     }
+  ],
+  "Returns the value from a storage position at a given address.": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "storage": {
+            "01": "1234"
+          },
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_getStorageAt",
+      "params": ["0xdedb49385ad5b94a16f236a6890cf9e0b1e30392", "0x01", "latest"],
+      "result": "0x1234"
+    }
   ]
 }
