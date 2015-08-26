@@ -19,8 +19,10 @@ util.fromHex = function(str) {
   return str;
 };
 
-util.toHex = function(str) {
-  return '0x' + str;
+util.toHex = function(obj) {
+  if (util.isBigNumber(obj)) return '0x' + obj.toString(16);
+  if (Buffer.isBuffer(obj)) return '0x' + obj.toString('hex');
+  return '0x' + obj;
 };
 
 util.pad = function(str) {
@@ -49,11 +51,25 @@ util.toBigNumber = function(number) {
     return new BigNumber(number.replace('0x',''), 16);
   }
 
+  if (Buffer.isBuffer(number)) {
+    return number.length === 0 ?
+      new BigNumber(0) :
+      new BigNumber(number.toString('hex'), 16);
+  }
+
   return new BigNumber(number.toString(10), 10);
 };
 
+util.toBigNumbers = function(obj) {
+  return _.transform(obj, function(result, val, key) {
+    result[key] = util.toBigNumber(val);
+  });
+};
+    
 util.toBuffer = function(number) {
-  return new Buffer(number.toString(16), 'hex');
+  if (util.isBigNumber(number)) return new Buffer(util.pad(number.toString(16)), 'hex');
+  if (number.indexOf('0x') != -1) return new Buffer(number.substr(2), 'hex');
+  return new Buffer(number, 'hex');
 };
 
 util.jsonRpcCallback = function(cb) {

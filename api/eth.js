@@ -19,7 +19,7 @@ module.exports = function(sandbox) {
       cb(null, '0x0');
     },
     accounts: function(cb) {
-      cb(null, _(sandbox.accounts).keys().map(util.toHex).value());
+      cb(null, _.keys(sandbox.accounts));
     },
     blockNumber: function(cb) {
       if (sandbox.blockchain.head) {
@@ -34,7 +34,9 @@ module.exports = function(sandbox) {
       });
     },
     sendTransaction: function(options, cb) {
-      sandbox.sendTx(options, util.jsonRpcCallback(cb));
+      options.gasLimit = options.gas;
+      delete options.gas;
+      sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
     },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));

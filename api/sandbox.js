@@ -10,7 +10,8 @@ module.exports = function(sandbox) {
       sandbox.createAccounts(accounts, util.jsonRpcCallback(cb));
     },
     setBlock: function(block, cb) {
-      sandbox.setBlock(block, util.jsonRpcCallback(cb));
+      sandbox.setBlock(util.toBigNumbers(block));
+      cb(null, null);
     },
     predefinedAccounts: function(cb) {
       cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {

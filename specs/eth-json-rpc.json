@@ -77,32 +77,57 @@
         "value": "0x10",
         "data": ""
       }],
-      "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
+      "result": "0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"
     },
     {
       "name": "sandbox_accounts",
       "wait": true,
       "params": [],
       "result": {
-        "1337133713371337133713371337133713371337": {
+        "1337133713371337133713371337133713371337":{
           "nonce":"",
-          "balance":"14d1120d7b16a410",
+          "balance":"14d1120d7b16a418",
           "storage":{},
           "code":""
         },
-        "d46e8dd67c5d32be8058bb8eb970870f07244567": {
+        "d46e8dd67c5d32be8058bb8eb970870f07244567":{
           "nonce":"",
           "balance":"10",
           "storage":{},
           "code":""
         },
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392":{
           "nonce":"01",
-          "balance":"ff5be0",
+          "balance":"ff5bd8",
           "storage":{},
-          "code":""
+          "code": ""
         }
       }
+    }
+  ],
+  "Returns error on sending a tx with too big value": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "1000000",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x1000001",
+        "data": ""
+      }],
+      "error": "Account 0xdedb49385ad5b94a16f236a6890cf9e0b1e30392 has only 16777216 wei on its balance, but the transaction requires an advance in 2 + 16777217 wei."
     }
   ],
   "Returns the number of most recent block": [
@@ -127,7 +152,7 @@
         "value": "0x10",
         "data": ""
       }],
-      "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
+      "result": "0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"
     },
     {
       "name": "eth_sendTransaction",
@@ -139,7 +164,7 @@
         "value": "0x10",
         "data": ""
       }],
-      "result": "0xe71290c71f1ce825693359e381ebd2625160ffe277be908a8c68cdd841d6ad1f"
+      "result": "0xe57548a1fb27361f75ee8a4b7737c4ba7aca9e3701daa3d03a8611ca32e4c21f"
     },
     {
       "name": "eth_blockNumber",

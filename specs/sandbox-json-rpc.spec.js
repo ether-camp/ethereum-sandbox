@@ -34,17 +34,30 @@ function run(file) {
             client.request(info.name, info.params, function(err, reply) {
               if (err) {
                 cb(info.name + ' has failed with the error: ' + err);
-              } else if (reply.hasOwnProperty('error')) {
-                cb(info.name + ' has failed with the json-rpc error: ' + reply.error.message);
               } else {
-                cb(
-                  _.isEqual(reply.result, info.result) ?
-                    null :
-                    util.format(
-                      '%s result is not correct. Expected %j got %j',
-                      info.name, info.result, reply.result
-                    )
-                );
+                if (info.hasOwnProperty('result')) {
+                  if (reply.hasOwnProperty('error')) {
+                    cb(info.name + ' has failed with the json-rpc error: ' + reply.error.message);
+                  } else {
+                    cb(
+                      _.isEqual(reply.result, info.result) ?
+                        null :
+                        util.format(
+                          '%s result is not correct. Expected %j got %j',
+                          info.name, info.result, reply.result
+                        )
+                    );
+                  }
+                } else if (info.hasOwnProperty('error')) {
+                  cb(
+                    _.isEqual(reply.error.message, info.error) ?
+                      null :
+                      util.format(
+                        '%s error is not correct. Expected %j got %j',
+                        info.name, info.error, reply.error.message
+                      )
+                  );
+                } else cb();
               }
             });
           }

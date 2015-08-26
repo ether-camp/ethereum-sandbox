@@ -10,12 +10,13 @@ var async = require('async');
 var SHA3Hash = require('sha3').SHA3Hash;
 var _ = require('lodash');
 var levelup = require('levelup');
+var BigNumber = require('bignumber.js');
 var util = require('../util');
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
-  DEFAULT_TX_GAS_PRICE: 1000000000,
-  DEFAULT_TX_GAS_LIMIT: 1000000000,
+  DEFAULT_TX_GAS_PRICE: new BigNumber(50000000000),
+  DEFAULT_TX_GAS_LIMIT: new BigNumber(3141592),
   
   init: function(id, cb) {
     this.id = id;
@@ -27,7 +28,7 @@ var Sandbox = {
     this.filtersCounter = 0;
     this.filters = {};
     this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
-    this.difficulty = new Buffer('010000', 'hex');
+    this.difficulty = new BigNumber(1000);
     this.runningPendingTx = false;
     this.pendingTransactions = [];
     this.rejectedTransactions = [];
@@ -46,7 +47,7 @@ var Sandbox = {
       var block = new Block({
         header: {
           coinbase: this.coinbase,
-          gasLimit: this.gasLimit,
+          gasLimit: util.toBuffer(this.gasLimit),
           number: 0,
           timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
         }, transactions: [],
@@ -97,18 +98,11 @@ var Sandbox = {
       });
     }
   },
-  setBlock: function(block, cb) {
-    if (!block) return cb();
-    _.each(['coinbase', 'difficulty', 'gasLimit'], (function(field) {
-      if (block.hasOwnProperty(field)) {
-        try {
-          this[field] = new Buffer(block[field], 'hex');
-        } catch (e) {
-          return cb('Could not parse block.' + field + ': ' + e);
-        }
-      }
-    }).bind(this));
-    cb();
+  setBlock: function(block) {
+    if (!block) return;
+    if (block.hasOwnProperty('coinbase')) this.coinbase = util.toBuffer(block.coinbase);
+    if (block.hasOwnProperty('difficulty')) this.difficulty = block.difficulty;
+    if (block.hasOwnProperty('gasLimit')) this.gasLimit = block.gasLimit;
   },
   createAccounts: function(accounts, cb) {
     accounts = _.map(accounts, function(account, address) {
@@ -117,7 +111,7 @@ var Sandbox = {
     });
     this.accounts = _(accounts).map(function(account) {
       return [
-        account.address.toString('hex'),
+        util.toHex(account.address),
         account.hasOwnProperty('pkey') ? account.pkey : null
       ];
     }).zipObject().value();
@@ -141,7 +135,7 @@ var Sandbox = {
         if (!options.hasOwnProperty('pkey'))
           return cb('Default account in ethereum.json should have a pkey.');
         
-        this.defaultAccount = options.address;
+        this.defaultAccount = new BigNumber(options.address.toString('hex'), 16);
       }
       this.createAccount(options, cb);
     }
@@ -184,7 +178,7 @@ var Sandbox = {
         code: code,
         data: code,
         account: account,
-        gasLimit: this.DEFAULT_TX_GAS_LIMIT,
+        gasLimit: util.toBuffer(this.gasLimit),
         address: options.address,
         caller: from,
         block: this.createNextBlock()
@@ -229,10 +223,10 @@ var Sandbox = {
   },
   runTx: function(options, cb) {
     options = util.toBuffers(options);
-    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
-    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.DEFAULT_TX_GAS_PRICE;
-    if (!options.from) options.from = this.defaultAccount;
-    var address = options.from.toString('hex');
+    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = util.toBuffer(this.gasLimit);
+    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = util.toBuffer(this.DEFAULT_TX_GAS_PRICE);
+    if (!options.from) options.from = util.toBuffer(this.defaultAccount);
+    var address = util.toHex(options.from);
     if (!this.accounts.hasOwnProperty(address))
       return cb('Could not find a private key for ' + address);
 
@@ -287,19 +281,80 @@ var Sandbox = {
     }
   },
   sendTx: function(options, cb) {
-    options = util.toBuffers(options);
-    options.gasLimit = options.gas;
-    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
-    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.DEFAULT_TX_GAS_PRICE;
-    var address = options.from.toString('hex');
+    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
+    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.gasPrice;
+    var address = util.toHex(options.from);
     if (!this.accounts.hasOwnProperty(address))
       return cb('Could not find a private key for ' + address);
     options.pkey = this.accounts[address];
 
-    this.addPendingTx(options, function(err, tx) {
-      if (err) cb(err);
-      else cb(null, util.toHex(tx.hash().toString('hex')));
-    });
+    check.call(this, options, (function(err) {
+      if (err) return cb(err);
+      var tx = this.createTx(_.transform(options, function(result, value, key) {
+        result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
+      }));
+      this.addPendingTx(tx);
+      cb(null, util.toHex(tx.hash()));
+    }).bind(this));
+
+    function check(options, cb) {
+      this.vm.trie.get(util.toBuffer(options.from), (function(err, data) {
+        var account = new Account(data);
+
+        cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
+        
+        function checkGasLimit() {
+          
+          if (options.gasLimit.greaterThan(this.gasLimit)) {
+            return 'The transaction has gas limit ' + options.gasLimit.toString() +
+              ' which is greater than current block gas limit ' +
+              this.gasLimit.toString() + '.';
+          }
+          return null;
+        }
+        function checkBalance() {
+          var advance = options.gasLimit.times(options.gasPrice);
+          var value = options.hasOwnProperty('value') ? options.value : new BigNumber(0);
+          var balance = util.toBigNumber(account.balance);
+          if (balance.lessThan(advance.plus(value))) {
+            return 'Account ' + util.toHex(options.from) + ' has only ' +
+              balance.toString() +
+              ' wei on its balance, but the transaction requires an advance in ' +
+              advance.toString() + ' + ' + value.toString() + ' wei.';
+          }
+          return null;
+        }
+        function checkNonce() {
+          var prevTx = _.find(this.pendingTransactions, function(tx) {
+            return tx.getSenderAddress().equals(util.toBuffer(options.from));
+          });
+          if (prevTx) {
+            var prevNonce = util.toBigNumber(prevTx.nonce);
+            if (options.hasOwnProperty('nonce')) {
+              if (!options.nonce.minus(1).equals(prevNonce)) {
+                return 'The transaction has nonce ' + options.nonce.toString() +
+                  ', but previous transaction from the account ' + options.from.toString() +
+                  ' has nonce ' + prevNonce.toString() + '.';
+              }
+            } else {
+              options.nonce = prevNonce.plus(1);
+            }
+          } else {
+            var accountNonce = util.toBigNumber(account.nonce);
+            if (options.hasOwnProperty('nonce')) {
+              if (!options.nonce.equals(accountNonce)) {
+                return 'The transaction has nonce ' + options.nonce.toString() +
+                  ', but current nonce of the account ' + options.from.toString() +
+                  ' is ' + accountNonce.toString() + '.';
+              }
+            } else {
+              options.nonce = accountNonce;
+            }
+          }
+          return null;
+        }
+      }).bind(this));
+    }
   },
   addNonce: function(options, cb) {
     this.vm.trie.get(options.from, function(err, raw) {
@@ -308,28 +363,10 @@ var Sandbox = {
       cb(null, options);
     });
   },
-  addPendingTx: function(options, cb) {
-    getNonce.call(this, (function(err, nonce) {
-      if (err) return cb(err);
-      options.nonce = nonce;
-      var tx = this.createTx(options);
-      this.pendingTransactions.push(tx);
-      cb(null, tx);
-      runPendingTx.call(this);
-    }).bind(this));
-    
-    function getNonce(cb) {
-      var prevTx = _.find(this.pendingTransactions, function(tx) {
-        return tx.getSenderAddress().equals(options.from);
-      });
-      if (prevTx) cb(null, ethUtils.bufferToInt(prevTx.nonce) + 1);
-      else {
-        this.vm.trie.get(options.from, function(err, raw) {
-          if (err) cb(err);
-          else cb(null, new Account(raw).nonce);
-        });
-      }
-    }
+  addPendingTx: function(tx) {
+    this.pendingTransactions.push(tx);
+    runPendingTx.call(this);
+
     function runPendingTx() {
       if (this.runningPendingTx || this.pendingTransactions.length === 0) return;
       this.runningPendingTx = true;
@@ -346,9 +383,7 @@ var Sandbox = {
         var tx = this.pendingTransactions.shift();
         this.runningPendingTx = false;
         runPendingTx.call(this);
-        if (err) {
-          this.rejectedTransactions.push({ tx: tx, error: err });
-        }
+        if (err) console.error(err);
       }).bind(this));
     }
   },
@@ -449,8 +484,8 @@ var Sandbox = {
     return new Block({
       header: {
         coinbase: this.coinbase,
-        gasLimit: this.gasLimit,
-        difficulty: this.difficulty,
+        gasLimit: util.toBuffer(this.gasLimit),
+        difficulty: util.toBuffer(this.difficulty),
         number: ethUtils.bufferToInt(this.blockchain.head.header.number) + 1,
         timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
         parentHash: this.blockchain.head.hash()

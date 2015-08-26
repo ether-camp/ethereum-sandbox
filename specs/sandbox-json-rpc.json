@@ -20,8 +20,8 @@
       "name": "sandbox_predefinedAccounts",
       "params": [],
       "result": {
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": null
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+        "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": null
       }
     }
   ],
@@ -89,7 +89,7 @@
       "result": {
         "1337133713371337133713371337133713371337": {
           "nonce":"",
-          "balance":"16640ebfee00",
+          "balance":"045f8ae17c7c00",
           "storage":{},
           "code":""
         },
@@ -101,7 +101,7 @@
         },
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "nonce":"01",
-          "balance":"0fffe99bf1401200",
+          "balance":"0ffba0751e838400",
           "storage":{},
           "code":""
         }
