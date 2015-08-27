@@ -42,13 +42,13 @@ var Sandbox = {
 
     function createBlockchain(cb) {
       var blockDB = levelup('', { db: require('memdown') });
-      var detailsDB = levelup('/does/not/matter', { db: require('memdown') });
-      this.blockchain = new Blockchain(blockDB, detailsDB);
+      this.blockchain = new Blockchain(blockDB, false);
       var block = new Block({
         header: {
           coinbase: this.coinbase,
           gasLimit: util.toBuffer(this.gasLimit),
           number: 0,
+          difficulty: util.toBuffer(this.difficulty),
           timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
         }, transactions: [],
         uncleHeaders: []
@@ -174,18 +174,21 @@ var Sandbox = {
       
       var code = new Buffer(options.runCode.binary, 'hex');
       var from = new Buffer('1337133713371337133713371337133713371337', 'hex');
-      this.vm.runCode({
-        code: code,
-        data: code,
-        account: account,
-        gasLimit: util.toBuffer(this.gasLimit),
-        address: options.address,
-        caller: from,
-        block: this.createNextBlock()
-      }, (function(err, result) {
+      this.createNextBlock([], (function(err, block) {
         if (err) return cb(err);
-        this.contracts[options.address.toString('hex')] = options.runCode;
-        account.setCode(this.vm.trie, result.return, cb);
+        this.vm.runCode({
+          code: code,
+          data: code,
+          account: account,
+          gasLimit: util.toBuffer(this.gasLimit),
+          address: options.address,
+          caller: from,
+          block: block
+        }, (function(err, result) {
+          if (err) return cb(err);
+          this.contracts[options.address.toString('hex')] = options.runCode;
+          account.setCode(this.vm.trie, result.return, cb);
+        }).bind(this));
       }).bind(this));
     }
     function storeCode(cb) {
@@ -201,7 +204,7 @@ var Sandbox = {
         function(val, key, cb) {
           try {
             strie.put(
-              new Buffer(util.pad(key), 'hex'),
+              createBuffer(key),
               rlp.encode(new Buffer(val, 'hex')),
               function(err) {
                 account.stateRoot = strie.root;
@@ -243,20 +246,22 @@ var Sandbox = {
     ], cb);
     
     function runTx(tx, cb) {
-      var block = this.createNextBlock([tx]);
-      this.vm.runTx({ tx: tx, block: block }, (function(err, results) {
+      this.createNextBlock([], (function(err, block) {
         if (err) return cb(err);
-        this.transactions.push(parseTx(tx, results));
-        if (options.contract) {
-          this.contracts[results.createdAddress.toString('hex')] = options.contract;
-        }
-        _.each(this.filters, function(filter) {
-          if (filter.type === 'pending')
-            filter.entries.push('0x' + tx.hash().toString('hex'));
-        });
-        cb(null, {
-          returnValue: results.vm.return ? results.vm.return.toString('hex') : null
-        });
+        this.vm.runTx({ tx: tx, block: block }, (function(err, results) {
+          if (err) return cb(err);
+          this.transactions.push(parseTx(tx, results));
+          if (options.contract) {
+            this.contracts[results.createdAddress.toString('hex')] = options.contract;
+          }
+          _.each(this.filters, function(filter) {
+            if (filter.type === 'pending')
+              filter.entries.push('0x' + tx.hash().toString('hex'));
+          });
+          cb(null, {
+            returnValue: results.vm.return ? results.vm.return.toString('hex') : null
+          });
+        }).bind(this));
       }).bind(this));
     }
     function parseTx(tx, results) {
@@ -294,6 +299,10 @@ var Sandbox = {
         result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
       }));
       this.addPendingTx(tx);
+      _.each(this.filters, function(filter) {
+        if (filter.type === 'pending')
+          filter.entries.push('0x' + tx.hash().toString('hex'));
+      });
       cb(null, util.toHex(tx.hash()));
     }).bind(this));
 
@@ -371,19 +380,31 @@ var Sandbox = {
       if (this.runningPendingTx || this.pendingTransactions.length === 0) return;
       this.runningPendingTx = true;
 
-      var block = this.createNextBlock([this.pendingTransactions[0]]);
-      async.series([
-        this.vm.runBlock.bind(this.vm, {
-          blockchain: this.blockchain,
-          block: block,
-          generate: true
-        }),
-        this.blockchain.addBlock.bind(this.blockchain, block)
-      ], (function(err) {
-        var tx = this.pendingTransactions.shift();
-        this.runningPendingTx = false;
-        runPendingTx.call(this);
-        if (err) console.error(err);
+      this.createNextBlock([this.pendingTransactions[0]], (function(err, block) {
+        if (err) return console.error(err);
+        async.series([
+          this.vm.runBlock.bind(this.vm, {
+            blockchain: this.blockchain,
+            block: block,
+            generate: true
+          }),
+          function(cb) {
+            block.header.transactionsTrie = block.txTrie.root;
+            cb();
+          },
+          this.blockchain.addBlock.bind(this.blockchain, block)
+        ], (function(err) {
+          var tx = this.pendingTransactions.shift();
+          this.runningPendingTx = false;
+          runPendingTx.call(this);
+          if (err) console.error(err);
+          else {
+            _.each(this.filters, function(filter) {
+              if (filter.type === 'latest')
+                filter.entries.push('0x' + block.hash().toString('hex'));
+            });
+          }
+        }).bind(this));
       }).bind(this));
     }
   },
@@ -456,6 +477,7 @@ var Sandbox = {
   newFilter: function(type, cb) {
     if (typeof type === 'object') cb(null, addFilter.call(this, 'log'));
     else if (type == 'pending') cb(null, addFilter.call(this, 'pending'));
+    else if (type == 'latest') cb(null, addFilter.call(this, 'latest'));
     else cb('Unknow type: ' + type);
 
     function addFilter(type) {
@@ -480,18 +502,22 @@ var Sandbox = {
     this.filters[id].entries = [];
     cb(null, changes);
   },
-  createNextBlock: function(transactions) {
-    return new Block({
-      header: {
-        coinbase: this.coinbase,
-        gasLimit: util.toBuffer(this.gasLimit),
-        difficulty: util.toBuffer(this.difficulty),
-        number: ethUtils.bufferToInt(this.blockchain.head.header.number) + 1,
-        timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
-        parentHash: this.blockchain.head.hash()
-      }, transactions: transactions || [],
-      uncleHeaders: []
-    });
+  createNextBlock: function(transactions, cb) {
+    this.blockchain.getHead((function(err, lastBlock) {
+      if (err) return cb(err);
+      var block = new Block({
+        header: {
+          coinbase: this.coinbase,
+          gasLimit: util.toBuffer(this.gasLimit),
+          number: ethUtils.bufferToInt(lastBlock.header.number) + 1,
+          timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
+          difficulty: util.toBuffer(this.difficulty),
+          parentHash: lastBlock.hash()
+        }, transactions: transactions || [],
+        uncleHeaders: []
+      });
+      cb(null, block);
+    }).bind(this));
   }
 };
 

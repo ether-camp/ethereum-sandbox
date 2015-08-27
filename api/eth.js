@@ -23,9 +23,9 @@ module.exports = function(sandbox) {
       cb(null, _.keys(sandbox.accounts));
     },
     blockNumber: function(cb) {
-      if (sandbox.blockchain.head) {
-        cb(null, util.toHex(sandbox.blockchain.head.header.number.toString('hex')));
-      } else cb(null, null);
+      sandbox.blockchain.getHead(function(err, block) {
+        cb(null, block ? util.toHex(block.header.number.toString('hex')) : null);
+      });
     },
     getBalance: function(address, block, cb) {
       cb = util.jsonRpcCallback(cb);
@@ -36,7 +36,7 @@ module.exports = function(sandbox) {
     },
     getStorageAt: function(address, position, block, cb) {
       cb = util.jsonRpcCallback(cb);
-      position = position.substr(2);
+      position = util.fillWithZeroes(position.substr(2), 64);
       sandbox.getAccount(address.substr(2), function(err, account) {
         if (err) cb(err);
         else if (account.storage.hasOwnProperty(position)) {
