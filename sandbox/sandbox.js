@@ -264,26 +264,6 @@ var Sandbox = {
         }).bind(this));
       }).bind(this));
     }
-    function parseTx(tx, results) {
-      return {
-        from: tx.getSenderAddress().toString('hex'),
-        nonce: ethUtils.bufferToInt(tx.nonce),
-        gasPrice: ethUtils.bufferToInt(tx.gasPrice),
-        gasLimit: ethUtils.bufferToInt(tx.gasLimit),
-        to: tx.to.toString('hex'),
-        gasUsed: results.gasUsed.toString('hex'),
-        value: ethUtils.bufferToInt(tx.value),
-        data: tx.data.toString('hex'),
-        createdAddress: results.createdAddress ? results.createdAddress.toString('hex') : '',
-        returnValue: results.return ? results.return.toString('hex') : '',
-        exception: results.exception,
-        rlp: tx.serialize().toString('hex'),
-        r : tx.r.toString('hex'),
-        s : tx.s.toString('hex'),
-        v : tx.v.toString('hex'),
-        hash: tx.hash().toString('hex')
-      };
-    }
   },
   sendTx: function(options, cb) {
     if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
@@ -299,6 +279,7 @@ var Sandbox = {
         result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
       }));
       this.addPendingTx(tx);
+      this.transactions.push(parseTx(tx, {}));
       _.each(this.filters, function(filter) {
         if (filter.type === 'pending')
           filter.entries.push('0x' + tx.hash().toString('hex'));
@@ -313,7 +294,6 @@ var Sandbox = {
         cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
         
         function checkGasLimit() {
-          
           if (options.gasLimit.greaterThan(this.gasLimit)) {
             return 'The transaction has gas limit ' + options.gasLimit.toString() +
               ' which is greater than current block gas limit ' +
@@ -558,4 +538,25 @@ function setField(target, source, name) {
   } catch (e) {
     throw 'Could not set field ' + name + ' to ' + source[name] + ': ' + e.message;
   }
+}
+
+function parseTx(tx, results) {
+  return {
+    from: tx.getSenderAddress().toString('hex'),
+    nonce: ethUtils.bufferToInt(tx.nonce),
+    gasPrice: ethUtils.bufferToInt(tx.gasPrice),
+    gasLimit: ethUtils.bufferToInt(tx.gasLimit),
+    to: tx.to.toString('hex'),
+    gasUsed: results.gasUsed ? results.gasUsed.toString('hex') : '',
+    value: ethUtils.bufferToInt(tx.value),
+    data: tx.data.toString('hex'),
+    createdAddress: results.createdAddress ? results.createdAddress.toString('hex') : '',
+    returnValue: results.return ? results.return.toString('hex') : '',
+    exception: results.exception || 1,
+    rlp: tx.serialize().toString('hex'),
+    r : tx.r.toString('hex'),
+    s : tx.s.toString('hex'),
+    v : tx.v.toString('hex'),
+    hash: tx.hash().toString('hex')
+  };
 }
