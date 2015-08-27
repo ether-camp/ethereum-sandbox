@@ -51,6 +51,8 @@ util.toBigNumber = function(number) {
     return new BigNumber(number.replace('0x',''), 16);
   }
 
+  if (_.isString(number)) return new BigNumber(number, 16);
+
   if (Buffer.isBuffer(number)) {
     return number.length === 0 ?
       new BigNumber(0) :
@@ -93,6 +95,12 @@ util.collapse = function(stem, sep) {
     else if(_.isObject(value)) map = _.reduce(value, util.collapse(prop, sep), map);
     return map;
   };
+};
+
+util.fillWithZeroes = function(str, length, right) {
+  if (str.length >= length) return str;
+  var zeroes = _.repeat('0', length - str.length);
+  return right ? str + zeroes : zeroes + str;
 };
 
 module.exports = util;

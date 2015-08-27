@@ -15,7 +15,7 @@ module.exports = function(sandbox) {
     },
     predefinedAccounts: function(cb) {
       cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {
-        result[address] = pkey ? pkey.toString('hex') : null;
+        result[address.substr(2)] = pkey ? pkey.toString('hex') : null;
       }));
     },
     accounts: function(cb) {

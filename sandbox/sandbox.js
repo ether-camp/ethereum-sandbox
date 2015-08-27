@@ -100,7 +100,7 @@ var Sandbox = {
   },
   setBlock: function(block) {
     if (!block) return;
-    if (block.hasOwnProperty('coinbase')) this.coinbase = util.toBuffer(block.coinbase);
+    if (block.hasOwnProperty('coinbase')) this.coinbase = new Buffer(util.fillWithZeroes(block.coinbase.toString(16), 40), 'hex');
     if (block.hasOwnProperty('difficulty')) this.difficulty = block.difficulty;
     if (block.hasOwnProperty('gasLimit')) this.gasLimit = block.gasLimit;
   },
