@@ -49,7 +49,7 @@ var Sandbox = {
           gasLimit: util.toBuffer(this.gasLimit),
           number: 0,
           difficulty: util.toBuffer(this.difficulty),
-          timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex')
+          timestamp: new Buffer(util.nowHex(), 'hex')
         }, transactions: [],
         uncleHeaders: []
       });
@@ -490,7 +490,7 @@ var Sandbox = {
           coinbase: this.coinbase,
           gasLimit: util.toBuffer(this.gasLimit),
           number: ethUtils.bufferToInt(lastBlock.header.number) + 1,
-          timestamp: new Buffer(util.pad(Date.now().toString(16)), 'hex'),
+          timestamp: new Buffer(util.nowHex(), 'hex'),
           difficulty: util.toBuffer(this.difficulty),
           parentHash: lastBlock.hash()
         }, transactions: transactions || [],
