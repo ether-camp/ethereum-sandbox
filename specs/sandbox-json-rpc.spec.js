@@ -26,15 +26,25 @@ function run(file) {
       request.post({ url: sandboxUrl, json: true }, function(err, res, reply) {
         if (err) return done(err);
         var client = jayson.client.http(sandboxUrl + reply.id);
+        var results = [];
         async.forEachSeries(calls, function(info, cb) {
-          if (info.wait) async.retry({ times: 6, interval: 500 }, call, cb);
-          else call(cb);
+          substituteParams(info.params);
           
+          if (info.wait) async.retry({ times: 6, interval: 500 }, call, withResultSave(cb))
+          else call(withResultSave(cb));
+
+          function withResultSave(cb) {
+            return function(err, result) {
+              results.push(result);
+              cb(err);
+            };
+          }
           function call(cb) {
             client.request(info.name, info.params, function(err, reply) {
               if (err) {
                 cb(info.name + ' has failed with the error: ' + err);
               } else {
+                
                 if (info.hasOwnProperty('result')) {
                   if (reply.hasOwnProperty('error')) {
                     cb(info.name + ' has failed with the json-rpc error: ' + reply.error.message);
@@ -45,7 +55,8 @@ function run(file) {
                         util.format(
                           '%s result is not correct. Expected %j got %j',
                           info.name, info.result, reply.result
-                        )
+                        ),
+                      reply.result
                     );
 
                     function isEqual(target, source) {
@@ -80,6 +91,17 @@ function run(file) {
             });
           }
         }, done);
+
+        function substituteParams(params) {
+          _.each(params, function(param, key) {
+            var type = typeof param;
+            if (type == 'object' && param != null) {
+              substituteParams(param);
+            } else if (type == 'string' && /\{.+\}/.test(param)) {
+              params[key] = _.get(results, param.substr(1, param.length - 2));
+            }
+          });
+        }
       });
     });
   });

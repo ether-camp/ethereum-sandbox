@@ -48,6 +48,9 @@ module.exports = function(sandbox) {
     getTransactionCount: function(address, block, cb) {
       cb(null, util.toHex(_(sandbox.receipts).where({from: address}).size()));
     },
+    getBlockTransactionCountByHash: function(block, cb) {
+      cb(null, util.toHex(_(sandbox.receipts).where({blockHash: block}).size()));
+    },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;
