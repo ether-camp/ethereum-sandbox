@@ -387,6 +387,7 @@ var Sandbox = {
           function saveReceipt(receipt, result) {
             var hash = util.toHex(tx.hash());
             this.receipts[hash] = {
+              from: util.toHex(tx.getSenderAddress()),
               transactionHash: hash,
               transactionIndex: '0x1',
               blockNumber: util.toHex(block.header.number),

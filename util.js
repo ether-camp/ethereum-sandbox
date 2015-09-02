@@ -20,6 +20,7 @@ util.fromHex = function(str) {
 };
 
 util.toHex = function(obj) {
+  if (typeof obj === 'number') return '0x' + obj.toString(16);
   if (util.isBigNumber(obj)) return '0x' + obj.toString(16);
   if (Buffer.isBuffer(obj)) return '0x' + obj.toString('hex');
   return '0x' + obj;

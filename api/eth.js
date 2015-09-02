@@ -45,13 +45,26 @@ module.exports = function(sandbox) {
         } else cb(null, null);
       });
     },
+    getTransactionCount: function(address, block, cb) {
+      cb(null, util.toHex(_(sandbox.receipts).where({from: address}).size()));
+    },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;
       sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
     },
     getTransactionReceipt: function(hash, cb) {
-      if (sandbox.receipts.hasOwnProperty(hash)) cb(null, sandbox.receipts[hash]);
+      if (sandbox.receipts.hasOwnProperty(hash))
+        cb(null, _.pick(sandbox.receipts[hash], [
+          'transactionHash',
+          'transactionIndex',
+          'blockNumber',
+          'blockHash',
+          'cumulativeGasUsed',
+          'gasUsed',
+          'contractAddress',
+          'logs'
+        ]));
       else cb(null, null);
     },
     newFilter: function(options, cb) {
