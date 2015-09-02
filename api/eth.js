@@ -50,6 +50,10 @@ module.exports = function(sandbox) {
       delete options.gas;
       sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
     },
+    getTransactionReceipt: function(hash, cb) {
+      if (sandbox.receipts.hasOwnProperty(hash)) cb(null, sandbox.receipts[hash]);
+      else cb(null, null);
+    },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));
     },

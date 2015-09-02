@@ -40,13 +40,31 @@ function run(file) {
                     cb(info.name + ' has failed with the json-rpc error: ' + reply.error.message);
                   } else {
                     cb(
-                      _.isEqual(reply.result, info.result) ?
+                      isEqual(reply.result, info.result) ?
                         null :
                         util.format(
                           '%s result is not correct. Expected %j got %j',
                           info.name, info.result, reply.result
                         )
                     );
+
+                    function isEqual(target, source) {
+                      var targetType = typeof target;
+                      var sourceType = typeof source;
+                      if (targetType !== sourceType) return false;
+                      if (source === null) return target === source;
+                      if (targetType === 'object' && source !== null) {
+                        return _.size(target) == _.size(source) &&
+                          _.every(target, function(value, key) {
+                            return isEqual(value, source[key]);
+                          });
+                      }
+                      if (typeof source === 'string' && /^\/.+\/$/.test(source)) {
+                        var pattern = source.substr(1, source.length - 2);
+                        return new RegExp(pattern).test(target);
+                      }
+                      return target === source;
+                    }
                   }
                 } else if (info.hasOwnProperty('error')) {
                   cb(

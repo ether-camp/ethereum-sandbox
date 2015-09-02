@@ -31,7 +31,7 @@ var Sandbox = {
     this.difficulty = new BigNumber(1000);
     this.runningPendingTx = false;
     this.pendingTransactions = [];
-    this.rejectedTransactions = [];
+    this.receipts = {};
     this.createVM(cb);
   },
   createVM: function(cb) {
@@ -151,6 +151,7 @@ var Sandbox = {
     this.accounts = null;
     this.filters = null;
     this.filtersCounter = null;
+    this.receipts = null;
     cb();
   },
   createAccount: function(options, cb) {
@@ -368,21 +369,33 @@ var Sandbox = {
             block: block,
             generate: true
           }),
-          function(cb) {
-            block.header.transactionsTrie = block.txTrie.root;
-            cb();
-          },
           this.blockchain.addBlock.bind(this.blockchain, block)
-        ], (function(err) {
+        ], (function(err, results) {
           var tx = this.pendingTransactions.shift();
           this.runningPendingTx = false;
           runPendingTx.call(this);
           if (err) console.error(err);
           else {
+            saveReceipt.call(this, results[0].receipts[0], results[0].results[0]);
+
             _.each(this.filters, function(filter) {
               if (filter.type === 'latest')
                 filter.entries.push('0x' + block.hash().toString('hex'));
             });
+          }
+
+          function saveReceipt(receipt, result) {
+            var hash = util.toHex(tx.hash());
+            this.receipts[hash] = {
+              transactionHash: hash,
+              transactionIndex: '0x1',
+              blockNumber: util.toHex(block.header.number),
+              blockHash: util.toHex(block.hash()),
+              cumulativeGasUsed: util.toHex(receipt.gasUsed),
+              gasUsed: util.toHex(receipt.gasUsed),
+              contractAddress: result.createdAddress ? util.toHex(result.createdAddress) : null,
+              logs: []
+            };
           }
         }).bind(this));
       }).bind(this));
