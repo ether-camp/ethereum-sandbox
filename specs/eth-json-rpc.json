@@ -442,5 +442,73 @@
       ],
       "result": "0x53bd"
     }
+  ],
+  "Returns information about a block by block number": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x157079600000000000",
+          "code": "60606040526000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d146037576035565b005b60406004506056565b6040518082815260200191505060405180910390f35b6000600190506060565b9056",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x10",
+        "data": ""
+      }],
+      "result": "0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"
+    },
+    {
+      "name": "eth_getTransactionReceipt",
+      "wait": true,
+      "params": ["0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"],
+      "result": {
+        "transactionHash":"0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0",
+        "transactionIndex":"0x1",
+        "blockNumber":"0x1",
+        "blockHash":"/0x[\\dabcdef]{64}$/",
+        "cumulativeGasUsed":"0x520c",
+        "gasUsed":"0x520c",
+        "contractAddress":null,
+        "logs":[]
+      }
+    },
+    {
+      "name": "eth_getBlockByHash",
+      "params": ["{2.blockHash}", true],
+      "result": {
+        "number":"0x01",
+        "hash":"/^0x[\\dabcdef]{64}$/",
+        "parentHash":"/^0x[\\dabcdef]{64}$/",
+        "nonce":"0x0000000000000000",
+        "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+        "logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "transactionsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "stateRoot":"0xb9fb650c35c9b50aa1cba90175bf4c37fcf125f504f0e744949d0dfc4be61187",
+        "miner":"0x1337133713371337133713371337133713371337",
+        "difficulty":"0x03e8",
+        "totalDifficulty":"0x03e8",
+        "extraData":"0x0",
+        "size":"0x256",
+        "gasLimit":"0x2fefd8",
+        "minGasPrice":"0x2",
+        "gasUsed":"0x0",
+        "timestamp":"/^0x[\\dabcdef]+$/",
+        "transactions":[
+          "0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"
+        ],
+        "uncles":[]
+      }
+    }
   ]
 }

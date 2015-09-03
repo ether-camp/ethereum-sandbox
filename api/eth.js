@@ -107,6 +107,37 @@ module.exports = function(sandbox) {
         cb(err, result ? util.toHex(util.toBigNumber(result.gasUsed)) : null);
       });
     },
+    getBlockByHash: function(block, fullTransactions, cb) {
+      cb = util.jsonRpcCallback(cb);
+      sandbox.blockchain.getBlock(util.toBuffer(block), function(err, block) {
+        if (err) cb(err);
+        if (!block) cb(null, null);
+        cb(null, {
+          number: util.toHex(block.header.number),
+          hash: util.toHex(block.hash()),
+          parentHash: util.toHex(block.header.parentHash),
+          nonce: '0x0000000000000000',
+          sha3Uncles: util.toHex(block.header.uncleHash),
+          logsBloom: util.toHex(block.header.bloom),
+          transactionsRoot: util.toHex(block.header.transactionsTrie),
+          stateRoot: util.toHex(block.header.stateRoot),
+          miner: util.toHex(block.header.coinbase),
+          difficulty: util.toHex(block.header.difficulty),
+          // TODO: calculate total difficulty for the block
+          totalDifficulty: util.toHex(block.header.difficulty), 
+          extraData: util.toHex(block.header.extraData),
+          size: util.toHex(block.serialize(true).length),
+          gasLimit: util.toHex(block.header.gasLimit),
+          minGasPrice: util.toHex(_(block.transactions).map('gasPrice').map(util.toNumber).min()),
+          // TODO: Fix the bug because of which block.header.gasPrice is empty
+          gasUsed: util.toHex(block.header.gasUsed),
+          timestamp: util.toHex(block.header.timestamp),
+          // TODO: Add support of fullTransactions=true
+          transactions: _(block.transactions).invoke('hash').map(util.toHex),
+          uncles: []
+        });
+      });
+    },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {
         var receipt = sandbox.receipts[hash];

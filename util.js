@@ -23,7 +23,7 @@ util.fromHex = function(str) {
 util.toHex = function(obj) {
   if (typeof obj === 'number') return '0x' + obj.toString(16);
   if (util.isBigNumber(obj)) return '0x' + obj.toString(16);
-  if (Buffer.isBuffer(obj)) return '0x' + obj.toString('hex');
+  if (Buffer.isBuffer(obj)) return '0x' + (obj.toString('hex') || '0');
   return '0x' + obj;
 };
 
@@ -110,7 +110,7 @@ util.nowHex = function() {
 };
 
 util.toNumber = function(obj) {
-  if (Buffer.isBuffer(obj)) return ethUtils.bufferToInt(lastBlock.header.number);
+  if (Buffer.isBuffer(obj)) return ethUtils.bufferToInt(obj);
   return obj;
 };
 
