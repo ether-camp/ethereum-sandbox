@@ -69,6 +69,13 @@ module.exports = function(sandbox) {
     },
     getUncleCountByBlockHash: function(block, cb) { cb(null, '0x0'); },
     getUncleCountByBlockNumber: function(block, cb) { cb(null, '0x0'); },
+    getCode: function(address, block, cb) {
+      cb = util.jsonRpcCallback(cb);
+      sandbox.getAccount(address.substr(2), function(err, account) {
+        if (err) cb(err);
+        else cb(null, '0x' + account.code);
+      });
+    },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;

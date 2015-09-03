@@ -374,5 +374,23 @@
       "params": ["0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"],
       "result": "0x0"
     }
+  ],
+  "Returns code at a given address": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "code": "0102030405",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_getCode",
+      "params": ["0xdedb49385ad5b94a16f236a6890cf9e0b1e30392", "latest"],
+      "result": "0x0102030405"
+    }
   ]
 }
