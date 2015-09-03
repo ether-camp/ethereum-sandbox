@@ -367,5 +367,12 @@
       "params": ["0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"],
       "result": "0x0"
     }
+  ],
+  "Returns the number of uncles in a block from a block matching the given block number": [
+    {
+      "name": "eth_getUncleCountByBlockNumber",
+      "params": ["0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"],
+      "result": "0x0"
+    }
   ]
 }

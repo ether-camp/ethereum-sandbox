@@ -68,6 +68,7 @@ module.exports = function(sandbox) {
       }
     },
     getUncleCountByBlockHash: function(block, cb) { cb(null, '0x0'); },
+    getUncleCountByBlockNumber: function(block, cb) { cb(null, '0x0'); },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;
