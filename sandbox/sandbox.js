@@ -248,7 +248,7 @@ var Sandbox = {
     ], cb);
     
     function runTx(tx, cb) {
-      this.createNextBlock([], (function(err, block) {
+      this.blockchain.getHead((function(err, block) {
         if (err) return cb(err);
         this.vm.runTx({ tx: tx, block: block }, (function(err, results) {
           if (err) return cb(err);
