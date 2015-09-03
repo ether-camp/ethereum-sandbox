@@ -90,7 +90,21 @@ module.exports = function(sandbox) {
         delete options.gas;
       }
       sandbox.call(util.toBigNumbers(options), function(err, result) {
-        cb(err, result ? util.toHex(result) : null);
+        if (err) cb(err)
+        else cb(
+          null,
+          result.vm.hasOwnProperty('return') ? util.toHex(util.toBigNumber(result.vm.return)) : '0x0'
+        );
+      });
+    },
+    estimateGas: function(options, block, cb) {
+      cb = util.jsonRpcCallback(cb);
+      if (options.hasOwnProperty('gas')) {
+        options.gasLimit = options.gas;
+        delete options.gas;
+      }
+      sandbox.call(util.toBigNumbers(options), function(err, result) {
+        cb(err, result ? util.toHex(util.toBigNumber(result.gasUsed)) : null);
       });
     },
     getTransactionReceipt: function(hash, cb) {

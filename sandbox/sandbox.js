@@ -437,14 +437,10 @@ var Sandbox = {
       var tx = this.createTx(_.transform(options, function(result, value, key) {
         result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
       }));
-      this.vm.copy().runTx({ tx: tx }, function(err, result) {
+      this.createNextBlock([], (function(err, block) {
         if (err) cb(err);
-        else cb(
-          null,
-          result.vm.hasOwnProperty('return') ?
-            util.toBigNumber(result.vm.return) : new BigNumber(0)
-        );
-      });
+        else this.vm.copy().runTx({ tx: tx, block: block }, cb);
+      }).bind(this));
     }
   },
   getAccounts: function(cb) {
