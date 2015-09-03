@@ -2,6 +2,7 @@ var BigNumber = require('bignumber.js');
 var _ = require('lodash');
 var SHA3Hash = require('sha3').SHA3Hash;
 var crypto = require('crypto');
+var ethUtils = require('ethereumjs-util');
 
 var util = {};
 
@@ -106,6 +107,11 @@ util.fillWithZeroes = function(str, length, right) {
 
 util.nowHex = function() {
   return util.pad(Math.floor(Date.now() / 1000).toString(16));
+};
+
+util.toNumber = function(obj) {
+  if (Buffer.isBuffer(obj)) return ethUtils.bufferToInt(lastBlock.header.number);
+  return obj;
 };
 
 module.exports = util;

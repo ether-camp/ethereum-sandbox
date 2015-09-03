@@ -390,7 +390,7 @@ var Sandbox = {
               from: util.toHex(tx.getSenderAddress()),
               transactionHash: hash,
               transactionIndex: '0x1',
-              blockNumber: util.toHex(block.header.number),
+              blockNumber: util.toBigNumber(block.header.number),
               blockHash: util.toHex(block.hash()),
               cumulativeGasUsed: util.toHex(receipt.gasUsed),
               gasUsed: util.toHex(receipt.gasUsed),

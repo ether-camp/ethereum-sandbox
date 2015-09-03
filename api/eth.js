@@ -51,24 +51,41 @@ module.exports = function(sandbox) {
     getBlockTransactionCountByHash: function(block, cb) {
       cb(null, util.toHex(_(sandbox.receipts).where({blockHash: block}).size()));
     },
+    getBlockTransactionCountByNumber: function(block, cb) {
+      if (block === 'earliest') send(new BigNumber(0));
+      else if (block === 'latest')
+        sandbox.blockchain.getHead(function(err, lastBlock) {
+          if (err) util.jsonRpcCallback(cb)(err);
+          else send(util.toBigNumber(lastBlock.header.number));
+        });
+      else if (block === 'pending') cb(null, '0x0');
+      else send(util.toBigNumber(block));
+
+      function send(number) {
+        cb(null, util.toHex(_(sandbox.receipts).filter(function(receipt) {
+          return receipt.blockNumber.equals(number);
+        }).size()));
+      }
+    },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;
       sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
     },
     getTransactionReceipt: function(hash, cb) {
-      if (sandbox.receipts.hasOwnProperty(hash))
-        cb(null, _.pick(sandbox.receipts[hash], [
-          'transactionHash',
-          'transactionIndex',
-          'blockNumber',
-          'blockHash',
-          'cumulativeGasUsed',
-          'gasUsed',
-          'contractAddress',
-          'logs'
-        ]));
-      else cb(null, null);
+      if (sandbox.receipts.hasOwnProperty(hash)) {
+        var receipt = sandbox.receipts[hash];
+        cb(null, {
+          transactionHash: receipt.transactionHash,
+          transactionIndex: receipt.transactionIndex,
+          blockNumber: util.toHex(receipt.blockNumber),
+          blockHash: receipt.blockHash,
+          cumulativeGasUsed: receipt.cumulativeGasUsed,
+          gasUsed: receipt.gasUsed,
+          contractAddress: receipt.contractAddress,
+          logs: receipt.logs
+        });
+      } else cb(null, null);
     },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));
