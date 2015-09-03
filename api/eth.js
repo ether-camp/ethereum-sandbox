@@ -67,6 +67,7 @@ module.exports = function(sandbox) {
         }).size()));
       }
     },
+    getUncleCountByBlockHash: function(block, cb) { cb(null, '0x0'); },
     sendTransaction: function(options, cb) {
       options.gasLimit = options.gas;
       delete options.gas;
@@ -104,3 +105,10 @@ module.exports = function(sandbox) {
     }
   };
 };
+
+function notImplemented() {
+  var cb = arguments.pop();
+  if (typeof cb !== 'function') {
+    console.error('Last arg of notImplemented() is not a function: ' + cb);
+  } else cb({ code: 0, message: 'Method not implemented yet' });
+}
