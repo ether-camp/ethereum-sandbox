@@ -28,6 +28,7 @@ var Sandbox = {
     this.filtersCounter = 0;
     this.filters = {};
     this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
+    this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
     this.difficulty = new BigNumber(1000);
     this.runningPendingTx = false;
     this.pendingTransactions = [];
@@ -400,6 +401,50 @@ var Sandbox = {
           }
         }).bind(this));
       }).bind(this));
+    }
+  },
+  call: function(options, cb) {
+    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
+    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.gasPrice;
+    if (!options.hasOwnProperty('from')) options.from = this.defaultAccount;
+    var address = util.toHex(options.from);
+    if (!this.accounts.hasOwnProperty(address))
+      return cb('Could not find a private key for ' + address);
+    options.pkey = this.accounts[address];
+
+    async.series([
+      setNonce.bind(this),
+      run.bind(this)
+    ], function(err, results) {
+      if (err) cb(err);
+      else cb(null, results[1]);
+    });
+    
+    function setNonce(cb) {
+      this.vm.trie.get(util.toBuffer(options.from), (function(err, data) {
+        if (err) return cb(err);
+        
+        var account = new Account(data);
+        var prevTx = _.find(this.pendingTransactions, function(tx) {
+          return tx.getSenderAddress().equals(util.toBuffer(options.from));
+        });
+        options.nonce = prevTx ?
+          util.toBigNumber(prevTx.nonce).plus(1) : util.toBigNumber(account.nonce);
+        cb();
+      }).bind(this));
+    }
+    function run(cb) {
+      var tx = this.createTx(_.transform(options, function(result, value, key) {
+        result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
+      }));
+      this.vm.copy().runTx({ tx: tx }, function(err, result) {
+        if (err) cb(err);
+        else cb(
+          null,
+          result.vm.hasOwnProperty('return') ?
+            util.toBigNumber(result.vm.return) : new BigNumber(0)
+        );
+      });
     }
   },
   getAccounts: function(cb) {

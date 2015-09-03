@@ -77,9 +77,21 @@ module.exports = function(sandbox) {
       });
     },
     sendTransaction: function(options, cb) {
-      options.gasLimit = options.gas;
-      delete options.gas;
+      if (options.hasOwnProperty('gas')) {
+        options.gasLimit = options.gas;
+        delete options.gas;
+      }
       sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
+    },
+    call: function(options, block, cb) {
+      cb = util.jsonRpcCallback(cb);
+      if (options.hasOwnProperty('gas')) {
+        options.gasLimit = options.gas;
+        delete options.gas;
+      }
+      sandbox.call(util.toBigNumbers(options), function(err, result) {
+        cb(err, result ? util.toHex(result) : null);
+      });
     },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {
@@ -113,10 +125,3 @@ module.exports = function(sandbox) {
     }
   };
 };
-
-function notImplemented() {
-  var cb = arguments.pop();
-  if (typeof cb !== 'function') {
-    console.error('Last arg of notImplemented() is not a function: ' + cb);
-  } else cb({ code: 0, message: 'Method not implemented yet' });
-}

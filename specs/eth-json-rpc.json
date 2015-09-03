@@ -392,5 +392,30 @@
       "params": ["0xdedb49385ad5b94a16f236a6890cf9e0b1e30392", "latest"],
       "result": "0x0102030405"
     }
+  ],
+  "Executes a new message call immediately without creating a transaction on the block chain": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x157079600000000000",
+          "code": "60606040526000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d146037576035565b005b60406004506056565b6040518082815260200191505060405180910390f35b6000600190506060565b9056",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_call",
+      "params": [
+        {
+          "to": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+          "data": "0xf8a8fd6d"
+        },
+        "latest"
+      ],
+      "result": "0x1"
+    }
   ]
 }
