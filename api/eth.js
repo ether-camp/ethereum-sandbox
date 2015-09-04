@@ -271,6 +271,12 @@ module.exports = function(sandbox) {
         });
       } else cb(null, null);
     },
+    getUncleByBlockHashAndIndex: function(blockHash, uncleIndex, cb) {
+      cb(null, null);
+    },
+    getUncleByBlockNumberAndIndex: function(blockNumber, uncleIndex, cb) {
+      cb(null, null);
+    },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));
     },
