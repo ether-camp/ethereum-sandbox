@@ -277,6 +277,9 @@ module.exports = function(sandbox) {
     getUncleByBlockNumberAndIndex: function(blockNumber, uncleIndex, cb) {
       cb(null, null);
     },
+    getCompilers: function(cb) {
+      cb(null, ['solidity']);
+    },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));
     },
