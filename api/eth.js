@@ -2,6 +2,7 @@ var util = require('../util');
 var _ = require('lodash');
 var BigNumber = require('bignumber.js');
 var async = require('async');
+var childProcess = require('child_process');
 
 module.exports = function(sandbox) {
   return {
@@ -279,6 +280,43 @@ module.exports = function(sandbox) {
     },
     getCompilers: function(cb) {
       cb(null, ['solidity']);
+    },
+    compileSolidity: function(code, cb) {
+      cb = util.jsonRpcCallback(cb);
+      var solc = childProcess.spawn('solc', ['--combined-json', 'bin,abi,devdoc,userdoc']);
+      var out = '', err = '';
+      solc.stdout.on('data', function(data) {
+        out += data.toString();
+      });
+      solc.stdout.on('end', done);
+      solc.stderr.on('data', function(data) {
+        err += data.toString();
+      });
+      solc.stderr.on('end', done);
+      
+      solc.stdin.end(code, 'utf8');
+
+      var calls = 0;
+      function done() {
+        if (++calls != 2) return;
+        if (err) return cb(err);
+        try {
+          var parsed = JSON.parse(out);
+        } catch (e) {
+          return cb(out, null);
+        }
+        cb(null, _(parsed.contracts).transform(function (result, info, name) {
+          result[name] = {
+            code: '0x' + info.bin,
+            info: {
+              source: code,
+              abiDifinition: JSON.parse(info.abi),
+              userDoc: JSON.parse(info.userdoc),
+              developerDoc: JSON.parse(info.devdoc)
+            }
+          }
+        }));
+      }
     },
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));

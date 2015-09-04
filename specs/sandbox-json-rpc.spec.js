@@ -97,7 +97,7 @@ function run(file) {
             var type = typeof param;
             if (type == 'object' && param != null) {
               substituteParams(param);
-            } else if (type == 'string' && /\{.+\}/.test(param)) {
+            } else if (type == 'string' && /^\{.+\}$/.test(param)) {
               params[key] = _.get(results, param.substr(1, param.length - 2));
             }
           });
