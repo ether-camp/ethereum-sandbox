@@ -194,6 +194,23 @@ module.exports = function(sandbox) {
         };
       }
     },
+    getTransactionByHash: function(txHash, cb) {
+      if (!sandbox.receipts.hasOwnProperty(txHash)) return cb(null, null);
+      var receipt = sandbox.receipts[txHash];
+      cb(null, {
+        hash: receipt.transactionHash,
+        nonce: receipt.nonce,
+        blockHash: receipt.blockHash,
+        blockNumber: util.toHex(receipt.blockNumber),
+        transactionIndex: receipt.transactionIndex,
+        from: receipt.from,
+        to: receipt.to,
+        value: receipt.value,
+        gas: receipt.gasLimit,
+        gasPrice: receipt.gasPrice,
+        input: receipt.data
+      });
+    },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {
         var receipt = sandbox.receipts[hash];

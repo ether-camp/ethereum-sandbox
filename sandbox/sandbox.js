@@ -389,6 +389,12 @@ var Sandbox = {
             var hash = util.toHex(tx.hash());
             this.receipts[hash] = {
               from: util.toHex(tx.getSenderAddress()),
+              to: tx.to ? util.toHex(tx.to) : null,
+              nonce: util.toHex(tx.nonce),
+              value: util.toHex(tx.value),
+              data: util.toHex(tx.data),
+              gasLimit: util.toHex(tx.gasLimit),
+              gasPrice: util.toHex(tx.gasPrice),
               transactionHash: hash,
               transactionIndex: '0x1',
               blockNumber: util.toBigNumber(block.header.number),
