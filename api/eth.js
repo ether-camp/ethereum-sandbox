@@ -1,6 +1,7 @@
 var util = require('../util');
 var _ = require('lodash');
 var BigNumber = require('bignumber.js');
+var async = require('async');
 
 module.exports = function(sandbox) {
   return {
@@ -137,6 +138,61 @@ module.exports = function(sandbox) {
           uncles: []
         });
       });
+    },
+    getBlockByNumber: function(blockNumber, fullTransactions, cb) {
+      cb = util.jsonRpcCallback(cb);
+
+      blockNumber = util.toNumber(blockNumber);
+      if (sandbox.blockchain.meta.height < blockNumber) return cb(null, null);
+
+      sandbox.blockchain.getHead(function(err, currBlock) {
+        if (err) return cb(err);
+        async.whilst(
+          function() {
+            return util.toNumber(currBlock.header.number) !== blockNumber;
+          },
+          function(cb) {
+            sandbox.blockchain.getBlock(currBlock.header.parentHash, function(err, block) {
+              if (err) cb(err)
+              else {
+                currBlock = block;
+                cb()
+              }
+            });
+          },
+          function(err) {
+            if (err) cb(err)
+            else cb(null, details(currBlock));
+          }
+        );
+      });
+      
+      function details(block) {
+        return {
+          number: util.toHex(block.header.number),
+          hash: util.toHex(block.hash()),
+          parentHash: util.toHex(block.header.parentHash),
+          nonce: '0x0000000000000000',
+          sha3Uncles: util.toHex(block.header.uncleHash),
+          logsBloom: util.toHex(block.header.bloom),
+          transactionsRoot: util.toHex(block.header.transactionsTrie),
+          stateRoot: util.toHex(block.header.stateRoot),
+          miner: util.toHex(block.header.coinbase),
+          difficulty: util.toHex(block.header.difficulty),
+          // TODO: calculate total difficulty for the block
+          totalDifficulty: util.toHex(block.header.difficulty), 
+          extraData: util.toHex(block.header.extraData),
+          size: util.toHex(block.serialize(true).length),
+          gasLimit: util.toHex(block.header.gasLimit),
+          minGasPrice: util.toHex(_(block.transactions).map('gasPrice').map(util.toNumber).min()),
+          // TODO: Fix the bug because of which block.header.gasPrice is empty
+          gasUsed: util.toHex(block.header.gasUsed),
+          timestamp: util.toHex(block.header.timestamp),
+          // TODO: Add support of fullTransactions=true
+          transactions: _(block.transactions).invoke('hash').map(util.toHex),
+          uncles: []
+        };
+      }
     },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {

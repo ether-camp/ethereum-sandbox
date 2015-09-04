@@ -111,6 +111,7 @@ util.nowHex = function() {
 
 util.toNumber = function(obj) {
   if (Buffer.isBuffer(obj)) return ethUtils.bufferToInt(obj);
+  if (typeof obj === 'string' && _.startsWith(obj, '0x')) return parseInt(obj, 16);
   return obj;
 };
 
