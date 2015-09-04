@@ -729,5 +729,118 @@
         }
       }
     }
+  ],
+  "Notifies about LOG messages": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x9999999999999999",
+          "default": true
+        },
+        "d46e8dd67c5d32be8058bb8eb970870f07244567": {
+          "code": "0x60606040526000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d146037576035565b005b60406004506042565b005b60016040518082600102815260200191505060405180910390a05b56"
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_newFilter",
+      "params": [{"address": "0xd46e8dd67c5d32be8058bb8eb970870f07244567"}],
+      "result": "/^0x[\\dabcdef]+$/"
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "data": "f8a8fd6d"
+      }],
+      "result": "0xac8973e7b8d4e1827876b21c523a589b852bc1199b4d585cfd9d09004e3eb786"
+    },
+    {
+      "name": "eth_getFilterChanges",
+      "wait": true,
+      "params": ["{1}"],
+      "result": [
+        {
+          "logIndex":null,
+          "transactionIndex":null,
+          "transactionHash":null,
+          "blockHash":null,
+          "blockNumber":null,
+          "address":"0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+          "data":"0x0000000000000000000000000000000000000000000000000000000000000001",
+          "topics":[]
+        }
+      ]
+    }
+  ],
+  "Notifies about pending transactions": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x9999999999999999",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_newPendingTransactionFilter",
+      "params": [],
+      "result": "/^0x[\\dabcdef]+$/"
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "value": "0x1"
+      }],
+      "result": "0x6ae0924e23cf85260808c72b769a5b0b33d37ce84aa137e1c161fd09b1e3412e"
+    },
+    {
+      "name": "eth_getFilterChanges",
+      "wait": true,
+      "params": ["{1}"],
+      "result": ["0x6ae0924e23cf85260808c72b769a5b0b33d37ce84aa137e1c161fd09b1e3412e"]
+    }
+  ],
+  "Notifies about new block": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x9999999999999999",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_newBlockFilter",
+      "params": [],
+      "result": "/^0x[\\dabcdef]+$/"
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "value": "0x1"
+      }],
+      "result": "0x6ae0924e23cf85260808c72b769a5b0b33d37ce84aa137e1c161fd09b1e3412e"
+    },
+    {
+      "name": "eth_getFilterChanges",
+      "wait": true,
+      "params": ["{1}"],
+      "result": ["/^0x[\\dabcdef]{64}$/"]
+    }
   ]
 }

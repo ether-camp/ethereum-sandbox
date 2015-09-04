@@ -282,10 +282,6 @@ var Sandbox = {
       }));
       this.addPendingTx(tx);
       this.transactions.push(parseTx(tx, {}));
-      _.each(this.filters, function(filter) {
-        if (filter.type === 'pending')
-          filter.entries.push('0x' + tx.hash().toString('hex'));
-      });
       cb(null, util.toHex(tx.hash()));
     }).bind(this));
 
@@ -355,6 +351,11 @@ var Sandbox = {
     });
   },
   addPendingTx: function(tx) {
+    _.each(this.filters, function(filter) {
+      if (filter.type === 'pending')
+        filter.entries.push(util.toHex(tx.hash()));
+    });
+    
     this.pendingTransactions.push(tx);
     runPendingTx.call(this);
 
@@ -381,7 +382,7 @@ var Sandbox = {
 
             _.each(this.filters, function(filter) {
               if (filter.type === 'latest')
-                filter.entries.push('0x' + block.hash().toString('hex'));
+                filter.entries.push(util.toHex(block.hash()));
             });
           }
 

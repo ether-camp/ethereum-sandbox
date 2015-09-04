@@ -321,6 +321,9 @@ module.exports = function(sandbox) {
     newFilter: function(options, cb) {
       sandbox.newFilter(options, util.jsonRpcCallback(cb));
     },
+    newBlockFilter: function(cb) {
+      sandbox.newFilter('latest', util.jsonRpcCallback(cb));
+    },
     newPendingTransactionFilter: function(cb) {
       sandbox.newFilter('pending', util.jsonRpcCallback(cb));
     },
