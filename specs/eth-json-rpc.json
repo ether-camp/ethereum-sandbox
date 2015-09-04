@@ -605,5 +605,63 @@
         "input":"0x00"
       }
     }
+  ],
+  "Returns information about a transaction by block hash and transaction index position": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": "0x157079600000000000",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "gas": "0x1",
+        "gasPrice": "0x2",
+        "value": "0x10",
+        "data": ""
+      }],
+      "result": "0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"
+    },
+    {
+      "name": "eth_getTransactionReceipt",
+      "wait": true,
+      "params": ["0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0"],
+      "result": {
+        "transactionHash":"0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0",
+        "transactionIndex":"0x1",
+        "blockNumber":"0x1",
+        "blockHash":"/0x[\\dabcdef]{64}$/",
+        "cumulativeGasUsed":"0x520c",
+        "gasUsed":"0x520c",
+        "contractAddress":null,
+        "logs":[]
+      }
+    },
+    {
+      "name": "eth_getTransactionByBlockHashAndIndex",
+      "wait": true,
+      "params": ["{2.blockHash}", "0x1"],
+      "result": {
+        "hash":"0x75972a66450e1c7c7127d85f9123c9967741f27ad01fbcee51e6880dd44783c0",
+        "nonce":"0x0",
+        "blockHash":"/^0x[\\dabcdef]{64}$/",
+        "blockNumber":"0x1",
+        "transactionIndex":"0x1",
+        "from":"0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to":"0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "value":"0x10",
+        "gas":"0x01",
+        "gasPrice":"0x02",
+        "input":"0x00"
+      }
+    }
   ]
 }

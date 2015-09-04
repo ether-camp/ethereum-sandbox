@@ -211,6 +211,28 @@ module.exports = function(sandbox) {
         input: receipt.data
       });
     },
+    getTransactionByBlockHashAndIndex: function(blockHash, txIndex, cb) {
+      cb = util.jsonRpcCallback(cb);
+      txIndex = util.toNumber(txIndex);
+      var receipt = _.find(sandbox.receipts, function(receipt) {
+        return receipt.blockHash === blockHash &&
+          util.toNumber(receipt.transactionIndex) === txIndex;
+      });
+      if (!receipt) cb(null, null);
+      else cb(null, {
+        hash: receipt.transactionHash,
+        nonce: receipt.nonce,
+        blockHash: receipt.blockHash,
+        blockNumber: util.toHex(receipt.blockNumber),
+        transactionIndex: receipt.transactionIndex,
+        from: receipt.from,
+        to: receipt.to,
+        value: receipt.value,
+        gas: receipt.gasLimit,
+        gasPrice: receipt.gasPrice,
+        input: receipt.data
+      });
+    },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {
         var receipt = sandbox.receipts[hash];
