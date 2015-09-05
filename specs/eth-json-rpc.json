@@ -82,7 +82,7 @@
     {
       "name": "sandbox_accounts",
       "wait": true,
-      "params": [],
+      "params": [true],
       "result": {
         "1337133713371337133713371337133713371337": {
           "nonce":"",

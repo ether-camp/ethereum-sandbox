@@ -79,7 +79,6 @@ module.exports = function(sandbox) {
       });
     },
     sendTransaction: function(options, cb) {
-      console.log(options);
       if (options.hasOwnProperty('gas')) {
         options.gasLimit = options.gas;
         delete options.gas;

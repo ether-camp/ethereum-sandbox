@@ -226,47 +226,6 @@ var Sandbox = {
     tx.sign(options.pkey);
     return tx;
   },
-  runTx: function(options, cb) {
-    options = util.toBuffers(options);
-    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = util.toBuffer(this.gasLimit);
-    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = util.toBuffer(this.DEFAULT_TX_GAS_PRICE);
-    if (!options.from) options.from = util.toBuffer(this.defaultAccount);
-    var address = util.toHex(options.from);
-    if (!this.accounts.hasOwnProperty(address))
-      return cb('Could not find a private key for ' + address);
-
-    if (!options.hasOwnProperty('pkey')) {
-      if (!this.accounts[address])
-        return cb('Please, specify the private key for account ' + address);
-      options.pkey = this.accounts[address];
-    }
-
-    async.waterfall([
-      this.addNonce.bind(this, options),
-      async.asyncify(this.createTx.bind(this)),
-      runTx.bind(this)
-    ], cb);
-    
-    function runTx(tx, cb) {
-      this.blockchain.getHead((function(err, block) {
-        if (err) return cb(err);
-        this.vm.runTx({ tx: tx, block: block }, (function(err, results) {
-          if (err) return cb(err);
-          this.transactions.push(parseTx(tx, results));
-          if (options.contract) {
-            this.contracts[results.createdAddress.toString('hex')] = options.contract;
-          }
-          _.each(this.filters, function(filter) {
-            if (filter.type === 'pending')
-              filter.entries.push('0x' + tx.hash().toString('hex'));
-          });
-          cb(null, {
-            returnValue: results.vm.return ? results.vm.return.toString('hex') : null
-          });
-        }).bind(this));
-      }).bind(this));
-    }
-  },
   sendTx: function(options, cb) {
     if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
     if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.gasPrice;
@@ -342,13 +301,6 @@ var Sandbox = {
         }
       }).bind(this));
     }
-  },
-  addNonce: function(options, cb) {
-    this.vm.trie.get(options.from, function(err, raw) {
-      if (err) return cb(err);
-      options.nonce = new Account(raw).nonce;
-      cb(null, options);
-    });
   },
   addPendingTx: function(tx) {
     _.each(this.filters, function(filter) {
@@ -449,6 +401,16 @@ var Sandbox = {
         else this.vm.copy().runTx({ tx: tx, block: block }, cb);
       }).bind(this));
     }
+  },
+  getAccountAddresses: function(cb) {
+    var stream = this.vm.trie.createReadStream();
+    var accounts = [];
+    stream.on('data', function(data) {
+      accounts.push(util.toHex(data.key));
+    });
+    stream.on('end', function() {
+      cb(null, accounts);
+    });
   },
   getAccounts: function(cb) {
     var stream = this.vm.trie.createReadStream();

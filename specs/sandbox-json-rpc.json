@@ -42,7 +42,7 @@
       }
     }
   ],
-  "Provides accounts": [
+  "Provides accounts with details": [
     {
       "name": "sandbox_createAccounts",
       "params": [{
@@ -61,7 +61,7 @@
     },
     {
       "name": "sandbox_accounts",
-      "params": [],
+      "params": [true],
       "result": {
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "balance": "1234",
@@ -78,51 +78,23 @@
       }
     }
   ],
-  "Creates a contract by a tx": [
+    "Provides account addresses": [
     {
       "name": "sandbox_createAccounts",
       "params": [{
         "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
           "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": "1000000000000000",
           "default": true
+        },
+        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
         }
       }],
       "result": null
     },
     {
-      "name": "sandbox_runTx",
-      "params": [{
-        "from": "dedb49385ad5b94a16f236a6890cf9e0b1e30392",
-        "data": "6060604052600a8060116000396000f30060606040526008565b00"
-      }],
-      "result": {
-        "returnValue": "60606040526008565b00"
-      }
-    },
-    {
       "name": "sandbox_accounts",
-      "params": [],
-      "result": {
-        "1337133713371337133713371337133713371337": {
-          "nonce":"",
-          "balance":"045f8ae17c7c00",
-          "storage":{},
-          "code":""
-        },
-        "86e0497e32a8e1d79fe38ab87dc80140df5470d9": {
-          "nonce":"",
-          "balance":"",
-          "storage":{},
-          "code":"60606040526008565b00"
-        },
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "nonce":"01",
-          "balance":"0ffba0751e838400",
-          "storage":{},
-          "code":""
-        }
-      }
+      "params": [false],
+      "result": ["0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337", "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392"]
     }
   ]
 }

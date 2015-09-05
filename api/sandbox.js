@@ -21,11 +21,9 @@ module.exports = function(sandbox) {
         result[address.substr(2)] = pkey ? pkey.toString('hex') : null;
       }));
     },
-    accounts: function(cb) {
-      sandbox.getAccounts(util.jsonRpcCallback(cb));
-    },
-    runTx: function(options, cb) {
-      sandbox.runTx(options, util.jsonRpcCallback(cb));
+    accounts: function(full, cb) {
+      if (full) sandbox.getAccounts(util.jsonRpcCallback(cb));
+      else sandbox.getAccountAddresses(util.jsonRpcCallback(cb));
     },
     transactions: function(cb) {
       cb(null, sandbox.transactions);
