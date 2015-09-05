@@ -13,6 +13,9 @@ module.exports = function(sandbox) {
       sandbox.setBlock(util.toBigNumbers(block));
       cb(null, null);
     },
+    defaultAccount: function(cb) {
+      cb(null, util.toHex(sandbox.defaultAccount));
+    },
     predefinedAccounts: function(cb) {
       cb(null, _.transform(sandbox.accounts, function(result, pkey, address) {
         result[address.substr(2)] = pkey ? pkey.toString('hex') : null;

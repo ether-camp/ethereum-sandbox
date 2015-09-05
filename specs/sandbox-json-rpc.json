@@ -1,4 +1,21 @@
 {
+  "Provides default account": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "sandbox_defaultAccount",
+      "params": [],
+      "result": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392"
+    }
+  ],
   "Provides predefined accounts": [
     {
       "name": "sandbox_createAccounts",
