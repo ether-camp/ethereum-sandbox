@@ -317,7 +317,7 @@ var Sandbox = {
           else {
             var result = results[0].results[0];
             if (tx.contract && result.createdAddress)
-              this.contracts[util.toHex(result.createdAddress)] = tx.contract;
+              this.contracts[result.createdAddress.toString('hex')] = tx.contract;
             saveReceipt.call(this, results[0].receipts[0], result);
 
             _.each(this.filters, function(filter) {
