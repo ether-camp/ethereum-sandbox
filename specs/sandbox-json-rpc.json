@@ -129,5 +129,45 @@
         }
       }
     }
+  ],
+  "Returns list of transaction details": [
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": 1000000000000000000000,
+          "default": true
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "to": "0x86e0497e32a8e1d79fe38ab87dc80140df5470d9",
+        "value": "0x10"
+      }],
+      "result": "0x0e279d973bdfbc613fe4308ea9a1528f7c180627ffc443ff21bd1d1f34d114bc"
+    },
+    {
+      "name": "sandbox_transactions",
+      "wait": true,
+      "params": [],
+      "result": [{
+        "from":"0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "nonce":"0x0",
+        "to":"0x86e0497e32a8e1d79fe38ab87dc80140df5470d9",
+        "gasLimit":"0x2fefd8",
+        "gasUsed":"0x5208",
+        "value":"0x10",
+        "data":null,
+        "createdAddress":null,
+        "returnValue":null,
+        "exception":1,
+        "rlp":"0xf86580850ba43b7400832fefd89486e0497e32a8e1d79fe38ab87dc80140df5470d910801ba0f5ddc1b9b34d7f7e16cc01f6c0168e3c6e267a0a32e0049bdb451a5aeff6453ba054e0f07b8baa60ba670f85d0f1435ccd74b5dbf18901c7cb5bb3ac52380e2399"
+      }]
+    }
   ]
 }

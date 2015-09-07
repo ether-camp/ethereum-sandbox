@@ -3,7 +3,8 @@ var util = require('../util');
 
 module.exports = {
   init: function(tx, block, receipt, result) {
-    var hash = util.toHex(tx.getTx().hash() );
+    var realTx = tx.getTx();
+    var hash = util.toHex(realTx.hash());
     this.from = tx.from;
     this.to = tx.to;
     this.nonce = tx.nonce;
@@ -19,6 +20,9 @@ module.exports = {
     this.gasUsed = util.toBigNumber(receipt.gasUsed);
     this.contractAddress = result.createdAddress ? util.toHex(result.createdAddress) : null;
     this.logs = [];
+    this.rlp = util.toHex(realTx.serialize());
+    this.returnValue = result.vm.return ? util.toHex(result.vm.return) : null;
+    this.exception = result.vm.exception;
     return this;
   },
   getReceiptDetails: function() {
@@ -46,6 +50,21 @@ module.exports = {
       gas: util.toHex(this.gasLimit),
       gasPrice: util.toHex(this.gasPrice),
       input: this.data
+    };
+  },
+  getDetails: function() {
+    return {
+      from: this.from,
+      nonce: util.toHex(this.nonce),
+      to: this.to,
+      gasLimit: util.toHex(this.gasLimit),
+      gasUsed: util.toHex(this.gasUsed),
+      value: util.toHex(this.value),
+      data: this.data,
+      createdAddress: this.contractAddress,
+      returnValue: this.returnValue,
+      exception: this.exception,
+      rlp: this.rlp
     };
   }
 };

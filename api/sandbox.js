@@ -26,7 +26,7 @@ module.exports = function(sandbox) {
       else sandbox.getAccountAddresses(util.jsonRpcCallback(cb));
     },
     transactions: function(cb) {
-      cb(null, sandbox.transactions);
+      cb(null, _.invoke(sandbox.receipts, 'getDetails'));
     },
     contracts: function(cb) {
       cb(null, sandbox.contracts);
