@@ -231,8 +231,9 @@ var Sandbox = {
 
     check.call(this, tx, (function(err) {
       if (err) return cb(err);
-      this.addPendingTx(tx);
       cb(null, util.toHex(tx.getTx().hash()));
+      setTimeout(this.addPendingTx.bind(this, tx), 1000);
+      this.addPendingTx(tx);
     }).bind(this));
 
     function check(tx, cb) {
@@ -447,7 +448,7 @@ var Sandbox = {
     else cb('Unknow type: ' + type);
 
     function addFilter(type) {
-      var num = '0x' + pad((this.filtersCounter++).toString(16));
+      var num = '0x' + (this.filtersCounter++).toString(16);
       this.filters[num] = {
         type: type,
         entries: []
