@@ -3,6 +3,7 @@ var _ = require('lodash');
 var BigNumber = require('bignumber.js');
 var async = require('async');
 var childProcess = require('child_process');
+var parse = require('../types/parse');
 
 module.exports = function(sandbox) {
   return {
@@ -79,35 +80,73 @@ module.exports = function(sandbox) {
       });
     },
     sendTransaction: function(options, cb) {
-      if (options.hasOwnProperty('gas')) {
+      cb = util.jsonRpcCallback(cb);
+      var errors = [];
+      options = parse(options, {
+        from: { type: 'address' },
+        to: { type: 'address', defaultVal: null },
+        gas: { type: 'number', defaultVal: sandbox.gasLimit },
+        gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+        value: { type: 'number', defaultVal: new BigNumber(0) },
+        data: { type: 'hex', defaultVal: null },
+        nonce: { type: 'number', defaultVal: null },
+        contract: { type: 'contract', defaultVal: null }
+      }, errors);
+      if (errors.length !== 0) {
+        cb(errors.join(' '));
+      } else {
         options.gasLimit = options.gas;
         delete options.gas;
+        sandbox.sendTx(options, cb);
       }
-      sandbox.sendTx(util.toBigNumbers(options), util.jsonRpcCallback(cb));
     },
     call: function(options, block, cb) {
       cb = util.jsonRpcCallback(cb);
-      if (options.hasOwnProperty('gas')) {
+      var errors = [];
+      options = parse(options, {
+        from: { type: 'address', defaultVal: sandbox.defaultAccount },
+        to: { type: 'address', defaultVal: null },
+        gas: { type: 'number', defaultVal: sandbox.gasLimit },
+        gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+        value: { type: 'number', defaultVal: new BigNumber(0) },
+        data: { type: 'hex', defaultVal: null },
+        nonce: { type: 'number', defaultVal: null }
+      }, errors);
+      if (errors.length !== 0) {
+        cb(errors.join(' '));
+      } else {
         options.gasLimit = options.gas;
         delete options.gas;
+        sandbox.call(options, function(err, result) {
+          if (err) cb(err)
+          else cb(
+            null,
+            result.vm.hasOwnProperty('return') ? util.toHex(util.toBigNumber(result.vm.return)) : '0x0'
+          );
+        });
       }
-      sandbox.call(util.toBigNumbers(options), function(err, result) {
-        if (err) cb(err)
-        else cb(
-          null,
-          result.vm.hasOwnProperty('return') ? util.toHex(util.toBigNumber(result.vm.return)) : '0x0'
-        );
-      });
     },
     estimateGas: function(options, block, cb) {
       cb = util.jsonRpcCallback(cb);
-      if (options.hasOwnProperty('gas')) {
+      var errors = [];
+      options = parse(options, {
+        from: { type: 'address', defaultVal: sandbox.defaultAccount },
+        to: { type: 'address', defaultVal: null },
+        gas: { type: 'number', defaultVal: sandbox.gasLimit },
+        gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+        value: { type: 'number', defaultVal: new BigNumber(0) },
+        data: { type: 'hex', defaultVal: null },
+        nonce: { type: 'number', defaultVal: null }
+      }, errors);
+      if (errors.length !== 0) {
+        cb(errors.join(' '));
+      } else {
         options.gasLimit = options.gas;
         delete options.gas;
+        sandbox.call(options, function(err, result) {
+          cb(err, result ? util.toHex(util.toBigNumber(result.gasUsed)) : null);
+        });
       }
-      sandbox.call(util.toBigNumbers(options), function(err, result) {
-        cb(err, result ? util.toHex(util.toBigNumber(result.gasUsed)) : null);
-      });
     },
     getBlockByHash: function(block, fullTransactions, cb) {
       cb = util.jsonRpcCallback(cb);

@@ -1,5 +1,4 @@
 var VM = require('ethereumjs-vm');
-var Transaction = require('ethereumjs-tx');
 var Account = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
 var Blockchain = require('ethereumjs-blockchain');
@@ -12,6 +11,7 @@ var _ = require('lodash');
 var levelup = require('levelup');
 var BigNumber = require('bignumber.js');
 var util = require('../util');
+var Tx = require('../ethereum/tx')
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
@@ -110,12 +110,12 @@ var Sandbox = {
       account.address = address;
       return util.toBuffers(account, ['address', 'nonce', 'balance', 'code', 'pkey']);
     });
-    this.accounts = _(accounts).map(function(account) {
-      return [
-        util.toHex(account.address),
-        account.hasOwnProperty('pkey') ? account.pkey : null
-      ];
-    }).zipObject().value();
+    this.accounts = _(accounts)
+      .filter(function(account) {
+        return account.hasOwnProperty('pkey');
+      }).map(function(account) {
+        return [ util.toHex(account.address), util.toHex(account.pkey) ];
+      }).zipObject().value();
 
     async.each(accounts, processAccount.bind(this), (function(err) {
       if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));
@@ -136,7 +136,7 @@ var Sandbox = {
         if (!options.hasOwnProperty('pkey'))
           return cb('Default account in ethereum.json should have a pkey.');
         
-        this.defaultAccount = new BigNumber(options.address.toString('hex'), 16);
+        this.defaultAccount = util.toHex(options.address);
       }
       this.createAccount(options, cb);
     }
@@ -221,80 +221,65 @@ var Sandbox = {
       );
     }
   },
-  createTx: function(options) {
-    var tx = new Transaction(options);
-    tx.sign(options.pkey);
-    return tx;
-  },
   sendTx: function(options, cb) {
-    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
-    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.gasPrice;
-    var address = util.toHex(options.from);
-    if (!this.accounts.hasOwnProperty(address))
-      return cb('Could not find a private key for ' + address);
-    options.pkey = this.accounts[address];
+    if (!this.accounts.hasOwnProperty(options.from))
+      return cb('Could not find a private key for ' + options.from);
+    options.pkey = this.accounts[options.from];
+    
+    var tx = Object.create(Tx).init(options);
 
-    check.call(this, options, (function(err) {
+    check.call(this, tx, (function(err) {
       if (err) return cb(err);
-      var tx = this.createTx(_.transform(options, function(result, value, key) {
-        result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
-      }));
       this.addPendingTx(tx);
-      this.transactions.push(parseTx(tx, {}));
-      cb(null, util.toHex(tx.hash()));
+      cb(null, util.toHex(tx.getTx().hash()));
     }).bind(this));
 
-    function check(options, cb) {
-      this.vm.trie.get(util.toBuffer(options.from), (function(err, data) {
+    function check(tx, cb) {
+      this.vm.trie.get(util.toBuffer(tx.from), (function(err, data) {
         var account = new Account(data);
 
         cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
         
         function checkGasLimit() {
-          if (options.gasLimit.greaterThan(this.gasLimit)) {
-            return 'The transaction has gas limit ' + options.gasLimit.toString() +
-              ' which is greater than current block gas limit ' +
-              this.gasLimit.toString() + '.';
+          if (tx.gasLimit.greaterThan(this.gasLimit)) {
+            return 'The transaction has gas limit ' + tx.gasLimit.toString() +
+              ' which is greater than current block gas limit ' + tx.gasLimit.toString() + '.';
           }
           return null;
         }
         function checkBalance() {
-          var advance = options.gasLimit.times(options.gasPrice);
-          var value = options.hasOwnProperty('value') ? options.value : new BigNumber(0);
+          var advance = tx.gasLimit.times(tx.gasPrice).plus(tx.value);
           var balance = util.toBigNumber(account.balance);
-          if (balance.lessThan(advance.plus(value))) {
-            return 'Account ' + util.toHex(options.from) + ' has only ' +
-              balance.toString() +
+          if (balance.lessThan(advance)) {
+            return 'Account ' + tx.from + ' has only ' + balance.toString() +
               ' wei on its balance, but the transaction requires an advance in ' +
-              advance.toString() + ' + ' + value.toString() + ' wei.';
+              advance.toString() + ' + ' + tx.value.toString() + ' wei.';
           }
           return null;
         }
         function checkNonce() {
-          var prevTx = _.find(this.pendingTransactions, function(tx) {
-            return tx.getSenderAddress().equals(util.toBuffer(options.from));
-          });
+          var prevTx = _.find(this.pendingTransactions, { from: tx.from });
           if (prevTx) {
             var prevNonce = util.toBigNumber(prevTx.nonce);
-            if (options.hasOwnProperty('nonce')) {
-              if (!options.nonce.minus(1).equals(prevNonce)) {
-                return 'The transaction has nonce ' + options.nonce.toString() +
-                  ', but previous transaction from the account ' + options.from.toString() +
+            if (tx.nonce) {
+              if (!tx.nonce.minus(1).equals(prevNonce)) {
+                return 'The transaction has nonce ' + tx.nonce.toString() +
+                  ', but previous transaction from the account ' + tx.from +
                   ' has nonce ' + prevNonce.toString() + '.';
               }
             } else {
-              options.nonce = prevNonce.plus(1);
+              tx.nonce = prevNonce.plus(1);
             }
           } else {
             var accountNonce = util.toBigNumber(account.nonce);
-            if (options.hasOwnProperty('nonce')) {
-              if (!options.nonce.equals(accountNonce)) {
-                return 'The transaction has nonce ' + options.nonce.toString() +
-                  ', but current nonce of the account ' + options.from.toString() +
+            if (tx.nonce) {
+              if (!tx.nonce.equals(accountNonce)) {
+                return 'The transaction has nonce ' + tx.nonce.toString() +
+                  ', but current nonce of the account ' + tx.from +
                   ' is ' + accountNonce.toString() + '.';
               }
             } else {
-              options.nonce = accountNonce;
+              tx.nonce = accountNonce;
             }
           }
           return null;
@@ -305,7 +290,7 @@ var Sandbox = {
   addPendingTx: function(tx) {
     _.each(this.filters, function(filter) {
       if (filter.type === 'pending')
-        filter.entries.push(util.toHex(tx.hash()));
+        filter.entries.push(util.toHex(tx.getTx().hash()));
     });
     
     this.pendingTransactions.push(tx);
@@ -315,7 +300,7 @@ var Sandbox = {
       if (this.runningPendingTx || this.pendingTransactions.length === 0) return;
       this.runningPendingTx = true;
 
-      this.createNextBlock([this.pendingTransactions[0]], (function(err, block) {
+      this.createNextBlock([this.pendingTransactions[0].getTx()], (function(err, block) {
         if (err) return console.error(err);
         async.series([
           this.vm.runBlock.bind(this.vm, {
@@ -330,7 +315,10 @@ var Sandbox = {
           runPendingTx.call(this);
           if (err) console.error(err);
           else {
-            saveReceipt.call(this, results[0].receipts[0], results[0].results[0]);
+            var result = results[0].results[0];
+            if (tx.contract && result.createdAddress)
+              this.contracts[util.toHex(result.createdAddress)] = tx.contract;
+            saveReceipt.call(this, results[0].receipts[0], result);
 
             _.each(this.filters, function(filter) {
               if (filter.type === 'latest')
@@ -339,13 +327,13 @@ var Sandbox = {
           }
 
           function saveReceipt(receipt, result) {
-            var hash = util.toHex(tx.hash());
+            var hash = util.toHex(tx.getTx().hash());
             this.receipts[hash] = {
-              from: util.toHex(tx.getSenderAddress()),
-              to: tx.to ? util.toHex(tx.to) : null,
+              from: tx.from,
+              to: tx.to,
               nonce: util.toHex(tx.nonce),
               value: util.toHex(tx.value),
-              data: util.toHex(tx.data),
+              data: tx.data ? util.toHex(tx.data) : null,
               gasLimit: util.toHex(tx.gasLimit),
               gasPrice: util.toHex(tx.gasPrice),
               transactionHash: hash,
@@ -363,14 +351,12 @@ var Sandbox = {
     }
   },
   call: function(options, cb) {
-    if (!options.hasOwnProperty('gasLimit')) options.gasLimit = this.gasLimit;
-    if (!options.hasOwnProperty('gasPrice')) options.gasPrice = this.gasPrice;
-    if (!options.hasOwnProperty('from')) options.from = this.defaultAccount;
-    var address = util.toHex(options.from);
-    if (!this.accounts.hasOwnProperty(address))
-      return cb('Could not find a private key for ' + address);
-    options.pkey = this.accounts[address];
+    if (!this.accounts.hasOwnProperty(options.from))
+      return cb('Could not find a private key for ' + options.from);
+    options.pkey = this.accounts[options.from];
 
+    var tx = Object.create(Tx).init(options);
+    
     async.series([
       setNonce.bind(this),
       run.bind(this)
@@ -384,21 +370,15 @@ var Sandbox = {
         if (err) return cb(err);
         
         var account = new Account(data);
-        var prevTx = _.find(this.pendingTransactions, function(tx) {
-          return tx.getSenderAddress().equals(util.toBuffer(options.from));
-        });
-        options.nonce = prevTx ?
-          util.toBigNumber(prevTx.nonce).plus(1) : util.toBigNumber(account.nonce);
+        var prevTx = _.find(this.pendingTransactions, { from: tx.from });
+        options.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
         cb();
       }).bind(this));
     }
     function run(cb) {
-      var tx = this.createTx(_.transform(options, function(result, value, key) {
-        result[key] = Buffer.isBuffer(value) ? value : new Buffer(util.pad(value.toString(16)), 'hex');
-      }));
-      this.createNextBlock([], (function(err, block) {
+      this.blockchain.getHead((function(err, block) {
         if (err) cb(err);
-        else this.vm.copy().runTx({ tx: tx, block: block }, cb);
+        else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
       }).bind(this));
     }
   },

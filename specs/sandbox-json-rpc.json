@@ -25,10 +25,6 @@
           "balance": "1234",
           "nonce": "62",
           "default": true
-        },
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
-          "balance": "012345",
-          "nonce": 0
         }
       }],
       "result": null
@@ -37,8 +33,7 @@
       "name": "sandbox_predefinedAccounts",
       "params": [],
       "result": {
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": null
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015"
       }
     }
   ],
@@ -99,21 +94,35 @@
   ],
   "Returns list of contracts": [
     {
-      "name": "sandbox_addContracts",
+      "name": "sandbox_createAccounts",
       "params": [{
-        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392":{
-          "name":"Contract",
-          "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
-          "abi":[{"inputs":[],"type":"constructor"}]
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "balance": 1000000000000000000000,
+          "default": true
         }
       }],
       "result": null
     },
     {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "data": "0x60606040525b5b600a8060136000396000f30060606040526008565b00",
+        "contract": {
+          "name":"Contract",
+          "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
+          "abi":[{"inputs":[],"type":"constructor"}]
+        }
+      }],
+      "result": "0x07d54c6af0bfc0723d85660c3cd0c695644bb2175546c0819916760910fcb98a"
+    },
+    {
       "name": "sandbox_contracts",
+      "wait": true,
       "params": [],
       "result": {
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392":{
+        "0x86e0497e32a8e1d79fe38ab87dc80140df5470d9": {
           "name":"Contract",
           "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
           "abi":[{"inputs":[],"type":"constructor"}]
