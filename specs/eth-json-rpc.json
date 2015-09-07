@@ -70,8 +70,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x10000",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x99c6f70d60036841cd6de53eff3d0d5ec63132c7291df7515a1e95ee5e3426fd"
     },
@@ -120,8 +119,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x1000001",
-        "data": ""
+        "value": "0x1000001"
       }],
       "error": "Account 0xdedb49385ad5b94a16f236a6890cf9e0b1e30392 has only 16777216 wei on its balance, but the transaction requires an advance in 16777219 + 16777217 wei."
     }
@@ -145,8 +143,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -157,8 +154,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0xe71290c71f1ce825693359e381ebd2625160ffe277be908a8c68cdd841d6ad1f"
     },
@@ -226,8 +222,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -266,8 +261,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -300,8 +294,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -345,8 +338,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -458,8 +450,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -525,8 +516,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -578,8 +568,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -621,8 +610,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },
@@ -679,8 +667,7 @@
         "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
         "gas": "0x1",
         "gasPrice": "0x2",
-        "value": "0x10",
-        "data": ""
+        "value": "0x10"
       }],
       "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
     },

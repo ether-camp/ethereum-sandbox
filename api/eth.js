@@ -237,78 +237,31 @@ module.exports = function(sandbox) {
     getTransactionByHash: function(txHash, cb) {
       if (!sandbox.receipts.hasOwnProperty(txHash)) return cb(null, null);
       var receipt = sandbox.receipts[txHash];
-      cb(null, {
-        hash: receipt.transactionHash,
-        nonce: receipt.nonce,
-        blockHash: receipt.blockHash,
-        blockNumber: util.toHex(receipt.blockNumber),
-        transactionIndex: receipt.transactionIndex,
-        from: receipt.from,
-        to: receipt.to,
-        value: receipt.value,
-        gas: receipt.gasLimit,
-        gasPrice: receipt.gasPrice,
-        input: receipt.data
-      });
+      cb(null, receipt.getTxDetails());
     },
     getTransactionByBlockHashAndIndex: function(blockHash, txIndex, cb) {
       cb = util.jsonRpcCallback(cb);
-      txIndex = util.toNumber(txIndex);
+      txIndex = util.toBigNumber(txIndex);
       var receipt = _.find(sandbox.receipts, function(receipt) {
-        return receipt.blockHash === blockHash &&
-          util.toNumber(receipt.transactionIndex) === txIndex;
+        return receipt.blockHash === blockHash && receipt.txIndex.equals(txIndex);
       });
       if (!receipt) cb(null, null);
-      else cb(null, {
-        hash: receipt.transactionHash,
-        nonce: receipt.nonce,
-        blockHash: receipt.blockHash,
-        blockNumber: util.toHex(receipt.blockNumber),
-        transactionIndex: receipt.transactionIndex,
-        from: receipt.from,
-        to: receipt.to,
-        value: receipt.value,
-        gas: receipt.gasLimit,
-        gasPrice: receipt.gasPrice,
-        input: receipt.data
-      });
+      else cb(null, receipt.getTxDetails());
     },
     getTransactionByBlockNumberAndIndex: function(blockNumber, txIndex, cb) {
       cb = util.jsonRpcCallback(cb);
       blockNumber = util.toBigNumber(blockNumber);
-      txIndex = util.toNumber(txIndex);
+      txIndex = util.toBigNumber(txIndex);
       var receipt = _.find(sandbox.receipts, function(receipt) {
-        return receipt.blockNumber.equals(blockNumber) &&
-          util.toNumber(receipt.transactionIndex) === txIndex;
+        return receipt.blockNumber.equals(blockNumber) && receipt.txIndex.equals(txIndex);
       });
       if (!receipt) cb(null, null);
-      else cb(null, {
-        hash: receipt.transactionHash,
-        nonce: receipt.nonce,
-        blockHash: receipt.blockHash,
-        blockNumber: util.toHex(receipt.blockNumber),
-        transactionIndex: receipt.transactionIndex,
-        from: receipt.from,
-        to: receipt.to,
-        value: receipt.value,
-        gas: receipt.gasLimit,
-        gasPrice: receipt.gasPrice,
-        input: receipt.data
-      });
+      else cb(null, receipt.getTxDetails());
     },
     getTransactionReceipt: function(hash, cb) {
       if (sandbox.receipts.hasOwnProperty(hash)) {
         var receipt = sandbox.receipts[hash];
-        cb(null, {
-          transactionHash: receipt.transactionHash,
-          transactionIndex: receipt.transactionIndex,
-          blockNumber: util.toHex(receipt.blockNumber),
-          blockHash: receipt.blockHash,
-          cumulativeGasUsed: receipt.cumulativeGasUsed,
-          gasUsed: receipt.gasUsed,
-          contractAddress: receipt.contractAddress,
-          logs: receipt.logs
-        });
+        cb(null, receipt.getReceiptDetails());
       } else cb(null, null);
     },
     getUncleByBlockHashAndIndex: function(blockHash, uncleIndex, cb) {

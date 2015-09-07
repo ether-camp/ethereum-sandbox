@@ -12,6 +12,7 @@ var levelup = require('levelup');
 var BigNumber = require('bignumber.js');
 var util = require('../util');
 var Tx = require('../ethereum/tx')
+var Receipt = require('../ethereum/receipt');
 
 var Sandbox = {
   SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
@@ -188,7 +189,7 @@ var Sandbox = {
           block: block
         }, (function(err, result) {
           if (err) return cb(err);
-          this.contracts[options.address.toString('hex')] = options.runCode;
+          this.contracts['0x' + options.address.toString('hex')] = options.runCode;
           account.setCode(this.vm.trie, result.return, cb);
         }).bind(this));
       }).bind(this));
@@ -315,36 +316,17 @@ var Sandbox = {
           runPendingTx.call(this);
           if (err) console.error(err);
           else {
-            var result = results[0].results[0];
-            if (tx.contract && result.createdAddress)
-              this.contracts[result.createdAddress.toString('hex')] = tx.contract;
-            saveReceipt.call(this, results[0].receipts[0], result);
-
+            var receipt = Object.create(Receipt)
+                .init(tx, block, results[0].receipts[0], results[0].results[0]);
+            this.receipts[util.toHex(tx.getTx().hash())] = receipt;
+            
+            if (tx.contract && receipt.contractAddress)
+              this.contracts[receipt.contractAddress] = tx.contract;
+            
             _.each(this.filters, function(filter) {
               if (filter.type === 'latest')
                 filter.entries.push(util.toHex(block.hash()));
             });
-          }
-
-          function saveReceipt(receipt, result) {
-            var hash = util.toHex(tx.getTx().hash());
-            this.receipts[hash] = {
-              from: tx.from,
-              to: tx.to,
-              nonce: util.toHex(tx.nonce),
-              value: util.toHex(tx.value),
-              data: tx.data ? util.toHex(tx.data) : null,
-              gasLimit: util.toHex(tx.gasLimit),
-              gasPrice: util.toHex(tx.gasPrice),
-              transactionHash: hash,
-              transactionIndex: '0x1',
-              blockNumber: util.toBigNumber(block.header.number),
-              blockHash: util.toHex(block.hash()),
-              cumulativeGasUsed: util.toHex(receipt.gasUsed),
-              gasUsed: util.toHex(receipt.gasUsed),
-              contractAddress: result.createdAddress ? util.toHex(result.createdAddress) : null,
-              logs: []
-            };
           }
         }).bind(this));
       }).bind(this));
