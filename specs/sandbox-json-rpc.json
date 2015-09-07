@@ -78,7 +78,7 @@
       }
     }
   ],
-    "Provides account addresses": [
+  "Provides account addresses": [
     {
       "name": "sandbox_createAccounts",
       "params": [{
@@ -95,6 +95,30 @@
       "name": "sandbox_accounts",
       "params": [false],
       "result": ["0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337", "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392"]
+    }
+  ],
+  "Returns list of contracts": [
+    {
+      "name": "sandbox_addContracts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392":{
+          "name":"Contract",
+          "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
+          "abi":[{"inputs":[],"type":"constructor"}]
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "sandbox_contracts",
+      "params": [],
+      "result": {
+        "dedb49385ad5b94a16f236a6890cf9e0b1e30392":{
+          "name":"Contract",
+          "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
+          "abi":[{"inputs":[],"type":"constructor"}]
+        }
+      }
     }
   ]
 }

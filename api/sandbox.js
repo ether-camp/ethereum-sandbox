@@ -9,6 +9,12 @@ module.exports = function(sandbox) {
     createAccounts: function(accounts, cb) {
       sandbox.createAccounts(accounts, util.jsonRpcCallback(cb));
     },
+    addContracts: function(contracts, cb) {
+      _.each(contracts, function(contract, address) {
+        sandbox.contracts[address.substring(2)] = contract;
+      });
+      cb(null, null);
+    },
     setBlock: function(block, cb) {
       sandbox.setBlock(util.toBigNumbers(block));
       cb(null, null);
