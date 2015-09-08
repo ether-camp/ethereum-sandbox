@@ -31,10 +31,11 @@ var Sandbox = {
     this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
     this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
     this.difficulty = new BigNumber(1000);
-    this.runningPendingTx = false;
+    this.miningBlock = false;
     this.pendingTransactions = [];
     this.receipts = {};
     this.createVM(cb);
+    this.miner = setInterval(this.mineBlock.bind(this), 5000);
   },
   createVM: function(cb) {
     async.series([
@@ -143,6 +144,7 @@ var Sandbox = {
     }
   },
   stop: function(cb) {
+    clearInterval(this.miner);
     this.vm = null;
     this.blockchain = null;
     this.block = null;
@@ -232,7 +234,6 @@ var Sandbox = {
     check.call(this, tx, (function(err) {
       if (err) return cb(err);
       cb(null, util.toHex(tx.getTx().hash()));
-      setTimeout(this.addPendingTx.bind(this, tx), 1000);
       this.addPendingTx(tx);
     }).bind(this));
 
@@ -296,42 +297,65 @@ var Sandbox = {
     });
     
     this.pendingTransactions.push(tx);
-    runPendingTx.call(this);
+    this.runPendingTx();
+  },
+  runPendingTx: function() {
+    if (this.miningBlock || this.pendingTransactions.length === 0) return;
+    this.miningBlock = true;
 
-    function runPendingTx() {
-      if (this.runningPendingTx || this.pendingTransactions.length === 0) return;
-      this.runningPendingTx = true;
-
-      this.createNextBlock([this.pendingTransactions[0].getTx()], (function(err, block) {
-        if (err) return console.error(err);
-        async.series([
-          this.vm.runBlock.bind(this.vm, {
-            blockchain: this.blockchain,
-            block: block,
-            generate: true
-          }),
-          this.blockchain.addBlock.bind(this.blockchain, block)
-        ], (function(err, results) {
-          var tx = this.pendingTransactions.shift();
-          this.runningPendingTx = false;
-          runPendingTx.call(this);
-          if (err) console.error(err);
-          else {
-            var receipt = Object.create(Receipt)
-                .init(tx, block, results[0].receipts[0], results[0].results[0]);
-            this.receipts[util.toHex(tx.getTx().hash())] = receipt;
-            
-            if (tx.contract && receipt.contractAddress)
-              this.contracts[receipt.contractAddress] = tx.contract;
-            
-            _.each(this.filters, function(filter) {
-              if (filter.type === 'latest')
-                filter.entries.push(util.toHex(block.hash()));
-            });
-          }
-        }).bind(this));
+    this.createNextBlock([this.pendingTransactions[0].getTx()], (function(err, block) {
+      if (err) {
+        this.miningBlock = false;
+        return console.error(err);
+      }
+      async.series([
+        this.vm.runBlock.bind(this.vm, {
+          blockchain: this.blockchain,
+          block: block,
+          generate: true
+        }),
+        this.blockchain.addBlock.bind(this.blockchain, block)
+      ], (function(err, results) {
+        var tx = this.pendingTransactions.shift();
+        this.miningBlock = false;
+        this.runPendingTx.call(this);
+        if (err) console.error(err);
+        else {
+          var receipt = Object.create(Receipt)
+              .init(tx, block, results[0].receipts[0], results[0].results[0]);
+          this.receipts[util.toHex(tx.getTx().hash())] = receipt;
+          
+          if (tx.contract && receipt.contractAddress)
+            this.contracts[receipt.contractAddress] = tx.contract;
+          
+          _.each(this.filters, function(filter) {
+            if (filter.type === 'latest')
+              filter.entries.push(util.toHex(block.hash()));
+          });
+        }
       }).bind(this));
-    }
+    }).bind(this));
+  },
+  mineBlock: function() {
+    if (this.miningBlock) return;
+    this.miningBlock = true;
+    this.createNextBlock([], (function(err, block) {
+      if (err) {
+        this.miningBlock = false;
+        return console.error(err);
+      }
+      this.blockchain.addBlock(block, (function(err) {
+        this.miningBlock = false;
+        if (err) console.error(err);
+        else {
+          _.each(this.filters, function(filter) {
+            if (filter.type === 'latest')
+              filter.entries.push(util.toHex(block.hash()));
+          });
+        }
+        this.runPendingTx();
+      }).bind(this));
+    }).bind(this));
   },
   call: function(options, cb) {
     if (!this.accounts.hasOwnProperty(options.from))
