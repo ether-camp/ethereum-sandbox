@@ -28,6 +28,10 @@ module.exports = function(sandbox) {
     transactions: function(cb) {
       cb(null, _.invoke(sandbox.receipts, 'getDetails'));
     },
+    receipt: function(txHash, cb) {
+      cb(null, sandbox.receipts.hasOwnProperty(txHash) ?
+         sandbox.receipts[txHash].getDetails() : null);
+    },
     contracts: function(cb) {
       cb(null, sandbox.contracts);
     }
