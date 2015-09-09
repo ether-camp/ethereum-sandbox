@@ -311,7 +311,7 @@ var Sandbox = {
       ], (function(err, results) {
         var tx = this.pendingTransactions.shift();
         this.miningBlock = false;
-        this.runPendingTx.call(this);
+        this.runPendingTx();
         if (err) console.error(err);
         else {
           var receipt = Object.create(Receipt)

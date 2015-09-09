@@ -10,7 +10,7 @@ module.exports = function(sandbox) {
     createAccounts: function(accounts, cb) {
       sandbox.createAccounts(accounts, util.jsonRpcCallback(cb));
     },
-    setBlock: function(block, cb) {
+    setBlock: function(options, cb) {
       var errors = [];
       options = parse(options, {
         coinbase: { type: 'address', defaultVal: null },
