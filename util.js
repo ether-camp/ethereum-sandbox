@@ -3,8 +3,11 @@ var _ = require('lodash');
 var SHA3Hash = require('sha3').SHA3Hash;
 var crypto = require('crypto');
 var ethUtils = require('ethereumjs-util');
+var rlp = require('rlp');
 
 var util = {};
+
+util.SHA3_RLP_NULL = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421';
 
 util.sha3 = function(strOrBuf, encoding) {
   var sha = new SHA3Hash(256);
@@ -20,11 +23,12 @@ util.fromHex = function(str) {
   return str;
 };
 
-util.toHex = function(obj) {
-  if (typeof obj === 'number') return '0x' + obj.toString(16);
-  if (util.isBigNumber(obj)) return '0x' + obj.toString(16);
-  if (Buffer.isBuffer(obj)) return '0x' + (obj.toString('hex') || '0');
-  return '0x' + obj;
+util.toHex = function(obj, toLength) {
+  var val = obj;
+  if (typeof obj === 'number') val = obj.toString(16);
+  if (util.isBigNumber(obj)) val = obj.toString(16);
+  if (Buffer.isBuffer(obj)) val = (obj.toString('hex') || '0');
+  return '0x' + (toLength ? util.fillWithZeroes(val, toLength) : val);
 };
 
 util.pad = function(str) {
@@ -114,5 +118,9 @@ util.toNumber = function(obj) {
   if (typeof obj === 'string' && _.startsWith(obj, '0x')) return parseInt(obj, 16);
   return obj;
 };
+
+util.decodeRlp = function(buf) {
+  return rlp.decode(buf);
+}
 
 module.exports = util;

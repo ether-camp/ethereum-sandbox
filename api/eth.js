@@ -41,14 +41,19 @@ module.exports = function(sandbox) {
       });
     },
     getStorageAt: function(address, position, block, cb) {
-      cb = util.jsonRpcCallback(cb);
-      position = util.fillWithZeroes(position.substr(2), 64);
-      sandbox.getAccount(address.substr(2), function(err, account) {
+      var errors = [];
+      address = parse.types.address(address, errors);
+      position = util.toHex(parse.types.number(position, errors), 64);
+      sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
         if (err) cb(err);
-        else if (account.storage.hasOwnProperty(position)) {
-          var value = new BigNumber(account.storage[position], 16);
-          cb(null, '0x' + value.toString(16));
-        } else cb(null, null);
+        else {
+          var account = Object.create(Account).init(data);
+          account.readStorage(sandbox.vm.trie, function(err) {
+            if (err) cb(err);
+            else cb(null, account.storage.hasOwnProperty(position) ?
+                    account.storage[position] : null);
+          });
+        }
       });
     },
     getTransactionCount: function(address, block, cb) {

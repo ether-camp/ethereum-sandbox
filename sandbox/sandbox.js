@@ -15,7 +15,6 @@ var Tx = require('../ethereum/tx')
 var Receipt = require('../ethereum/receipt');
 
 var Sandbox = {
-  SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
   DEFAULT_TX_GAS_PRICE: new BigNumber(50000000000),
   DEFAULT_TX_GAS_LIMIT: new BigNumber(3141592),
   
@@ -442,7 +441,7 @@ var Sandbox = {
     });
     
     function readStorage(raw, account, cb) {
-      if (raw.stateRoot.toString('hex') === this.SHA3_RLP_NULL) return cb();
+      if (raw.stateRoot.toString('hex') === util.SHA3_RLP_NULL) return cb();
       
       var strie = this.vm.trie.copy();
       strie.root = raw.stateRoot;
