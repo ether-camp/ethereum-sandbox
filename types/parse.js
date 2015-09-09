@@ -40,4 +40,5 @@ function parse(values, valTypes, errors) {
   });
 }
 
+parse.types = types;
 module.exports = parse;

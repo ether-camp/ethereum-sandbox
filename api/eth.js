@@ -4,6 +4,7 @@ var BigNumber = require('bignumber.js');
 var async = require('async');
 var childProcess = require('child_process');
 var parse = require('../types/parse');
+var Account = require('../ethereum/account');
 
 module.exports = function(sandbox) {
   return {
@@ -27,14 +28,16 @@ module.exports = function(sandbox) {
     },
     blockNumber: function(cb) {
       sandbox.blockchain.getHead(function(err, block) {
-        cb(null, block ? util.toHex(block.header.number.toString('hex')) : null);
+        cb(null, block ? util.toHex(block.header.number) : null);
       });
     },
     getBalance: function(address, block, cb) {
-      cb = util.jsonRpcCallback(cb);
-      sandbox.getAccount(address.substr(2), function(err, account) {
-        if (err) cb(err);
-        else cb(null, '0x' + account.balance);
+      var errors = [];
+      address = parse.types.address(address, errors);
+      if (errors.length != 0) cb(errors.join(' '), null);
+      sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
+        if (err) cb(err, null);
+        else cb(null, util.toHex(Object.create(Account).init(data).balance));
       });
     },
     getStorageAt: function(address, position, block, cb) {

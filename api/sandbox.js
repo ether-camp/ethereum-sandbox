@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var util = require('../util');
+var parse = require('../types/parse');
 
 module.exports = function(sandbox) {
   return {
