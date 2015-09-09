@@ -34,7 +34,7 @@ module.exports = function(sandbox) {
     getBalance: function(address, block, cb) {
       var errors = [];
       address = parse.types.address(address, errors);
-      if (errors.length != 0) cb(errors.join(' '), null);
+      if (errors.length != 0) return cb(errors.join(' '), null);
       sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
         if (err) cb(err, null);
         else cb(null, util.toHex(Object.create(Account).init(data).balance));
@@ -44,14 +44,13 @@ module.exports = function(sandbox) {
       var errors = [];
       address = parse.types.address(address, errors);
       position = util.toHex(parse.types.number(position, errors), 64);
+      if (errors.length != 0) return cb(errors.join(' '), null);
       sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
         if (err) cb(err);
         else {
-          var account = Object.create(Account).init(data);
-          account.readStorage(sandbox.vm.trie, function(err) {
+          Object.create(Account).init(data).readStorage(sandbox.vm.trie, function(err, storage) {
             if (err) cb(err);
-            else cb(null, account.storage.hasOwnProperty(position) ?
-                    account.storage[position] : null);
+            else cb(null, storage.hasOwnProperty(position) ? storage[position] : null);
           });
         }
       });
@@ -81,10 +80,12 @@ module.exports = function(sandbox) {
     getUncleCountByBlockHash: function(block, cb) { cb(null, '0x0'); },
     getUncleCountByBlockNumber: function(block, cb) { cb(null, '0x0'); },
     getCode: function(address, block, cb) {
-      cb = util.jsonRpcCallback(cb);
-      sandbox.getAccount(address.substr(2), function(err, account) {
+      var errors = [];
+      address = parse.types.address(address, errors);
+      if (errors.length != 0) return cb(errors.join(' '), null);
+      sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
         if (err) cb(err);
-        else cb(null, '0x' + account.code);
+        else Object.create(Account).init(data).readCode(sandbox.vm.trie, cb);
       });
     },
     sendTransaction: function(options, cb) {
