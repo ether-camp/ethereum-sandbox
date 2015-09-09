@@ -11,7 +11,7 @@ module.exports = function(sandbox) {
       cb(null, '54');
     },
     coinbase: function(cb) {
-      cb(null, util.toHex(sandbox.coinbase.toString('hex')));
+      cb(null, sandbox.coinbase);
     },
     mining: function(cb) {
       cb(null, false);

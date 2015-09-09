@@ -21,7 +21,7 @@ var Sandbox = {
   
   init: function(id, cb) {
     this.id = id;
-    this.coinbase = new Buffer('1337133713371337133713371337133713371337', 'hex');
+    this.coinbase = '0x1337133713371337133713371337133713371337';
     this.defaultAccount = null;
     this.accounts = [];
     this.transactions = [];
@@ -48,7 +48,7 @@ var Sandbox = {
       this.blockchain = new Blockchain(blockDB, false);
       var block = new Block({
         header: {
-          coinbase: this.coinbase,
+          coinbase: util.toBuffer(this.coinbase),
           gasLimit: util.toBuffer(this.gasLimit),
           number: 0,
           difficulty: util.toBuffer(this.difficulty),
@@ -100,12 +100,6 @@ var Sandbox = {
         if (filter.type === 'log') filter.entries.push(log);
       });
     }
-  },
-  setBlock: function(block) {
-    if (!block) return;
-    if (block.hasOwnProperty('coinbase')) this.coinbase = new Buffer(util.fillWithZeroes(block.coinbase.toString(16), 40), 'hex');
-    if (block.hasOwnProperty('difficulty')) this.difficulty = block.difficulty;
-    if (block.hasOwnProperty('gasLimit')) this.gasLimit = block.gasLimit;
   },
   createAccounts: function(accounts, cb) {
     accounts = _.map(accounts, function(account, address) {
@@ -498,7 +492,7 @@ var Sandbox = {
       if (err) return cb(err);
       var block = new Block({
         header: {
-          coinbase: this.coinbase,
+          coinbase: util.toBuffer(this.coinbase),
           gasLimit: util.toBuffer(this.gasLimit),
           number: ethUtils.bufferToInt(lastBlock.header.number) + 1,
           timestamp: new Buffer(util.nowHex(), 'hex'),

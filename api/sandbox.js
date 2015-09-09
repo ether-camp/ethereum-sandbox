@@ -10,7 +10,16 @@ module.exports = function(sandbox) {
       sandbox.createAccounts(accounts, util.jsonRpcCallback(cb));
     },
     setBlock: function(block, cb) {
-      sandbox.setBlock(util.toBigNumbers(block));
+      var errors = [];
+      options = parse(options, {
+        coinbase: { type: 'address', defaultVal: null },
+        difficulty: { type: 'number', defaultVal: null },
+        gasLimit: { type: 'number', defaultVal: null }
+      }, errors);
+      if (errors.length !== 0) return cb(errors.join(' '), null);
+      if (options.coinbase) sandbox.coinbase = options.coinbase;
+      if (options.difficulty) sandbox.difficulty = options.difficulty;
+      if (options.gasLimit) sandbox.gasLimit = options.gasLimit;
       cb(null, null);
     },
     defaultAccount: function(cb) {
