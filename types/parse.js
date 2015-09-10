@@ -17,12 +17,21 @@ var types = {
       errors.push('Hex number must contain 0x and at least one hex digit;');
     return val;
   },
+  hex64: function(val, errors) {
+    if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]{64}$/))
+      errors.push('Hex number must contain 0x and 64 hex digits;');
+    return val;
+  },
   contract: function(val, errors) {
     if (typeof val !== 'object' ||
         !val.hasOwnProperty('name') ||
         !val.hasOwnProperty('binary') ||
         !val.hasOwnProperty('abi'))
       errors.push('Contract must be an object with properties name, binary, abi;');
+    return val;
+  },
+  bool: function(val, errors) {
+    if (typeof val !== 'boolean') errors.push('Not a boolean');
     return val;
   }
 };
