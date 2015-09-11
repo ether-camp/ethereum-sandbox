@@ -37,20 +37,20 @@ module.exports = function(sandbox) {
     },
     createAccounts: {
       args: [{
+        type: 'map',
+        key: 'address',
+        values: {
           type: 'map',
-          key: 'address',
           values: {
-            type: 'map',
-            values: {
-              balance: { type: 'number', defaultVal: null },
-              nonce: { type: 'number', defaultVal: null },
-              code: { type: 'hex', defaultVal: null },
-              runCode: { type: 'contract', defaultVal: null },
-              storage: {
+            balance: { type: 'number', defaultVal: null },
+            nonce: { type: 'number', defaultVal: null },
+            code: { type: 'hex', defaultVal: null },
+            runCode: { type: 'contract', defaultVal: null },
+            storage: {
               type: 'map',
-              key: 'hex64',
+              key: 'hex',
               defaultVal: null,
-              values: { type: 'hex64' }
+              values: { type: 'hex' }
             }
           }
         }

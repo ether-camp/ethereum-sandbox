@@ -155,7 +155,7 @@ var Sandbox = {
       async.forEachOfSeries(
         account.storage,
         function(val, key, cb) {
-          strie.put(util.toBuffer(key), util.encodeRlp(util.toBuffer(val)), function(err) {
+          strie.put(util.toBuffer(key, 64), util.encodeRlp(util.toBuffer(val, 64)), function(err) {
             raw.stateRoot = strie.root;
             cb(err);
           });

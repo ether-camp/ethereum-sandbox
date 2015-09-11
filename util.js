@@ -12,15 +12,10 @@ util.SHA3_RLP_NULL = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e3
 util.sha3 = function(strOrBuf, encoding) {
   var sha = new SHA3Hash(256);
   if (!Buffer.isBuffer(strOrBuf))
-    strOrBuf = new Buffer(util.pad(util.fromHex(strOrBuf)), 'hex');
+    strOrBuf = new Buffer(util.pad(strOrBuf.substr(2)), 'hex');
   sha.update(strOrBuf);
   var out = sha.digest(encoding);
   return Buffer.isBuffer(out) ? out : util.toHex(out);
-};
-
-util.fromHex = function(str) {
-  if (str.substr(0, 2) === '0x') return str.substr(2);
-  return str;
 };
 
 util.toHex = function(obj, toLength) {
@@ -33,15 +28,6 @@ util.toHex = function(obj, toLength) {
 
 util.pad = function(str) {
   return str.length % 2 === 0 ? str : '0' + str;
-};
-
-util.toBuffers = function(obj, fields) {
-  return _.transform(obj, function(result, val, key) {
-    if (_.isString(val) && (!fields || _.contains(fields, key)))
-      result[key] = new Buffer(util.pad(util.fromHex(val)), 'hex');
-    else
-      result[key] = val;
-  });
 };
 
 util.isBigNumber = function(object) {
@@ -68,15 +54,15 @@ util.toBigNumber = function(number) {
   return new BigNumber(number.toString(10), 10);
 };
 
-util.toBigNumbers = function(obj) {
-  return _.transform(obj, function(result, val, key) {
-    result[key] = util.toBigNumber(val);
-  });
-};
-    
-util.toBuffer = function(number) {
-  if (util.isBigNumber(number)) return new Buffer(util.pad(number.toString(16)), 'hex');
-  if (number.indexOf('0x') != -1) return new Buffer(util.pad(number.substr(2)), 'hex');
+util.toBuffer = function(number, toLength) {
+  if (util.isBigNumber(number)) {
+    if (toLength) return new Buffer(util.fillWithZeroes(number.toString(16), toLength), 'hex');
+    else return new Buffer(util.pad(number.toString(16)), 'hex');
+  }
+  if (number.indexOf('0x') != -1) {
+    if (toLength) return new Buffer(util.fillWithZeroes(number.substr(2), toLength), 'hex');
+    else return new Buffer(util.pad(number.substr(2)), 'hex');
+  }
   return new Buffer(number, 'hex');
 };
 
