@@ -346,39 +346,27 @@ module.exports = function(sandbox) {
           address: { type: 'address', defaultVal: null }
         }
       }],
-      handler: function(options, cb) {
-        sandbox.newFilter(options, util.jsonRpcCallback(cb));
-      }
+      handler: function(options, cb) { sandbox.newFilter(options, cb); }
     },
     newBlockFilter: {
       args: [],
-      handler: function(cb) {
-        sandbox.newFilter('latest', util.jsonRpcCallback(cb));
-      }
+      handler: function(cb) { sandbox.newFilter('latest', cb); }
     },
     newPendingTransactionFilter: {
       args: [],
-      handler: function(cb) {
-        sandbox.newFilter('pending', util.jsonRpcCallback(cb));
-      }
+      handler: function(cb) { sandbox.newFilter('pending', cb); }
     },
     uninstallFilter: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) {
-        sandbox.removeFilter(filterId, util.jsonRpcCallback(cb));
-      }
+      handler: function(filterId, cb) { sandbox.removeFilter(filterId, cb); }
     },
     getFilterChanges: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) {
-        sandbox.getFilterChanges(filterId, util.jsonRpcCallback(cb));
-      }
+      handler: function(filterId, cb) { sandbox.getFilterChanges(filterId, cb); }
     },
     getFilterLogs: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) {
-        sandbox.getFilterChanges(filterId, util.jsonRpcCallback(cb));
-      }
+      handler: function(filterId, cb) { sandbox.getFilterChanges(filterId, cb); }
     }
   };
 };
