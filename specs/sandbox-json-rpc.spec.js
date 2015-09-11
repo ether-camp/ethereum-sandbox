@@ -44,7 +44,6 @@ function run(file) {
               if (err) {
                 cb(info.name + ' has failed with the error: ' + err);
               } else {
-                
                 if (info.hasOwnProperty('result')) {
                   if (reply.hasOwnProperty('error')) {
                     cb(info.name + ' has failed with the json-rpc error: ' + reply.error.message);

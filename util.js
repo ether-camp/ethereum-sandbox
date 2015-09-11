@@ -76,7 +76,7 @@ util.toBigNumbers = function(obj) {
     
 util.toBuffer = function(number) {
   if (util.isBigNumber(number)) return new Buffer(util.pad(number.toString(16)), 'hex');
-  if (number.indexOf('0x') != -1) return new Buffer(number.substr(2), 'hex');
+  if (number.indexOf('0x') != -1) return new Buffer(util.pad(number.substr(2)), 'hex');
   return new Buffer(number, 'hex');
 };
 
@@ -94,15 +94,6 @@ util.generateId = function() {
   return crypto.createHash('sha1').update(now + seed).digest('hex');
 };
 
-util.collapse = function(stem, sep) {
-  return function(map, value, key) {
-    var prop = stem ? stem + sep + key : key;
-    if(_.isFunction(value)) map[prop] = value;
-    else if(_.isObject(value)) map = _.reduce(value, util.collapse(prop, sep), map);
-    return map;
-  };
-};
-
 util.fillWithZeroes = function(str, length, right) {
   if (str.length >= length) return str;
   var zeroes = _.repeat('0', length - str.length);
@@ -118,6 +109,10 @@ util.toNumber = function(obj) {
   if (typeof obj === 'string' && _.startsWith(obj, '0x')) return parseInt(obj, 16);
   return obj;
 };
+
+util.encodeRlp = function(buf) {
+  return rlp.encode(buf);
+}
 
 util.decodeRlp = function(buf) {
   return rlp.decode(buf);

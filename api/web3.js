@@ -2,11 +2,13 @@ var util = require('../util');
 
 module.exports = function(sandbox) {
   return {
-    clientVersion: function(cb) {
-      cb(null, 'ethereum-sandbox/v0.0.1');
+    clientVersion: {
+      args: [],
+      handler: function(cb) { cb(null, 'ethereum-sandbox/v0.0.1'); }
     },
-    sha3: function(str, cb) {
-      cb(null, util.sha3(str, 'hex'));
+    sha3: {
+      args: [{ type: 'hex' }],
+      handler: function(str, cb) { cb(null, util.sha3(str, 'hex')); }
     }
   };
 };

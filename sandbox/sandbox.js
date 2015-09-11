@@ -3,10 +3,8 @@ var Account = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
 var Blockchain = require('ethereumjs-blockchain');
 var Trie = require('merkle-patricia-tree');
-var rlp = require('rlp');
 var ethUtils = require('ethereumjs-util');
 var async = require('async');
-var SHA3Hash = require('sha3').SHA3Hash;
 var _ = require('lodash');
 var levelup = require('levelup');
 var BigNumber = require('bignumber.js');
@@ -22,7 +20,7 @@ var Sandbox = {
     this.id = id;
     this.coinbase = '0x1337133713371337133713371337133713371337';
     this.defaultAccount = null;
-    this.accounts = [];
+    this.accounts = {};
     this.transactions = [];
     this.contracts = {};
     this.filtersCounter = 0;
@@ -77,7 +75,7 @@ var Sandbox = {
             .map(function(val) {
               return val
                 .map(function(cell) {
-                  return pad(cell.toString(16));
+                  return util.pad(cell.toString(16));
                 })
                 .join('');
             })
@@ -100,42 +98,6 @@ var Sandbox = {
       });
     }
   },
-  createAccounts: function(accounts, cb) {
-    accounts = _.map(accounts, function(account, address) {
-      account.address = address;
-      return util.toBuffers(account, ['address', 'nonce', 'balance', 'code', 'pkey']);
-    });
-    this.accounts = _(accounts)
-      .filter(function(account) {
-        return account.hasOwnProperty('pkey');
-      }).map(function(account) {
-        return [ util.toHex(account.address), util.toHex(account.pkey) ];
-      }).zipObject().value();
-
-    async.each(accounts, processAccount.bind(this), (function(err) {
-      if (err) this.stop(cb.bind(null, 'Could not create an account: ' + err));
-      else {
-        if (this.defaultAccount === null) {
-          this.stop(cb.bind(null, 'Please, specify a default account in ethereum.json'));
-        } else {
-          cb();
-        }
-      }
-    }).bind(this));
-
-    function processAccount(options, cb) {
-      if (options.default) {
-        if (this.defaultAccount !== null)
-          return cb('There is should be only one default account. Please, correct ethereum.json.');
-        
-        if (!options.hasOwnProperty('pkey'))
-          return cb('Default account in ethereum.json should have a pkey.');
-        
-        this.defaultAccount = util.toHex(options.address);
-      }
-      this.createAccount(options, cb);
-    }
-  },
   stop: function(cb) {
     clearInterval(this.miner);
     this.vm = null;
@@ -151,67 +113,52 @@ var Sandbox = {
     this.receipts = null;
     cb();
   },
-  createAccount: function(options, cb) {
-    var account = new Account(options);
-
+  createAccount: function(account, cb) {
+    var raw = account.raw();
+    
     async.series([
       runCode.bind(this),
       storeCode.bind(this),
       saveStorage.bind(this),
       (function(cb) {
-        this.vm.trie.put(options.address, account.serialize(), cb);
+        this.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
       }).bind(this)
     ], cb);
 
     function runCode(cb) {
-      if (!options.hasOwnProperty('runCode')) return cb();
-      if (!_.every(
-        ['name', 'binary', 'abi'],
-        options.runCode.hasOwnProperty.bind(options.runCode)
-      )) return cb('Bad runCode field');
-      
-      var code = new Buffer(options.runCode.binary, 'hex');
-      var from = new Buffer('1337133713371337133713371337133713371337', 'hex');
+      if (!account.runCode) return cb();
       this.createNextBlock([], (function(err, block) {
         if (err) return cb(err);
         this.vm.runCode({
-          code: code,
-          data: code,
-          account: account,
+          code: util.toBuffer(account.runCode.binary),
+          data: util.toBuffer(account.runCode.binary),
+          account: raw,
           gasLimit: util.toBuffer(this.gasLimit),
-          address: options.address,
-          caller: from,
+          address: util.toBuffer(account.address),
+          caller: util.toBuffer(this.coinbase),
           block: block
         }, (function(err, result) {
           if (err) return cb(err);
-          this.contracts['0x' + options.address.toString('hex')] = options.runCode;
-          account.setCode(this.vm.trie, result.return, cb);
+          this.contracts[account.address] = account.runCode;
+          raw.setCode(this.vm.trie, result.return, cb);
         }).bind(this));
       }).bind(this));
     }
     function storeCode(cb) {
-      if (!options.hasOwnProperty('code')) cb();
-      else account.setCode(this.vm.trie, options.code, cb);
+      if (!account.code) cb();
+      else raw.setCode(this.vm.trie, util.toBuffer(account.code), cb);
     }
     function saveStorage(cb) {
-      if (!options.hasOwnProperty('storage')) return cb();
+      if (!account.storage || _.size(account.storage) === 0) return cb();
       var strie = this.vm.trie.copy();
       strie.root = account.stateRoot;
       async.forEachOfSeries(
-        options.storage,
+        account.storage,
         function(val, key, cb) {
-          try {
-            strie.put(
-              createBuffer(key),
-              rlp.encode(new Buffer(val, 'hex')),
-              function(err) {
-                account.stateRoot = strie.root;
-                cb(err);
-              }
-            );
-          } catch (e) {
-            return cb('Could not parse storage entry: ' + e.message);
-          }
+          strie.put(util.toBuffer(key), util.encodeRlp(util.toBuffer(val)), function(err) {
+            raw.stateRoot = strie.root;
+            cb(err);
+          });
         },
         cb
       );
@@ -382,82 +329,6 @@ var Sandbox = {
       }).bind(this));
     }
   },
-  getAccountAddresses: function(cb) {
-    var stream = this.vm.trie.createReadStream();
-    var accounts = [];
-    stream.on('data', function(data) {
-      accounts.push(util.toHex(data.key));
-    });
-    stream.on('end', function() {
-      cb(null, accounts);
-    });
-  },
-  getAccounts: function(cb) {
-    var stream = this.vm.trie.createReadStream();
-    var accounts = {};
-    stream.on('data', function(data) {
-      accounts[data.key.toString('hex')] = data.value;
-    });
-    stream.on('end', (function() {
-      async.forEachOf(
-        accounts,
-        (function(rawAccount, address, cb) {
-          this.parseAccount(rawAccount, function(err, account) {
-            accounts[address] = account;
-            cb(err);
-          });
-        }).bind(this),
-        function(err) {
-          cb(err, accounts);
-        }
-      );
-    }).bind(this));
-  },
-  getAccount: function(address, cb) {
-    try {
-      var addressBuf = new Buffer(address, 'hex');
-    } catch (e) {
-      return cb('Could not parse address ' + address + ': ' + e.message);
-    }
-    this.vm.trie.get(addressBuf, (function(err, value) {
-      if (err) cb(err);
-      else this.parseAccount(value, cb);
-    }).bind(this));
-  },
-  parseAccount: function(data, cb) {
-    var raw = new Account(data);
-    var account = {
-      nonce: raw.nonce.toString('hex'),
-      balance: raw.balance.toString('hex'),
-      storage: {},
-      code: ''
-    };
-    
-    async.parallel([
-      readStorage.bind(this, raw, account),
-      readCode.bind(this, raw, account)
-    ], function(err) {
-      cb(err, account);
-    });
-    
-    function readStorage(raw, account, cb) {
-      if (raw.stateRoot.toString('hex') === util.SHA3_RLP_NULL) return cb();
-      
-      var strie = this.vm.trie.copy();
-      strie.root = raw.stateRoot;
-      var stream = strie.createReadStream();
-      stream.on('data', function(data) {
-        account.storage[data.key.toString('hex')] = createBuffer(rlp.decode(data.value)).toString('hex');
-      });
-      stream.on('end', cb);
-    }
-    function readCode(raw, account, cb) {
-      raw.getCode(this.vm.trie, function(err, code) {
-        account.code = code.toString('hex');
-        cb(err);
-      });
-    }
-  },
   newFilter: function(type, cb) {
     if (typeof type === 'object') cb(null, addFilter.call(this, 'log'));
     else if (type == 'pending') cb(null, addFilter.call(this, 'pending'));
@@ -506,61 +377,3 @@ var Sandbox = {
 };
 
 module.exports = Sandbox;
-
-function createBuffer(str) {
-  var msg = new Buffer(str, 'hex');
-  var buf = new Buffer(32);
-  buf.fill(0);
-  msg.copy(buf, 32 - msg.length);
-  return buf;
-}
-
-function fillWithZeroes(str, length, right) {
-  if (str.length >= length) return str;
-  var zeroes = _.repeat('0', length - str.length);
-  return right ? str + zeroes : zeroes + str;
-}
-
-function sha3(str) {
-  var sha = new SHA3Hash(256);
-  sha.update(str);
-  return sha.digest('hex');
-}
-
-function pad(str) {
-  return str.length % 2 === 0 ? str : '0' + str;
-}
-
-function setField(target, source, name) {
-  try {
-    if (source.hasOwnProperty(name) && source[name]) {
-      if (!/^[\dA-F]*$/i.test(source[name]))
-        throw { message: 'Invalid hex string' };
-      if (!/^0*$/.test(source[name]))
-        target[name] = new Buffer(source[name], 'hex');
-    }
-  } catch (e) {
-    throw 'Could not set field ' + name + ' to ' + source[name] + ': ' + e.message;
-  }
-}
-
-function parseTx(tx, results) {
-  return {
-    from: tx.getSenderAddress().toString('hex'),
-    nonce: ethUtils.bufferToInt(tx.nonce),
-    gasPrice: ethUtils.bufferToInt(tx.gasPrice),
-    gasLimit: ethUtils.bufferToInt(tx.gasLimit),
-    to: tx.to.toString('hex'),
-    gasUsed: results.gasUsed ? results.gasUsed.toString('hex') : '',
-    value: ethUtils.bufferToInt(tx.value),
-    data: tx.data.toString('hex'),
-    createdAddress: results.createdAddress ? results.createdAddress.toString('hex') : '',
-    returnValue: results.return ? results.return.toString('hex') : '',
-    exception: results.exception || 1,
-    rlp: tx.serialize().toString('hex'),
-    r : tx.r.toString('hex'),
-    s : tx.s.toString('hex'),
-    v : tx.v.toString('hex'),
-    hash: tx.hash().toString('hex')
-  };
-}

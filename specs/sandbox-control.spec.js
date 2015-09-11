@@ -65,6 +65,7 @@ describe('Sandbox control', function() {
         var client = jayson.client.http(sandboxUrl + id);
         client.request('sandbox_id', [], function(err, reply) {
           if (err) cb(err);
+          else if (reply.error) cb(reply.error.message);
           else cb(reply.result === id ?
                   null : 'Expected id ' + id + ' but got ' + reply.result);
         });

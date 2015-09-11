@@ -1,10 +1,10 @@
 {
   "Provides default account": [
     {
-      "name": "sandbox_createAccounts",
+      "name": "sandbox_addAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
           "default": true
         }
       }],
@@ -16,40 +16,17 @@
       "result": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392"
     }
   ],
-  "Provides predefined accounts": [
-    {
-      "name": "sandbox_createAccounts",
-      "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": "1234",
-          "nonce": "62",
-          "default": true
-        }
-      }],
-      "result": null
-    },
-    {
-      "name": "sandbox_predefinedAccounts",
-      "params": [],
-      "result": {
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015"
-      }
-    }
-  ],
   "Provides accounts with details": [
     {
       "name": "sandbox_createAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": "1234",
-          "nonce": "62",
-          "default": true
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1234",
+          "nonce": "0x62"
         },
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
-          "balance": "012345",
-          "nonce": 0
+        "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
+          "balance": "0x12345",
+          "nonce": null
         }
       }],
       "result": null
@@ -58,17 +35,17 @@
       "name": "sandbox_accounts",
       "params": [true],
       "result": {
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "balance": "1234",
-          "nonce": "62",
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1234",
+          "nonce": "0x62",
           "storage": {},
-          "code": ""
+          "code": null
         },
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
-          "balance": "012345",
-          "nonce": "",
+        "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
+          "balance": "0x12345",
+          "nonce": null,
           "storage": {},
-          "code": ""
+          "code": null
         }
       }
     }
@@ -77,12 +54,8 @@
     {
       "name": "sandbox_createAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "default": true
-        },
-        "5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
-        }
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {},
+        "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {}
       }],
       "result": null
     },
@@ -94,12 +67,19 @@
   ],
   "Returns list of contracts": [
     {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
       "name": "sandbox_createAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": 1000000000000000000000,
-          "default": true
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1000000000000000000000"
         }
       }],
       "result": null
@@ -132,12 +112,19 @@
   ],
   "Returns list of transaction details": [
     {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
       "name": "sandbox_createAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": 1000000000000000000000,
-          "default": true
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1000000000000000000000"
         }
       }],
       "result": null
@@ -172,12 +159,19 @@
   ],
   "Returns a tx receipt by tx hash": [
     {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
       "name": "sandbox_createAccounts",
       "params": [{
-        "dedb49385ad5b94a16f236a6890cf9e0b1e30392": {
-          "pkey": "974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
-          "balance": 1000000000000000000000,
-          "default": true
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1000000000000000000000"
         }
       }],
       "result": null
