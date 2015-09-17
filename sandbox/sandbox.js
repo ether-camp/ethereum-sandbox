@@ -140,6 +140,7 @@ var Sandbox = {
         }, (function(err, result) {
           if (err) return cb(err);
           this.contracts[account.address] = account.runCode;
+          this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
           raw.setCode(this.vm.trie, result.return, cb);
         }).bind(this));
       }).bind(this));
@@ -265,8 +266,10 @@ var Sandbox = {
               .init(tx, block, results[0].receipts[0], results[0].results[0]);
           this.receipts[util.toHex(tx.getTx().hash())] = receipt;
           
-          if (tx.contract && receipt.contractAddress)
+          if (tx.contract && receipt.contractAddress) {
             this.contracts[receipt.contractAddress] = tx.contract;
+            this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
+          }
           
           _.each(this.filters, function(filter) {
             if (filter.type === 'latest')

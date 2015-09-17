@@ -105,7 +105,8 @@
         "0x86e0497e32a8e1d79fe38ab87dc80140df5470d9": {
           "name":"Contract",
           "binary":"60606040525b5b600a8060136000396000f30060606040526008565b00",
-          "abi":[{"inputs":[],"type":"constructor"}]
+          "abi":[{"inputs":[],"type":"constructor"}],
+          "gasUsed":"0x60b5"
         }
       }
     }
