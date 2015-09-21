@@ -19,9 +19,14 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-run');
   grunt.loadNpmTasks('grunt-simple-mocha');
 
+  grunt.registerTask('simplemochaGrep', function() {
+    grunt.config('simplemocha.options.grep', grunt.option('grep'));
+    grunt.task.run('simplemocha');
+  });
+
   grunt.registerTask('test', [
     'run:app',
-    'simplemocha',
+    'simplemochaGrep',
     'stop:app'
   ]);
   grunt.registerTask('default', []);
