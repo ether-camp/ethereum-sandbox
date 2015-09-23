@@ -141,6 +141,7 @@ var Sandbox = {
           if (err) return cb(err);
           this.contracts[account.address] = account.runCode;
           this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
+          this.contracts[account.address].data = account.runCode.binary;
           raw.setCode(this.vm.trie, result.return, cb);
         }).bind(this));
       }).bind(this));
@@ -269,6 +270,7 @@ var Sandbox = {
           if (tx.contract && receipt.contractAddress) {
             this.contracts[receipt.contractAddress] = tx.contract;
             this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
+            this.contracts[receipt.contractAddress].data = tx.data;
           }
           
           _.each(this.filters, function(filter) {
