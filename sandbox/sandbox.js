@@ -141,7 +141,7 @@ var Sandbox = {
           if (err) return cb(err);
           this.contracts[account.address] = account.runCode;
           this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
-          this.contracts[account.address].data = account.runCode.binary;
+          this.contracts[account.address].data = '0x' + account.runCode.binary;
           raw.setCode(this.vm.trie, result.return, cb);
         }).bind(this));
       }).bind(this));
