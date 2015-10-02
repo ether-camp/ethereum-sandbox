@@ -154,7 +154,7 @@
         "data":null,
         "createdAddress":null,
         "returnValue":null,
-        "exception":1,
+        "exception":null,
         "rlp":"0xf86580850ba43b7400832fefd89486e0497e32a8e1d79fe38ab87dc80140df5470d910801ba0f5ddc1b9b34d7f7e16cc01f6c0168e3c6e267a0a32e0049bdb451a5aeff6453ba054e0f07b8baa60ba670f85d0f1435ccd74b5dbf18901c7cb5bb3ac52380e2399"
       }]
     }
@@ -201,7 +201,7 @@
         "data":null,
         "createdAddress":null,
         "returnValue":null,
-        "exception":1,
+        "exception":null,
         "rlp":"0xf86580850ba43b7400832fefd89486e0497e32a8e1d79fe38ab87dc80140df5470d910801ba0f5ddc1b9b34d7f7e16cc01f6c0168e3c6e267a0a32e0049bdb451a5aeff6453ba054e0f07b8baa60ba670f85d0f1435ccd74b5dbf18901c7cb5bb3ac52380e2399"
       }
     }
