@@ -22,7 +22,7 @@ module.exports = {
     this.logs = [];
     this.rlp = util.toHex(realTx.serialize());
     this.returnValue = result.vm.return ? util.toHex(result.vm.return) : null;
-    this.exception = result.vm.exception;
+    this.exception = result.vm.exceptionError;
     return this;
   },
   getReceiptDetails: function() {
