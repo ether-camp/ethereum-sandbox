@@ -122,6 +122,7 @@ module.exports = function(sandbox) {
       handler: function(address, block, cb) {
         sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
           if (err) cb(err);
+          else if (!data) cb(null, '');
           else Object.create(Account).init(data).readCode(sandbox.vm.trie, cb);
         });
       }
