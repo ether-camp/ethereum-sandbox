@@ -323,7 +323,7 @@ var Sandbox = {
         
         var account = new Account(data);
         var prevTx = _.find(this.pendingTransactions, { from: tx.from });
-        options.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
+        tx.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
         cb();
       }).bind(this));
     }
