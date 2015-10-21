@@ -1,5 +1,6 @@
 var BigNumber = require('bignumber.js');
 var util = require('../util');
+var _ = require('lodash');
 
 module.exports = {
   init: function(tx, block, receipt, result) {
@@ -19,10 +20,23 @@ module.exports = {
     this.cumulativeGasUsed = util.toBigNumber(receipt.gasUsed);
     this.gasUsed = util.toBigNumber(receipt.gasUsed);
     this.contractAddress = result.createdAddress ? util.toHex(result.createdAddress) : null;
-    this.logs = [];
     this.rlp = util.toHex(realTx.serialize());
     this.returnValue = result.vm.return ? util.toHex(result.vm.return) : null;
     this.exception = result.vm.exceptionError || null;
+
+    this.logs = _.map(result.vm.logs, function(log, index) {
+      return {
+        logIndex: '0x' + index,
+        transactionIndex: '0x1',
+        transactionHash: this.txHash,
+        blockHash: this.blockHash,
+        blockNumber: util.toHex(this.blockNumber),
+        address: util.toHex(log[0]),
+        data: log[2].length == 0 ? '' : util.toHex(log[2]),
+        topics: _.map(log[1], _.partial(util.toHex, _, undefined))
+      };
+    }, this);
+    
     return this;
   },
   getReceiptDetails: function() {

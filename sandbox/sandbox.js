@@ -9,7 +9,7 @@ var _ = require('lodash');
 var levelup = require('levelup');
 var BigNumber = require('bignumber.js');
 var util = require('../util');
-var Tx = require('../ethereum/tx')
+var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
 
 var Sandbox = {
@@ -53,7 +53,7 @@ var Sandbox = {
         }, transactions: [],
         uncleHeaders: []
       });
-      this.blockchain.addBlock(block, cb);
+      this.blockchain.putBlock(block, cb);
     }
     function createVM(cb) {
       this.vm = new VM(new Trie(), this.blockchain);
@@ -256,7 +256,7 @@ var Sandbox = {
           block: block,
           generate: true
         }),
-        this.blockchain.addBlock.bind(this.blockchain, block)
+        this.blockchain.putBlock.bind(this.blockchain, block)
       ], (function(err, results) {
         var tx = this.pendingTransactions.shift();
         this.miningBlock = false;
@@ -266,6 +266,7 @@ var Sandbox = {
           var receipt = Object.create(Receipt)
               .init(tx, block, results[0].receipts[0], results[0].results[0]);
           this.receipts[util.toHex(tx.getTx().hash())] = receipt;
+          this.notifyLogs(receipt);
           
           if (tx.contract && receipt.contractAddress) {
             this.contracts[receipt.contractAddress] = tx.contract;
@@ -289,7 +290,7 @@ var Sandbox = {
         this.miningBlock = false;
         return console.error(err);
       }
-      this.blockchain.addBlock(block, (function(err) {
+      this.blockchain.putBlock(block, (function(err) {
         this.miningBlock = false;
         if (err) console.error(err);
         else {
@@ -378,6 +379,13 @@ var Sandbox = {
       });
       cb(null, block);
     }).bind(this));
+  },
+  notifyLogs: function(receipt) {
+    _.each(receipt.logs, function(log) {
+      _.each(this.filters, function(filter) {
+        if (filter.type === 'log') filter.entries.push(log);
+      });
+    }, this);
   }
 };
 
