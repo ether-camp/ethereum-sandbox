@@ -31,7 +31,7 @@ module.exports = {
   readCode: function(trie, cb) {
     this.code = null;
     this.raw.getCode(trie, (function(err, code) {
-      this.code = code.length === 0 ? null : util.toHex(code);
+      this.code = code.length === 0 ? '0x' : util.toHex(code);
       cb(null, this.code);
     }).bind(this));
   },
