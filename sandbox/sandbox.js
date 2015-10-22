@@ -188,7 +188,7 @@ var Sandbox = {
         function checkGasLimit() {
           if (tx.gasLimit.greaterThan(this.gasLimit)) {
             return 'The transaction has gas limit ' + tx.gasLimit.toString() +
-              ' which is greater than current block gas limit ' + tx.gasLimit.toString() + '.';
+              ' which is greater than current block gas limit ' + this.gasLimit.toString() + '.';
           }
           return null;
         }
@@ -267,7 +267,7 @@ var Sandbox = {
               .init(tx, block, results[0].receipts[0], results[0].results[0]);
           this.receipts[util.toHex(tx.getTx().hash())] = receipt;
           this.notifyLogs(receipt);
-          
+
           if (tx.contract && receipt.contractAddress) {
             this.contracts[receipt.contractAddress] = tx.contract;
             this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
