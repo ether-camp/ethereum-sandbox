@@ -117,32 +117,42 @@ var Sandbox = {
     var raw = account.raw();
     
     async.series([
-      runCode.bind(this),
       storeCode.bind(this),
       saveStorage.bind(this),
       (function(cb) {
         this.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
-      }).bind(this)
+      }).bind(this),
+      runCode.bind(this)
     ], cb);
 
     function runCode(cb) {
       if (!account.runCode) return cb();
+      var address = util.toBuffer(account.address);
       this.createNextBlock([], (function(err, block) {
         if (err) return cb(err);
         this.vm.runCode({
           code: util.toBuffer(account.runCode.binary),
           data: util.toBuffer(account.runCode.binary),
-          account: raw,
           gasLimit: util.toBuffer(this.gasLimit),
-          address: util.toBuffer(account.address),
+          address: address,
           caller: util.toBuffer(this.coinbase),
           block: block
         }, (function(err, result) {
           if (err) return cb(err);
+          
           this.contracts[account.address] = account.runCode;
           this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
           this.contracts[account.address].data = '0x' + account.runCode.binary;
-          raw.setCode(this.vm.trie, result.return, cb);
+
+          this.vm.trie.get(address, (function(err, data) {
+            if (err) return cb(err);
+            var acc = new Account(data);
+            acc.setCode(this.vm.trie, result.return, (function(err) {
+              if (err) cb(err);
+              else this.vm.trie.put(address, acc.serialize(), cb);
+            }).bind(this));
+          }).bind(this));
+          
         }).bind(this));
       }).bind(this));
     }
