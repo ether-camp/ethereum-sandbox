@@ -39,13 +39,13 @@
           "balance": "0x1234",
           "nonce": "0x62",
           "storage": {},
-          "code": null
+          "code": "0x"
         },
         "0x5e0d1ad9d5849c1a5c204dfb58a1e4f390a24337": {
           "balance": "0x12345",
           "nonce": null,
           "storage": {},
-          "code": null
+          "code": "0x"
         }
       }
     }
