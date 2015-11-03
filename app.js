@@ -4,92 +4,32 @@ var app = express();
 var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
-var Sandbox = require('./sandbox/sandbox');
-var util = require('./util');
-var sandboxApi = require('./api/sandbox');
-var ethApi = require('./api/eth');
-var netApi = require('./api/net');
-var web3Api = require('./api/web3');
-var parse = require('./types/parse');
-
-var services = {};
-
-function service(sandbox) {
-  return {
-    sandbox: sandboxApi(sandbox),
-    eth: ethApi(sandbox),
-    net: netApi(sandbox),
-    web3: web3Api(sandbox)
-  };
-}
-
-function createSandboxService(id, cb) {
-  var sandbox = Object.create(Sandbox);
-  sandbox.init(id, function(err) {
-    if (err) cb(err);
-    else {
-      var handlers =_.transform(service(sandbox), function(result, calls, prefix) {
-        _.each(calls, function(call, name) {
-          result[prefix + '_' + name] = withValidator(call);
-        });
-      });
-      cb(null, {
-        instance: sandbox,
-        middleware: jayson.server(handlers, { collect: true }).middleware()
-      });
-    }
-  });
-
-  function withValidator(call) {
-    return function() {
-      var args = arguments[0];
-      var cb = util.jsonRpcCallback(arguments[1]);
-      if (args.length !== call.args.length) cb('Wrong number of arguments');
-      else {
-        var errors = [];
-        args = _.map(args, function(arg, index) {
-          return parse(arg, call.args[index], errors);
-        });
-        args.push(cb);
-        if (errors.length === 0) call.handler.apply(null, args);
-        else cb(errors.join(' '));
-      }
-    };
-  }
-}
+var control = require('./sandbox_control');
 
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
-  var id = util.generateId();
-  createSandboxService(id, function(err, service) {
+  control.create(function(err, service) {
     if (err) res.status(500).send(err);
-    else {
-      services[id] = service;
-      res.json({ id: id });
-    }
+    else res.json({ id: service.instance.id });
   });
 });
 app.post('/sandbox/:id', function(req, res, next) {
-  if (!services.hasOwnProperty(req.params.id)) res.sendStatus(404);
-  else services[req.params.id].middleware(req, res, next);
+  if (!control.contains(req.params.id)) res.sendStatus(404);
+  else control.service(req.params.id).middleware(req, res, next);
 });
 app.delete('/sandbox/:id', function(req, res, next) {
-  if (!services.hasOwnProperty(req.params.id)) res.sendStatus(404);
+  if (!control.contains(req.params.id)) res.sendStatus(404);
   else {
-    services[req.params.id].instance.stop(function() {});
-    delete services[req.params.id];
+    control.stop(req.params.id);
     res.sendStatus(200);
   }
 });
 app.get('/sandbox', function(req, res) {
-  res.json(_.keys(services));
+  res.json(_.keys(control.services));
 });
 app.post('/reset', function(req, res) {
-  _.each(services, function(sandbox, key) {
-    sandbox.instance.stop(function() {});
-  });
-  services = [];
+  control.reset();
   res.sendStatus(200);
 });
 
