@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var async = require('async');
 var jayson = require('jayson');
 var Sandbox = require('./sandbox/sandbox');
 var util = require('./util');
@@ -7,6 +8,9 @@ var ethApi = require('./api/eth');
 var netApi = require('./api/net');
 var web3Api = require('./api/web3');
 var parse = require('./types/parse');
+
+var unusedTime = 30 * 60 * 1000;
+var checkPeriod = 15 * 60 * 1000;
 
 function service(sandbox) {
   return {
@@ -35,6 +39,7 @@ var Control = {
         });
 
         this.services[id] = {
+          lastTouch: Date.now(),
           instance: sandbox,
           middleware: jayson.server(handlers, { collect: true }).middleware()
         };
@@ -44,19 +49,36 @@ var Control = {
     }).bind(this));
   },
   service: function(id) {
-    return this.services[id];
-  },
-  stop: function(id) {
-    if (!this.services.hasOwnProperty(id)) return;
     var service = this.services[id];
-    service.instance.stop(function() {});
-    delete this.services[id];
+    service.lastTouch = Date.now();
+    return service;
   },
-  reset: function() {
-    _.each(this.services, function(service) {
-      service.instance.stop(function() {});
-    });
-    this.services = {};
+  stop: function(id, cb) {
+    if (!this.services.hasOwnProperty(id)) return cb();
+    var service = this.services[id];
+    service.instance.stop((function() {
+      delete this.services[id];
+      cb();
+    }).bind(this));
+  },
+  reset: function(cb) {
+    async.forEachOf(this.services, function(service, id, cb) {
+      service.instance.stop(cb);
+    }, (function() {
+      this.services = {};
+      cb();
+    }).bind(this));
+  },
+  stopUnused: function() {
+    var now = Date.now();
+    _(this.services)
+      .filter(function(service) {
+        return service.lastTouch < now - unusedTime;
+      })
+      .each((function(service) {
+        this.stop(service.instance.id, function(){});
+      }).bind(this))
+      .value();
   }
 };
 
@@ -76,5 +98,7 @@ function withValidator(call) {
     }
   };
 }
+
+setInterval(Control.stopUnused.bind(Control), checkPeriod);
 
 module.exports = Control;

@@ -111,6 +111,7 @@ var Sandbox = {
     this.filters = null;
     this.filtersCounter = null;
     this.receipts = null;
+    this.pendingTransactions = null;
     cb();
   },
   createAccount: function(account, cb) {
@@ -268,6 +269,8 @@ var Sandbox = {
         }),
         this.blockchain.putBlock.bind(this.blockchain, block)
       ], (function(err, results) {
+        if (!this.vm) return;
+        
         var tx = this.pendingTransactions.shift();
         this.miningBlock = false;
         this.runPendingTx();

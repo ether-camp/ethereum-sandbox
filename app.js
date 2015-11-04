@@ -21,16 +21,18 @@ app.post('/sandbox/:id', function(req, res, next) {
 app.delete('/sandbox/:id', function(req, res, next) {
   if (!control.contains(req.params.id)) res.sendStatus(404);
   else {
-    control.stop(req.params.id);
-    res.sendStatus(200);
+    control.stop(req.params.id, function() {
+      res.sendStatus(200);
+    });
   }
 });
 app.get('/sandbox', function(req, res) {
   res.json(_.keys(control.services));
 });
 app.post('/reset', function(req, res) {
-  control.reset();
-  res.sendStatus(200);
+  control.reset(function() {
+    res.sendStatus(200);
+  });
 });
 
 var server = app.listen(8555, function () {
