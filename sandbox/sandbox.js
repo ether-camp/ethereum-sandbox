@@ -178,9 +178,11 @@ var Sandbox = {
     }
   },
   sendTx: function(options, cb) {
-    if (!this.accounts.hasOwnProperty(options.from))
-      return cb('Could not find a private key for ' + options.from);
-    options.pkey = this.accounts[options.from];
+    if (!_.isString(options)) {
+      if (!this.accounts.hasOwnProperty(options.from))
+        return cb('Could not find a private key for ' + options.from);
+      options.pkey = this.accounts[options.from];
+    }
     
     var tx = Object.create(Tx).init(options);
 

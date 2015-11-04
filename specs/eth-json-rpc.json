@@ -106,6 +106,56 @@
       }
     }
   ],
+  "Transfers ether by tx rlp": [
+    {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x157079600000000010"
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendRawTransaction",
+      "params": ["0xf86580850ba43b7400832fefd894084f6a99003dae6d3906664fdbf43dd09930d0e30a801ba064384dea6c2bded7193396cbc26070def21c4fe0227493f7026fbcfc0ad83e0ea04f07f3c78f7b89dc1fd737df8b36c5cf8e29110c3e73dee602dcc093424091b0"],
+      "result": "0x4617ec0378179264f64c67571a26db2e8ffc6c52356a77096c80b1650194f6bb"
+    },
+    {
+      "name": "sandbox_accounts",
+      "wait": true,
+      "params": [true],
+      "result": {
+        "0x084f6a99003dae6d3906664fdbf43dd09930d0e3":{
+          "nonce":null,
+          "balance":"0xa",
+          "storage":{},
+          "code":"0x"
+        },
+        "0x1337133713371337133713371337133713371337":{
+          "nonce":null,
+          "balance":"0x45674c7a71f7a000",
+          "storage":{},
+          "code":"0x"
+        },
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392":{
+          "nonce":"0x1",
+          "balance":"0x157075a507d2fc6006",
+          "storage":{},
+          "code":"0x"
+        }
+      }
+    }
+  ],
   "Returns error on sending a tx with too big value": [
     {
       "name": "sandbox_addAccounts",

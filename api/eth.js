@@ -147,6 +147,12 @@ module.exports = function(sandbox) {
         sandbox.sendTx(options, cb);
       }
     },
+    sendRawTransaction: {
+      args: [{ type: 'hex' }],
+      handler: function(rlp, cb) {
+        sandbox.sendTx(rlp, cb);
+      }
+    },
     call: {
       args: [
         {
