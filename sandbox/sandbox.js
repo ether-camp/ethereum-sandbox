@@ -1,3 +1,4 @@
+var fs = require('fs');
 var VM = require('ethereumjs-vm');
 var Account = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
@@ -7,10 +8,13 @@ var ethUtils = require('ethereumjs-util');
 var async = require('async');
 var _ = require('lodash');
 var levelup = require('levelup');
+var leveldown = require('leveldown');
 var BigNumber = require('bignumber.js');
 var util = require('../util');
 var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
+
+var dbDir = './db/';
 
 var Sandbox = {
   DEFAULT_TX_GAS_PRICE: new BigNumber(50000000000),
@@ -41,7 +45,8 @@ var Sandbox = {
     ], cb);
 
     function createBlockchain(cb) {
-      var blockDB = levelup('', { db: require('memdown') });
+      createIfNotExists(dbDir);
+      var blockDB = levelup(dbDir + this.id);
       this.blockchain = new Blockchain(blockDB, false);
       var block = new Block({
         header: {
@@ -54,6 +59,12 @@ var Sandbox = {
         uncleHeaders: []
       });
       this.blockchain.putBlock(block, cb);
+
+      function createIfNotExists(dir) {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir);
+        }
+      }
     }
     function createVM(cb) {
       this.vm = new VM(new Trie(), this.blockchain);
@@ -100,19 +111,25 @@ var Sandbox = {
   },
   stop: function(cb) {
     clearInterval(this.miner);
-    this.vm = null;
-    this.blockchain = null;
-    this.block = null;
-    this.coinbase = null;
-    this.defaultAccount = null;
-    this.transactions = null;
-    this.contracts = null;
-    this.accounts = null;
-    this.filters = null;
-    this.filtersCounter = null;
-    this.receipts = null;
-    this.pendingTransactions = null;
-    cb();
+    async.series([
+      this.blockchain.db.close.bind(this.blockchain.db),
+      leveldown.destroy.bind(leveldown, './db/' + this.id)
+    ], (function(err) {
+      if (err) return cb(err);
+      this.vm = null;
+      this.blockchain = null;
+      this.block = null;
+      this.coinbase = null;
+      this.defaultAccount = null;
+      this.transactions = null;
+      this.contracts = null;
+      this.accounts = null;
+      this.filters = null;
+      this.filtersCounter = null;
+      this.receipts = null;
+      this.pendingTransactions = null;
+      cb();
+    }).bind(this));
   },
   createAccount: function(account, cb) {
     var raw = account.raw();

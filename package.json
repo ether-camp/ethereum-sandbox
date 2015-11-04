@@ -22,6 +22,7 @@
     "ethereumjs-vm": "git+https://github.com/ethereum/ethereumjs-vm.git#e7551acff97e5a1543aa5452fec7f0094edfd00a",
     "express": "^4.13.3",
     "jayson": "^1.2.1",
+    "leveldown": "^1.4.2",
     "levelup": "1.2.1",
     "lodash": "^3.10.1",
     "memdown": "1.1.0",

@@ -56,17 +56,17 @@ var Control = {
   stop: function(id, cb) {
     if (!this.services.hasOwnProperty(id)) return cb();
     var service = this.services[id];
-    service.instance.stop((function() {
+    service.instance.stop((function(err) {
       delete this.services[id];
-      cb();
+      cb(err);
     }).bind(this));
   },
   reset: function(cb) {
     async.forEachOf(this.services, function(service, id, cb) {
       service.instance.stop(cb);
-    }, (function() {
+    }, (function(err) {
       this.services = {};
-      cb();
+      cb(err);
     }).bind(this));
   },
   stopUnused: function() {
@@ -76,7 +76,9 @@ var Control = {
         return service.lastTouch < now - unusedTime;
       })
       .each((function(service) {
-        this.stop(service.instance.id, function(){});
+        this.stop(service.instance.id, function(err){
+          if (err) console.error(err);
+        });
       }).bind(this))
       .value();
   }
