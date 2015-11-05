@@ -13,6 +13,7 @@ module.exports = {
         this.gasLimit = util.toBigNumber(this.tx.gasLimit);
         this.gasPrice = util.toBigNumber(this.tx.gasPrice);
         this.value = util.toBigNumber(this.tx.value);
+        this.data = this.tx.data.length > 0 ? util.toHex(this.tx.data) : null;
       } else
         _.assign(this, optionsOrRlp);
     }
