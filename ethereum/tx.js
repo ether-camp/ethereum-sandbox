@@ -8,6 +8,7 @@ module.exports = {
       if (_.isString(optionsOrRlp)) {
         this.tx = new Transaction(util.toBuffer(optionsOrRlp));
         this.from = util.toHex(this.tx.getSenderAddress());
+        this.to = this.tx.to.length > 0 ? util.toHex(this.tx.to) : null;
         this.nonce = util.toBigNumber(this.tx.nonce);
         this.gasLimit = util.toBigNumber(this.tx.gasLimit);
         this.gasPrice = util.toBigNumber(this.tx.gasPrice);
