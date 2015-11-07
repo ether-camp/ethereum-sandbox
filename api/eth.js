@@ -78,7 +78,11 @@ module.exports = function(sandbox) {
         { type: 'block' }
       ],
       handler: function(address, block, cb) {
-        cb(null, util.toHex(_(sandbox.receipts).where({from: address}).size()));
+        sandbox.vm.trie.get(util.toBuffer(address), function(err, data) {
+          if (err) cb(err);
+          else if (data === null) cb(null, '0x0');
+          else cb(null, util.toHex(Object.create(Account).init(data).nonce));
+        });
       }
     },
     getBlockTransactionCountByHash: {

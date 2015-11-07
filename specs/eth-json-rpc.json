@@ -348,6 +348,7 @@
       "name": "sandbox_createAccounts",
       "params": [{
         "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "nonce": "0x1",
           "balance": "0x1000000000000000000000"
         }
       }],
@@ -362,7 +363,7 @@
         "gasPrice": "0x2",
         "value": "0x10"
       }],
-      "result": "0x54cdb80944fbbd5031d59f511043077974f9e72079f0df09777fafa1b5c11f25"
+      "result": "0xe71290c71f1ce825693359e381ebd2625160ffe277be908a8c68cdd841d6ad1f"
     },
     {
       "name": "eth_getTransactionCount",
@@ -371,7 +372,7 @@
         "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
         "latest"
       ],
-      "result": "0x1"
+      "result": "0x2"
     }
   ],
   "Returns the number of transactions in a block from a block matching the given block hash": [
