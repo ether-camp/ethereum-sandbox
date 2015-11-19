@@ -24,7 +24,7 @@ module.exports = {
     strie.root = this.raw.stateRoot;
     var stream = strie.createReadStream();
     stream.on('data', (function(data) {
-      this.storage[util.toHex(data.key)] = util.toHex(util.decodeRlp(data.value));
+      this.storage[util.toHex(data.key)] = util.toHex(util.decodeRlp(data.value), 64);
     }).bind(this));
     stream.on('end', cb.bind(null, null, this.storage));
   },
