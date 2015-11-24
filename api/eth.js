@@ -177,10 +177,10 @@ module.exports = function(sandbox) {
         options.gasLimit = options.gas;
         delete options.gas;
         sandbox.call(options, function(err, result) {
-          if (err) cb(err)
+          if (err) cb(err);
           else cb(
             null,
-            result.vm.hasOwnProperty('return') ? util.toHex(util.toBigNumber(result.vm.return)) : '0x0'
+            result.vm.hasOwnProperty('return') ? util.toHex(result.vm.return) : '0x0'
           );
         });
       }
