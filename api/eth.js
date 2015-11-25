@@ -339,7 +339,7 @@ module.exports = function(sandbox) {
               code: '0x' + info.bin,
               info: {
                 source: code,
-                abiDifinition: JSON.parse(info.abi),
+                abiDefinition: JSON.parse(info.abi),
                 userDoc: JSON.parse(info.userdoc),
                 developerDoc: JSON.parse(info.devdoc)
               }
