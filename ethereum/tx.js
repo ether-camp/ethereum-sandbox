@@ -31,5 +31,8 @@ module.exports = {
     });
     tx.sign(util.toBuffer(this.pkey));
     return tx;
+  },
+  hash: function() {
+    return util.toHex(this.getTx().hash());
   }
 };

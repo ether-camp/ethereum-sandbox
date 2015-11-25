@@ -357,27 +357,36 @@ module.exports = function(sandbox) {
           address: { type: 'address', defaultVal: null }
         }
       }],
-      handler: function(options, cb) { sandbox.newFilter(options, cb); }
+      handler: function(options, cb) {
+        cb(null, sandbox.filters.addFilter(options));
+      }
     },
     newBlockFilter: {
       args: [],
-      handler: function(cb) { sandbox.newFilter('latest', cb); }
+      handler: function(cb) { cb(null, sandbox.filters.addBlockFilter()); }
     },
     newPendingTransactionFilter: {
       args: [],
-      handler: function(cb) { sandbox.newFilter('pending', cb); }
+      handler: function(cb) { cb(null, sandbox.filters.addPendingTxFilter()); }
     },
     uninstallFilter: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) { sandbox.removeFilter(filterId, cb); }
+      handler: function(filterId, cb) {
+        sandbox.filters.removeFilter(filterId);
+        cb();
+      }
     },
     getFilterChanges: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) { sandbox.getFilterChanges(filterId, cb); }
+      handler: function(filterId, cb) {
+        cb(null, sandbox.filters.getChanges(filterId));
+      }
     },
     getFilterLogs: {
       args: [{ type: 'hex' }],
-      handler: function(filterId, cb) { sandbox.getFilterChanges(filterId, cb); }
+      handler: function(filterId, cb) {
+        cb(null, sandbox.filters.getEntries(filterId));
+      }
     },
     getLogs: {
       args: [{
@@ -391,10 +400,13 @@ module.exports = function(sandbox) {
       handler: function(options, cb) {
         sandbox.blockchain.getHead(function(err, block) {
           var latest = util.toBigNumber(block.header.number);
-          if (options.fromBlock == 'latest') options.fromBlock = latest;
-          if (options.fromBlock == 'earliest') options.fromBlock = 0;
-          if (options.toBlock == 'latest') options.toBlock = latest;
-          if (options.toBlock == 'earliest') options.toBlock = 0;
+          if (options.fromBlock == 'pending') options.fromBlock = latest;
+          else if (options.fromBlock == 'latest') options.fromBlock = latest;
+          else if (options.fromBlock == 'earliest') options.fromBlock = 0;
+
+          if (options.toBlock == 'pending') options.toBlock = latest;
+          else if (options.toBlock == 'latest') options.toBlock = latest;
+          else if (options.toBlock == 'earliest') options.toBlock = 0;
 
           var logs = _(sandbox.receipts)
                 .filter(function(receipt) {

@@ -869,7 +869,7 @@
       "params": ["contract Contract { function test() {} }"],
       "result": {
         "Contract":{
-          "code":"0x606060405260458060116000396000f30060606040526000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d146037576035565b005b60406004506042565b005b5b56",
+          "code":"/^0x[\\dabcdef]+$/",
           "info":{
             "source":"contract Contract { function test() {} }",
             "abiDifinition":[{

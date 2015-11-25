@@ -13,6 +13,7 @@ var BigNumber = require('bignumber.js');
 var util = require('../util');
 var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
+var Filters = require('./filters');
 
 var dbDir = './db/';
 
@@ -27,8 +28,7 @@ var Sandbox = {
     this.accounts = {};
     this.transactions = [];
     this.contracts = {};
-    this.filtersCounter = 0;
-    this.filters = {};
+    this.filters = Object.create(Filters).init(this);
     this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
     this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
     this.difficulty = new BigNumber(1000);
@@ -68,45 +68,7 @@ var Sandbox = {
     }
     function createVM(cb) {
       this.vm = new VM(new Trie(), this.blockchain);
-      this.vm.onStep = (function(info, done) {
-        if (_.startsWith(info.opcode.opcode, 'LOG')) {
-          notify.call(this, info);
-        }
-        done();
-      }).bind(this);
       cb();
-    }
-    function notify(info) {
-      var stack = info.stack.slice();
-      var topicNum = parseInt(info.opcode.opcode.substr(3));
-      var offset = parseInt(stack.pop().toString('hex'), 16);
-      var size = parseInt(stack.pop().toString('hex'), 16);
-      var data = _(info.memory).slice(offset, offset + size)
-            .chunk(32)
-            .map(function(val) {
-              return val
-                .map(function(cell) {
-                  return util.pad(cell.toString(16));
-                })
-                .join('');
-            })
-            .value();
-      var topics = _.times(topicNum, function() {
-        return '0x' + stack.pop().toString('hex');
-      });
-      var log = {
-        logIndex: null,
-        transactionIndex: null,
-        transactionHash: null,
-        blockHash: null,
-        blockNumber: null,
-        address: '0x' + info.address.toString('hex'),
-        data: '0x' +  data.join(''),
-        topics: topics
-      };
-      _.each(this.filters, function(filter) {
-        if (filter.type === 'log') filter.entries.push(log);
-      });
     }
   },
   stop: function(cb) {
@@ -124,8 +86,8 @@ var Sandbox = {
       this.transactions = null;
       this.contracts = null;
       this.accounts = null;
+      this.filters.destroy();
       this.filters = null;
-      this.filtersCounter = null;
       this.receipts = null;
       this.pendingTransactions = null;
       cb();
@@ -263,11 +225,7 @@ var Sandbox = {
     }
   },
   addPendingTx: function(tx) {
-    _.each(this.filters, function(filter) {
-      if (filter.type === 'pending')
-        filter.entries.push(util.toHex(tx.getTx().hash()));
-    });
-    
+    this.filters.newPendingTx(tx);
     this.pendingTransactions.push(tx);
     this.runPendingTx();
   },
@@ -298,18 +256,15 @@ var Sandbox = {
           var receipt = Object.create(Receipt)
               .init(tx, block, results[0].receipts[0], results[0].results[0]);
           this.receipts[util.toHex(tx.getTx().hash())] = receipt;
-          this.notifyLogs(receipt);
 
           if (tx.contract && receipt.contractAddress) {
             this.contracts[receipt.contractAddress] = tx.contract;
             this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
             this.contracts[receipt.contractAddress].data = tx.data;
           }
-          
-          _.each(this.filters, function(filter) {
-            if (filter.type === 'latest')
-              filter.entries.push(util.toHex(block.hash()));
-          });
+
+          this.filters.newBlock(block);
+          this.filters.newLogs(receipt.logs);
         }
       }).bind(this));
     }).bind(this));
@@ -325,12 +280,7 @@ var Sandbox = {
       this.blockchain.putBlock(block, (function(err) {
         this.miningBlock = false;
         if (err) console.error(err);
-        else {
-          _.each(this.filters, function(filter) {
-            if (filter.type === 'latest')
-              filter.entries.push(util.toHex(block.hash()));
-          });
-        }
+        else this.filters.newBlock(block);
         this.runPendingTx();
       }).bind(this));
     }).bind(this));
@@ -367,34 +317,6 @@ var Sandbox = {
       }).bind(this));
     }
   },
-  newFilter: function(type, cb) {
-    if (typeof type === 'object') cb(null, addFilter.call(this, 'log'));
-    else if (type == 'pending') cb(null, addFilter.call(this, 'pending'));
-    else if (type == 'latest') cb(null, addFilter.call(this, 'latest'));
-    else cb('Unknow type: ' + type);
-
-    function addFilter(type) {
-      var num = '0x' + (this.filtersCounter++).toString(16);
-      this.filters[num] = {
-        type: type,
-        entries: []
-      };
-      return num;
-    }
-  },
-  removeFilter: function(id, cb) {
-    if (!this.filters.hasOwnProperty(id))
-      return cb('Could not find filter with id ' + id);
-    delete this.filters[id];
-    cb(null, true);
-  },
-  getFilterChanges: function(id, cb) {
-    if (!this.filters.hasOwnProperty(id))
-      return cb('Could not find filter with id ' + id);
-    var changes = this.filters[id].entries;
-    this.filters[id].entries = [];
-    cb(null, changes);
-  },
   createNextBlock: function(transactions, cb) {
     this.blockchain.getHead((function(err, lastBlock) {
       if (err) return cb(err);
@@ -411,13 +333,6 @@ var Sandbox = {
       });
       cb(null, block);
     }).bind(this));
-  },
-  notifyLogs: function(receipt) {
-    _.each(receipt.logs, function(log) {
-      _.each(this.filters, function(filter) {
-        if (filter.type === 'log') filter.entries.push(log);
-      });
-    }, this);
   }
 };
 
