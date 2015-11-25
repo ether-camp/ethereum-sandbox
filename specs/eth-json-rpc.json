@@ -1019,5 +1019,54 @@
       "params": ["{2}"],
       "result": ["/^0x[\\dabcdef]{64}$/"]
     }
+  ],
+  "Returns an array of all logs matching a given filter object": [
+    {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1000000000000000000000"
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "gasLimit":"0x2fefd8",
+        "gasPrice": "0x1",
+        "data": "0x60606040527f74657374000000000000000000000000000000000000000000000000000000006060908152600490a0600680603a6000396000f3606060405200"
+      }],
+      "result": "0xb3cb4c0ed494e8e3351d8cd53e87f51d0164227bcf5ab4d3dc333d5b5db90252"
+    },
+    {
+      "name": "eth_getLogs",
+      "wait": true,
+      "params": [{
+        "fromBlock": "earliest",
+        "address": "0x86e0497e32a8e1d79fe38ab87dc80140df5470d9"
+      }],
+      "result": [{
+        "logIndex":"0x0",
+        "transactionIndex":"0x1",
+        "transactionHash":"0xb3cb4c0ed494e8e3351d8cd53e87f51d0164227bcf5ab4d3dc333d5b5db90252",
+        "blockHash":"/^0x[\\dabcdef]{64}$/",
+        "blockNumber":"0x1",
+        "address":"0x86e0497e32a8e1d79fe38ab87dc80140df5470d9",
+        "data":"0x74657374",
+        "topics":[]
+      }]
+    }
   ]
 }
+

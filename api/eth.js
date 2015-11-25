@@ -378,6 +378,35 @@ module.exports = function(sandbox) {
     getFilterLogs: {
       args: [{ type: 'hex' }],
       handler: function(filterId, cb) { sandbox.getFilterChanges(filterId, cb); }
+    },
+    getLogs: {
+      args: [{
+        type: 'map',
+        values: {
+          fromBlock: { type: 'block', defaultVal: 'latest' },
+          toBlock: { type: 'block', defaultVal: 'latest' },
+          address: { type: 'address', defaultVal: null }
+        }
+      }],
+      handler: function(options, cb) {
+        sandbox.blockchain.getHead(function(err, block) {
+          var latest = util.toBigNumber(block.header.number);
+          if (options.fromBlock == 'latest') options.fromBlock = latest;
+          if (options.fromBlock == 'earliest') options.fromBlock = 0;
+          if (options.toBlock == 'latest') options.toBlock = latest;
+          if (options.toBlock == 'earliest') options.toBlock = 0;
+
+          var logs = _(sandbox.receipts)
+                .filter(function(receipt) {
+                  return receipt.blockNumber.greaterThanOrEqualTo(options.fromBlock) &&
+                    receipt.blockNumber.lessThanOrEqualTo(options.toBlock);
+                })
+                .map('logs')
+                .flatten();
+          if (options.address) logs = logs.filter({ address: options.address });
+          cb(null, logs.value());
+        });
+      }
     }
   };
 };
