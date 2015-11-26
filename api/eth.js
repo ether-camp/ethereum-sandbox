@@ -354,7 +354,12 @@ module.exports = function(sandbox) {
         values: {
           fromBlock: { type: 'block', defaultVal: 'latest' },
           toBlock: { type: 'block', defaultVal: 'latest' },
-          address: { type: 'address', defaultVal: null }
+          address: { type: 'address', defaultVal: null },
+          topics: {
+            type: 'array',
+            defaultVal: [],
+            values: { type: 'hex', defaultVal: '' }
+          }
         }
       }],
       handler: function(options, cb) {

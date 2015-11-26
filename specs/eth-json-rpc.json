@@ -944,6 +944,68 @@
       "result": []
     }
   ],
+  "Notifies about LOG messages with specified topic": [
+    {
+      "name": "sandbox_addAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "pkey": "0x974f963ee4571e86e5f9bc3b493e453db9c15e5bd19829a4ef9a790de0da0015",
+          "default": true
+        }
+      }]
+    },
+    {
+      "name": "sandbox_createAccounts",
+      "params": [{
+        "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392": {
+          "balance": "0x1000000000000000000000"
+        },
+        "0xd46e8dd67c5d32be8058bb8eb970870f07244567": {
+          "code": "0x606060405260e060020a6000350463f8a8fd6d8114601a575b005b60187f746573743100000000000000000000000000000000000000000000000000000060609081527fe05601c9efedd6ff4b4f45924b70bcdef96c9c0296b1cbe7a6397ac295e4c13d90602090a17f746573743200000000000000000000000000000000000000000000000000000060609081527f470d576fc237b81d189692e89667ab21357d2d4467b1bedd1f404cafac8c805490602090a156"
+        }
+      }],
+      "result": null
+    },
+    {
+      "name": "eth_newFilter",
+      "params": [{
+        "address": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "topics": ["0xe05601c9efedd6ff4b4f45924b70bcdef96c9c0296b1cbe7a6397ac295e4c13d"]
+      }],
+      "result": "/^0x[\\dabcdef]+$/"
+    },
+    {
+      "name": "eth_sendTransaction",
+      "params": [{
+        "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
+        "gasLimit":"0x2fefd8",
+        "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "data": "0xf8a8fd6d"
+      }],
+      "result": "0xac8973e7b8d4e1827876b21c523a589b852bc1199b4d585cfd9d09004e3eb786"
+    },
+    {
+      "name": "eth_getFilterChanges",
+      "wait": true,
+      "params": ["{2}"],
+      "result": [{
+        "logIndex": "0x0",
+        "transactionIndex": "0x1",
+        "transactionHash": "0xac8973e7b8d4e1827876b21c523a589b852bc1199b4d585cfd9d09004e3eb786",
+        "blockHash": "/^0x[\\dabcdef]{64}$/",
+        "blockNumber": "0x1",
+        "address": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+        "data": "0x7465737431000000000000000000000000000000000000000000000000000000",
+        "topics": ["0xe05601c9efedd6ff4b4f45924b70bcdef96c9c0296b1cbe7a6397ac295e4c13d"]
+      }]
+    },
+    {
+      "name": "eth_getFilterChanges",
+      "wait": true,
+      "params": ["{2}"],
+      "result": []
+    }
+  ],
   "Returns old LOG messages": [
     {
       "name": "sandbox_addAccounts",

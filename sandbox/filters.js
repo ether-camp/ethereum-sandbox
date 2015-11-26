@@ -30,6 +30,7 @@ var Filters = {
       fromBlock: details.fromBlock,
       toBlock: details.toBlock,
       address: details.address,
+      topics: details.topics,
       entries: [],
       sent: []
     };
@@ -84,15 +85,23 @@ var Filters = {
            filter.toBlock.greaterThanOrEqualTo(this.currentBlockNum));
       }).bind(this))
       .each(function(filter) {
-        if (filter.address) {
-          _.each(logs, function(log) {
-            if (filter.address === log.address) filter.entries.push(log);
+        var entries = logs;
+        if (filter.address || filter.topics.length > 0) {
+          entries = _.filter(entries, function(log) {
+            return (!filter.address || filter.address === log.address) &&
+              (filter.topics.length == 0 || matchTopics(filter.topics, log.topics));
           });
-        } else {
-          Array.prototype.push.apply(filter.entries, logs);
         }
+        Array.prototype.push.apply(filter.entries, entries);
       })
       .value();
+
+    function matchTopics(filterTopics, logTopics) {
+      return filterTopics.length == logTopics.length &&
+        _.every(filterTopics, function(topic, index) {
+          return topic === '' || topic === logTopics[index];
+        });
+    }
   },
   newPendingTx: function(tx) {
     var hash = tx.hash();

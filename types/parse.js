@@ -48,7 +48,7 @@ var types = {
 };
 
 function parse(value, type, errors, elName) {
-  if (!elName) elName = 'root'
+  if (!elName) elName = 'root';
   var result = null;
   if (value == null || value == undefined) {
     if (type.hasOwnProperty('defaultVal')) result = type.defaultVal;
@@ -57,13 +57,21 @@ function parse(value, type, errors, elName) {
     if (!_.isPlainObject(value)) errors.push(elName + ' must be an object;');
     else if (type.hasOwnProperty('key')) {
       result = _.transform(value, function(result, val, name) {
-        var parsedName = parse(name, { type: type.key }, errors, 'key of ' + elName)
+        var parsedName = parse(name, { type: type.key }, errors, 'key of ' + elName);
         result[parsedName] = parse(val, type.values, errors, name);
       });
     } else {
       result = _.transform(type.values, function(result, type, name) {
         result[name] = parse(value[name], type, errors, name);
       });
+    }
+  } else if (type.type === 'array') {
+    if (!_.isArray(value)) errors.push(elName + ' must be an array;');
+    else {
+      result = _.map(
+        value,
+        _.partial(parse, _, type.values, errors, 'element of ' + elName)
+      );
     }
   } else {
     var errs = [];
