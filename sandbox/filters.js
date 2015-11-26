@@ -33,6 +33,18 @@ var Filters = {
       entries: [],
       sent: []
     };
+    if (details.fromBlock.lessThan(this.currentBlockNum)) {
+      var entries = _(this.sandbox.receipts)
+            .filter((function(receipt) {
+              return details.fromBlock.lessThanOrEqualTo(this.currentBlockNum) &&
+                (details.toBlock == 'latest' ||
+                 details.toBlock.greaterThanOrEqualTo(this.currentBlockNum));
+            }).bind(this))
+            .map('logs')
+            .flatten();
+
+      this.filters[num].entries = entries.value();
+    }
     return num;
   },
   addPendingTxFilter: function() {

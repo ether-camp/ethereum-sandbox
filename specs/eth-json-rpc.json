@@ -1009,7 +1009,7 @@
     },
     {
       "name": "eth_getFilterLogs",
-      "params": ["{2}"],
+      "params": ["{4}"],
       "result": [{
         "logIndex": "0x0",
         "transactionIndex": "0x1",
