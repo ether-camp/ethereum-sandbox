@@ -3,11 +3,12 @@ var util = require('../util');
 var BigNumber = require('bignumber.js');
 
 var Filters = {
-  currentBlockNum: new BigNumber(0),
-  lastFilterNum: 0,
-  filters: {},
   init: function(sandbox) {
     this.sandbox = sandbox;
+    this.currentBlockNum = new BigNumber(0);
+    this.lastFilterNum = 0;
+    this.filters = {};
+
     return this;
   },
   destroy: function() {

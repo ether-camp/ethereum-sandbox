@@ -216,7 +216,7 @@ module.exports = function(sandbox) {
       ],
       handler: function(blockHash, fullTx, cb) {
         sandbox.blockchain.getBlock(util.toBuffer(blockHash), function(err, block) {
-          if (err) cb(err);
+          if (err) cb(err.hasOwnProperty('message') ? err.message : err);
           else if (!block) cb();
           else cb(null, Object.create(Block).init(block).getDetails(fullTx));
         });
