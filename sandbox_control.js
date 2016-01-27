@@ -26,27 +26,35 @@ var Control = {
   contains: function(id) {
     return this.services.hasOwnProperty(id);
   },
-  create: function(cb) {
-    var id = util.generateId();
-    var sandbox = Object.create(Sandbox);
-    sandbox.init(id, (function(err) {
-      if (err) cb(err);
-      else {
-        var handlers =_.transform(service(sandbox), function(result, calls, prefix) {
-          _.each(calls, function(call, name) {
-            result[prefix + '_' + name] = withValidator(call);
-          });
-        });
+  create: function(id, cb) {
+    if (!id) id = util.generateId();
 
-        this.services[id] = {
-          lastTouch: Date.now(),
-          instance: sandbox,
-          middleware: jayson.server(handlers, { collect: true }).middleware()
-        };
-        
-        cb(null, this.services[id]);
-      }
-    }).bind(this));
+    async.series([
+      this.stop.bind(this, id),
+      start.bind(this)
+    ], cb);
+
+    function start() {
+      var sandbox = Object.create(Sandbox);
+      sandbox.init(id, (function(err) {
+        if (err) cb(err);
+        else {
+          var handlers =_.transform(service(sandbox), function(result, calls, prefix) {
+            _.each(calls, function(call, name) {
+              result[prefix + '_' + name] = withValidator(call);
+            });
+          });
+          
+          this.services[id] = {
+            lastTouch: Date.now(),
+            instance: sandbox,
+            middleware: jayson.server(handlers, { collect: true }).middleware()
+          };
+          
+          cb(null, this.services[id]);
+        }
+      }).bind(this));
+    }
   },
   service: function(id) {
     var service = this.services[id];

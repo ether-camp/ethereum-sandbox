@@ -9,7 +9,7 @@ var control = require('./sandbox_control');
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
-  control.create(function(err, service) {
+  control.create(req.query.id, function(err, service) {
     if (err) res.status(500).send(err);
     else res.json({ id: service.instance.id });
   });
