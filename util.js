@@ -77,7 +77,7 @@ util.jsonRpcCallback = function(cb) {
 util.generateId = function() {
   var now = (new Date()).valueOf().toString();
   var seed = Math.random().toString();
-  return crypto.createHash('sha1').update(now + seed).digest('hex');
+  return crypto.createHash('sha1').update(now + seed).digest('hex').substr(0, 10);
 };
 
 util.fillWithZeroes = function(str, length, right) {
