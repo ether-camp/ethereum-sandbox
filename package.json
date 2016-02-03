@@ -24,7 +24,7 @@
     "jayson": "^1.2.1",
     "leveldown": "^1.4.2",
     "levelup": "1.2.1",
-    "lodash": "^3.10.1",
+    "lodash": "^4.2.1",
     "memdown": "1.1.0",
     "merkle-patricia-tree": "2.0.3",
     "rlp": "2.0.0",

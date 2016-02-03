@@ -5,6 +5,9 @@ var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
 var control = require('./sandbox_control');
+var plugins = require('./plugins');
+
+plugins.load();
 
 app.use(cors());
 app.use(bodyParser.json());
