@@ -2,12 +2,13 @@ var util = require('../util');
 var _ = require('lodash');
 var BigNumber = require('bignumber.js');
 var async = require('async');
-var childProcess = require('child_process');
 var parse = require('../types/parse');
 var Account = require('../ethereum/account');
 var Block = require('../ethereum/block');
 
-module.exports = function(sandbox) {
+module.exports = function(services) {
+  var sandbox = services.sandbox;
+  var compiler = services.compiler;
   return {
     protocolVersion: {
       args: [],
@@ -311,41 +312,8 @@ module.exports = function(sandbox) {
     },
     compileSolidity: {
       args: [{ type: 'string' }],
-      handler: function(code, cb) {
-        var solc = childProcess.spawn('solc', ['--combined-json', 'bin,abi,devdoc,userdoc']);
-        var out = '', err = '';
-        solc.stdout.on('data', function(data) {
-          out += data.toString();
-        });
-        solc.stdout.on('end', done);
-        solc.stderr.on('data', function(data) {
-          err += data.toString();
-        });
-        solc.stderr.on('end', done);
-        
-        solc.stdin.end(code, 'utf8');
-        
-        var calls = 0;
-        function done() {
-          if (++calls != 2) return;
-          if (err) return cb(err);
-          try {
-            var parsed = JSON.parse(out);
-          } catch (e) {
-            return cb(out);
-          }
-          cb(null, _(parsed.contracts).transform(function (result, info, name) {
-            result[name] = {
-              code: '0x' + info.bin,
-              info: {
-                source: code,
-                abiDefinition: JSON.parse(info.abi),
-                userDoc: JSON.parse(info.userdoc),
-                developerDoc: JSON.parse(info.devdoc)
-              }
-            }
-          }));
-        }
+      handler: function(source, cb) {
+        compiler.compile(source, cb);
       }
     },
     newFilter: {

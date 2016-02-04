@@ -2,6 +2,7 @@ var _ = require('lodash');
 var async = require('async');
 var jayson = require('jayson');
 var Sandbox = require('./sandbox/sandbox');
+var Compiler = require('./compiler');
 var util = require('./util');
 var sandboxApi = require('./api/sandbox');
 var ethApi = require('./api/eth');
@@ -12,7 +13,7 @@ var withValidator = require('./types/validator').withValidator;
 var unusedTime = 30 * 60 * 1000;
 var checkPeriod = 15 * 60 * 1000;
 
-function service(sandbox) {
+function createCalls(sandbox) {
   return {
     sandbox: sandboxApi(sandbox),
     eth: ethApi(sandbox),
@@ -22,13 +23,13 @@ function service(sandbox) {
 }
 
 var Control = {
-  services: {},
+  instances: {},
   init: function(events) {
     this.events = events;
     return this;
   },
   contains: function(id) {
-    return this.services.hasOwnProperty(id);
+    return this.instances.hasOwnProperty(id);
   },
   create: function(id, cb) {
     if (!id) id = util.generateId();
@@ -39,57 +40,63 @@ var Control = {
     ], cb);
 
     function start() {
-      var sandbox = Object.create(Sandbox);
-      sandbox.init(id, (function(err) {
+      var services = {
+        sandbox: Object.create(Sandbox),
+        compiler: Object.create(Compiler)
+      };
+      
+      services.sandbox.init(id, (function(err) {
         if (err) cb(err);
         else {
-          var handlers =_.transform(service(sandbox), function(result, calls, prefix) {
+          this.events.emit('sandboxStart', services);
+          
+          var handlers =_.transform(createCalls(services), function(result, calls, prefix) {
             _.each(calls, function(call, name) {
               result[prefix + '_' + name] = withValidator(call);
             });
           });
-          
-          this.services[id] = {
+
+          this.instances[id] = {
+            id: id,
             lastTouch: Date.now(),
-            instance: sandbox,
+            services: services,
             middleware: jayson.server(handlers, { collect: true }).middleware()
           };
 
-          this.events.emit('sandboxStart', sandbox);
-          cb(null, this.services[id]);
+          cb(null, this.instances[id]);
         }
       }).bind(this));
     }
   },
-  service: function(id) {
-    var service = this.services[id];
-    service.lastTouch = Date.now();
-    return service;
+  instance: function(id) {
+    var instance = this.instances[id];
+    instance.lastTouch = Date.now();
+    return instance;
   },
   stop: function(id, cb) {
-    if (!this.services.hasOwnProperty(id)) return cb();
-    var service = this.services[id];
-    service.instance.stop((function(err) {
-      delete this.services[id];
+    if (!this.instances.hasOwnProperty(id)) return cb();
+    var instance = this.instances[id];
+    instance.services.sandbox.stop((function(err) {
+      delete this.instances[id];
       cb(err);
     }).bind(this));
   },
   reset: function(cb) {
-    async.forEachOf(this.services, function(service, id, cb) {
-      service.instance.stop(cb);
+    async.forEachOf(this.instances, function(instance, id, cb) {
+      instance.services.sandbox.stop(cb);
     }, (function(err) {
-      this.services = {};
+      this.instances = {};
       cb(err);
     }).bind(this));
   },
   stopUnused: function() {
     var now = Date.now();
-    _(this.services)
-      .filter(function(service) {
-        return service.lastTouch < now - unusedTime;
+    _(this.instances)
+      .filter(function(instance) {
+        return instance.lastTouch < now - unusedTime;
       })
-      .each((function(service) {
-        this.stop(service.instance.id, function(err){
+      .each((function(instance) {
+        this.stop(instance.id, function(err){
           if (err) console.error(err);
         });
       }).bind(this))

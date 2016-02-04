@@ -16,7 +16,7 @@ describe('Sandbox control', function() {
       request({ url: sandboxUrl, json: true }, function(err, res, reply) {
         if (err) return done.fail(err);
         done(_.contains(reply, id) ?
-             null : 'There is no the sandbox in the sandboxes list');
+             null : 'Reponse is not correct: ' + reply);
       });
     });
   });

@@ -1,4 +1,4 @@
-module.exports = function(sandbox) {
+module.exports = function() {
   return {
     version: { args: [], handler: function(cb) { cb(null, "59"); } },
     listening: { args: [], handler: function(cb) { cb(null, true); } },

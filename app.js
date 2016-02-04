@@ -14,14 +14,14 @@ plugins.load(events);
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
-  control.create(req.query.id, function(err, service) {
+  control.create(req.query.id, function(err, instance) {
     if (err) res.status(500).send(err);
-    else res.json({ id: service.instance.id });
+    else res.json({ id: instance.id });
   });
 });
 app.post('/sandbox/:id', function(req, res, next) {
   if (!control.contains(req.params.id)) res.sendStatus(404);
-  else control.service(req.params.id).middleware(req, res, next);
+  else control.instance(req.params.id).middleware(req, res, next);
 });
 app.delete('/sandbox/:id', function(req, res, next) {
   if (!control.contains(req.params.id)) res.sendStatus(404);
@@ -33,7 +33,7 @@ app.delete('/sandbox/:id', function(req, res, next) {
   }
 });
 app.get('/sandbox', function(req, res) {
-  res.json(_.keys(control.services));
+  res.json(_.keys(control.instances));
 });
 app.post('/reset', function(req, res) {
   control.reset(function(err) {

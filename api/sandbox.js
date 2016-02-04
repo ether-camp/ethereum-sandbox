@@ -4,7 +4,8 @@ var util = require('../util');
 
 var Account = require('../ethereum/account');
 
-module.exports = function(sandbox) {
+module.exports = function(services) {
+  var sandbox = services.sandbox;
   return {
     id: { args: [], handler: function(cb) {
       cb(null, sandbox.id);

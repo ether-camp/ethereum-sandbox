@@ -1,6 +1,6 @@
 var util = require('../util');
 
-module.exports = function(sandbox) {
+module.exports = function() {
   return {
     clientVersion: {
       args: [],
