@@ -23,6 +23,10 @@ function service(sandbox) {
 
 var Control = {
   services: {},
+  init: function(events) {
+    this.events = events;
+    return this;
+  },
   contains: function(id) {
     return this.services.hasOwnProperty(id);
   },
@@ -50,7 +54,8 @@ var Control = {
             instance: sandbox,
             middleware: jayson.server(handlers, { collect: true }).middleware()
           };
-          
+
+          this.events.emit('sandboxStart', sandbox);
           cb(null, this.services[id]);
         }
       }).bind(this));

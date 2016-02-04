@@ -4,10 +4,12 @@ var app = express();
 var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
-var control = require('./sandbox_control');
+var EventEmitter = require('events').EventEmitter;
+var events = new EventEmitter();
+var control = require('./sandbox_control').init(events);
 var plugins = require('./plugins');
 
-plugins.load();
+plugins.load(events);
 
 app.use(cors());
 app.use(bodyParser.json());

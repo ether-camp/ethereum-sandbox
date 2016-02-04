@@ -2,7 +2,7 @@ var fs = require('fs');
 var async = require('async');
 var _ = require('lodash');
 
-function load() {
+function load(events) {
   fs.readdir('./node_modules', function(err, dirs) {
     if (err) return console.error(err);
     
@@ -35,7 +35,10 @@ function load() {
       cb(params.hasOwnProperty('ethereumSandboxPlugin'));
     }
     function loadPlugin(params, cb) {
-      cb(null, [ params.ethereumSandboxPlugin, require(params.name) ]);
+      cb(null, [
+        params.ethereumSandboxPlugin,
+        require(params.name).create(events)
+      ]);
     }
   });
 }
