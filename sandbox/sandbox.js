@@ -1,6 +1,8 @@
 var fs = require('fs');
+var EventEmitter = require('events').EventEmitter;
+var nodeUtil = require('util');
 var VM = require('ethereumjs-vm');
-var Account = require('ethereumjs-account');
+var EthAccount = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
 var Blockchain = require('ethereumjs-blockchain');
 var Trie = require('merkle-patricia-tree');
@@ -14,14 +16,17 @@ var util = require('../util');
 var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
 var Filters = require('./filters');
+var Account = require('../ethereum/account');
 
 var dbDir = './db/';
 
-var Sandbox = {
-  DEFAULT_TX_GAS_PRICE: new BigNumber(50000000000),
-  DEFAULT_TX_GAS_LIMIT: new BigNumber(3141592),
+var Sandbox = Object.create(new EventEmitter());
+
+Sandbox.DEFAULT_TX_GAS_PRICE = new BigNumber(50000000000),
+Sandbox.DEFAULT_TX_GAS_LIMIT = new BigNumber(3141592),
   
-  init: function(id, cb) {
+Sandbox.init = function(id, cb) {
+    EventEmitter.call(this);
     this.id = id;
     this.coinbase = '0x1337133713371337133713371337133713371337';
     this.defaultAccount = null;
@@ -37,8 +42,8 @@ var Sandbox = {
     this.receipts = {};
     this.createVM(cb);
     this.miner = setInterval(this.mineBlock.bind(this), 5000);
-  },
-  createVM: function(cb) {
+};
+Sandbox.createVM = function(cb) {
     async.series([
       createBlockchain.bind(this),
       createVM.bind(this)
@@ -70,14 +75,16 @@ var Sandbox = {
       this.vm = new VM(new Trie(), this.blockchain);
       cb();
     }
-  },
-  stop: function(cb) {
+};
+Sandbox.stop = function(cb) {
+    this.emit('stop', this);
     clearInterval(this.miner);
     async.series([
       this.blockchain.db.close.bind(this.blockchain.db),
       leveldown.destroy.bind(leveldown, './db/' + this.id)
     ], (function(err) {
       if (err) return cb(err);
+      this.removeAllListeners();
       this.vm = null;
       this.blockchain = null;
       this.block = null;
@@ -92,8 +99,9 @@ var Sandbox = {
       this.pendingTransactions = null;
       cb();
     }).bind(this));
-  },
-  createAccount: function(account, cb) {
+};
+Sandbox.createAccount = function(details, address, cb) {
+    var account = Object.create(Account).init(details, address);
     var raw = account.raw();
     
     async.series([
@@ -126,7 +134,7 @@ var Sandbox = {
 
           this.vm.trie.get(address, (function(err, data) {
             if (err) return cb(err);
-            var acc = new Account(data);
+            var acc = new EthAccount(data);
             acc.setCode(this.vm.trie, result.return, (function(err) {
               if (err) cb(err);
               else this.vm.trie.put(address, acc.serialize(), cb);
@@ -155,8 +163,8 @@ var Sandbox = {
         cb
       );
     }
-  },
-  sendTx: function(options, cb) {
+};
+Sandbox.sendTx = function(options, cb) {
     if (!_.isString(options)) {
       if (!this.accounts.hasOwnProperty(options.from))
         return cb('Could not find a private key for ' + options.from);
@@ -173,7 +181,7 @@ var Sandbox = {
 
     function check(tx, cb) {
       this.vm.trie.get(util.toBuffer(tx.from), (function(err, data) {
-        var account = new Account(data);
+        var account = new EthAccount(data);
 
         cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
         
@@ -223,13 +231,13 @@ var Sandbox = {
         }
       }).bind(this));
     }
-  },
-  addPendingTx: function(tx) {
+};
+Sandbox.addPendingTx = function(tx) {
     this.filters.newPendingTx(tx);
     this.pendingTransactions.push(tx);
     this.runPendingTx();
-  },
-  runPendingTx: function() {
+};
+Sandbox.runPendingTx = function() {
     if (this.miningBlock || this.pendingTransactions.length === 0) return;
     this.miningBlock = true;
 
@@ -268,8 +276,8 @@ var Sandbox = {
         }
       }).bind(this));
     }).bind(this));
-  },
-  mineBlock: function() {
+};
+Sandbox.mineBlock = function() {
     if (this.miningBlock) return;
     this.miningBlock = true;
     this.createNextBlock([], (function(err, block) {
@@ -284,8 +292,8 @@ var Sandbox = {
         this.runPendingTx();
       }).bind(this));
     }).bind(this));
-  },
-  call: function(options, cb) {
+};
+Sandbox.call = function(options, cb) {
     if (!this.accounts.hasOwnProperty(options.from))
       return cb('Could not find a private key for ' + options.from);
     options.pkey = this.accounts[options.from];
@@ -304,7 +312,7 @@ var Sandbox = {
       this.vm.trie.get(util.toBuffer(options.from), (function(err, data) {
         if (err) return cb(err);
         
-        var account = new Account(data);
+        var account = new EthAccount(data);
         var prevTx = _.find(this.pendingTransactions, { from: tx.from });
         tx.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
         cb();
@@ -316,8 +324,8 @@ var Sandbox = {
         else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
       }).bind(this));
     }
-  },
-  createNextBlock: function(transactions, cb) {
+};
+Sandbox.createNextBlock = function(transactions, cb) {
     this.blockchain.getHead((function(err, lastBlock) {
       if (err) return cb(err);
       var block = new Block({
@@ -333,7 +341,6 @@ var Sandbox = {
       });
       cb(null, block);
     }).bind(this));
-  }
 };
 
 module.exports = Sandbox;

@@ -57,10 +57,7 @@ module.exports = function(services) {
         }
       }],
       handler: function(accounts, cb) {
-        accounts = _.map(accounts, function(details, address) {
-          return Object.create(Account).init(details, address);
-        });
-        async.eachSeries(accounts, sandbox.createAccount.bind(sandbox), cb);
+        accounts = async.forEachOfSeries(accounts, sandbox.createAccount.bind(sandbox), cb);
       }
     },
     setBlock: {
