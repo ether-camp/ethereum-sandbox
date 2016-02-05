@@ -42,6 +42,7 @@ Sandbox.init = function(id, cb) {
   this.receipts = {};
   this.createVM(cb);
   this.miner = setInterval(this.mineBlock.bind(this), 5000);
+  this.logListeners = [];
 };
 Sandbox.createVM = function(cb) {
   async.series([
@@ -97,6 +98,7 @@ Sandbox.stop = function(cb) {
     this.filters = null;
     this.receipts = null;
     this.pendingTransactions = null;
+    this.logListeners = null;
     cb();
   }).bind(this));
 };
@@ -272,6 +274,7 @@ Sandbox.runPendingTx = function() {
         }
 
         this.filters.newBlock(block);
+        this.newLogs(receipt.logs);
         this.filters.newLogs(receipt.logs);
       }
     }).bind(this));
@@ -341,6 +344,27 @@ Sandbox.createNextBlock = function(transactions, cb) {
     });
     cb(null, block);
   }).bind(this));
+};
+Sandbox.onLog = function(details, cb) {
+  this.logListeners.push({
+    details: details,
+    cb: cb
+  });
+};
+Sandbox.newLogs = function(logs) {
+  _.each(this.logListeners, function(listener) {
+    _(logs)
+      .filter(function(log) {
+        if (listener.details.hasOwnProperty('address')) {
+          return log.address == listener.details.address;
+        }
+        return true;
+      })
+      .each(function(log) {
+        listener.cb(log);
+      })
+      .value();
+  });
 };
 
 module.exports = Sandbox;
