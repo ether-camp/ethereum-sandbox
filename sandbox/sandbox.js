@@ -101,6 +101,9 @@ Sandbox.stop = function(cb) {
     cb();
   }).bind(this));
 };
+Sandbox.addAccount = function(address, pkey) {
+  this.accounts[address] = pkey;
+};
 Sandbox.createAccount = function(details, address, cb) {
   var account = Object.create(Account).init(details, address);
   var raw = account.raw();
