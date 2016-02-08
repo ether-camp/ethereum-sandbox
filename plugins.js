@@ -13,7 +13,6 @@ function load(events) {
       _.partial(async.map, _, loadPlugin, _)
     ], function(err, plugins) {
       if (err) return console.error(err);
-      console.log(_.object(plugins));
     });
 
     function hasPackageJson(dir, cb) {

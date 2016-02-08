@@ -26,7 +26,6 @@ Sandbox.DEFAULT_TX_GAS_PRICE = new BigNumber(50000000000),
 Sandbox.DEFAULT_TX_GAS_LIMIT = new BigNumber(3141592),
 
 Sandbox.init = function(id, cb) {
-  EventEmitter.call(this);
   this.id = id;
   this.coinbase = '0x1337133713371337133713371337133713371337';
   this.defaultAccount = null;

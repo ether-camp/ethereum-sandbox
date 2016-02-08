@@ -4,22 +4,25 @@ var jayson = require('jayson');
 var Sandbox = require('./sandbox/sandbox');
 var Compiler = require('./compiler');
 var util = require('./util');
-var sandboxApi = require('./api/sandbox');
-var ethApi = require('./api/eth');
-var netApi = require('./api/net');
-var web3Api = require('./api/web3');
 var withValidator = require('./types/validator').withValidator;
 
 var unusedTime = 30 * 60 * 1000;
 var checkPeriod = 15 * 60 * 1000;
 
-function createCalls(sandbox) {
-  return {
-    sandbox: sandboxApi(sandbox),
-    eth: ethApi(sandbox),
-    net: netApi(sandbox),
-    web3: web3Api(sandbox)
-  };
+var apis = {
+  sandbox: require('./api/sandbox'),
+  eth: require('./api/eth'),
+  net: require('./api/net'),
+  web3: require('./api/web3')
+};
+
+function createCalls(apis, services) {
+  return _(apis)
+    .map(function(creator, name) {
+      return [ name, creator(services) ];
+    })
+    .object()
+    .value();
 }
 
 var Control = {
@@ -48,9 +51,11 @@ var Control = {
       services.sandbox.init(id, (function(err) {
         if (err) cb(err);
         else {
-          this.events.emit('sandboxStart', services);
-          
-          var handlers =_.transform(createCalls(services), function(result, calls, prefix) {
+          var instanceServices = _.clone(services);
+          var instanceApis = _.clone(apis);
+          this.events.emit('sandboxStart', instanceServices, instanceApis);
+
+          var handlers =_.transform(createCalls(instanceApis, instanceServices), function(result, calls, prefix) {
             _.each(calls, function(call, name) {
               result[prefix + '_' + name] = withValidator(call);
             });
