@@ -34,9 +34,11 @@ var Control = {
   contains: function(id) {
     return this.instances.hasOwnProperty(id);
   },
-  create: function(id, cb) {
+  create: function(id, config, cb) {
     if (!id) id = util.generateId();
-
+    if (!config) config = {};
+    if (!config.hasOwnProperty('plugins')) config.plugins = {};
+    
     async.series([
       this.stop.bind(this, id),
       start.bind(this)
@@ -53,7 +55,7 @@ var Control = {
         else {
           var instanceServices = _.clone(services);
           var instanceApis = _.clone(apis);
-          this.events.emit('sandboxStart', instanceServices, instanceApis);
+          this.events.emit('sandboxStart', config, instanceServices, instanceApis);
 
           var handlers =_.transform(createCalls(instanceApis, instanceServices), function(result, calls, prefix) {
             _.each(calls, function(call, name) {

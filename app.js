@@ -14,7 +14,7 @@ plugins.load(events);
 app.use(cors());
 app.use(bodyParser.json());
 app.post('/sandbox', function(req, res) {
-  control.create(req.query.id, function(err, instance) {
+  control.create(req.query.id, req.body, function(err, instance) {
     if (err) res.status(500).send(err);
     else res.json({ id: instance.id });
   });
