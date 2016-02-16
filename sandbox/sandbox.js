@@ -43,6 +43,18 @@ Sandbox.init = function(id, cb) {
   this.miner = setInterval(this.mineBlock.bind(this), 5000);
   this.logListeners = [];
 };
+Sandbox.getCoinbase = function() {
+  return this.coinbase;
+};
+Sandbox.getDefaultAccount = function() {
+  return this.defaultAccount;
+};
+Sandbox.getGasLimit = function() {
+  return this.gasLimit;
+};
+Sandbox.getGasPrice = function() {
+  return this.gasPrice;
+};
 Sandbox.createVM = function(cb) {
   async.series([
     createBlockchain.bind(this),

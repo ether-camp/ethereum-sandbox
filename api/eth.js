@@ -138,8 +138,8 @@ module.exports = function(services) {
         values: {
           from: { type: 'address' },
           to: { type: 'address', defaultVal: null },
-          gas: { type: 'number', defaultVal: sandbox.gasLimit },
-          gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+          gas: { type: 'number', defaultVal: sandbox.getGasLimit.bind(sandbox) },
+          gasPrice: { type: 'number', defaultVal: sandbox.getGasPrice.bind(sandbox) },
           value: { type: 'number', defaultVal: new BigNumber(0) },
           data: { type: 'hex', defaultVal: null },
           nonce: { type: 'number', defaultVal: null },
@@ -163,10 +163,10 @@ module.exports = function(services) {
         {
           type: 'map',
           values: {
-            from: { type: 'address', defaultVal: sandbox.defaultAccount },
+            from: { type: 'address', defaultVal: sandbox.getDefaultAccount.bind(sandbox) },
             to: { type: 'address', defaultVal: null },
-            gas: { type: 'number', defaultVal: sandbox.gasLimit },
-            gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+            gas: { type: 'number', defaultVal: sandbox.getGasLimit.bind(sandbox) },
+            gasPrice: { type: 'number', defaultVal: sandbox.getGasPrice.bind(sandbox) },
             value: { type: 'number', defaultVal: new BigNumber(0) },
             data: { type: 'hex', defaultVal: null },
             nonce: { type: 'number', defaultVal: null }
@@ -191,10 +191,10 @@ module.exports = function(services) {
         {
           type: 'map',
           values: {
-            from: { type: 'address', defaultVal: sandbox.defaultAccount },
+            from: { type: 'address', defaultVal: sandbox.getDefaultAccount.bind(sandbox) },
             to: { type: 'address', defaultVal: null },
-            gas: { type: 'number', defaultVal: sandbox.gasLimit },
-            gasPrice: { type: 'number', defaultVal: sandbox.gasPrice },
+            gas: { type: 'number', defaultVal: sandbox.getGasLimit.bind(sandbox) },
+            gasPrice: { type: 'number', defaultVal: sandbox.getGasPrice.bind(sandbox) },
             value: { type: 'number', defaultVal: new BigNumber(0) },
             data: { type: 'hex', defaultVal: null },
             nonce: { type: 'number', defaultVal: null }

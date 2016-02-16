@@ -51,8 +51,11 @@ function parse(value, type, errors, elName) {
   if (!elName) elName = 'root';
   var result = null;
   if (value == null || value == undefined) {
-    if (type.hasOwnProperty('defaultVal')) result = type.defaultVal;
-    else errors.push('Argument ' + elName + ' is required;');
+    if (type.hasOwnProperty('defaultVal')) {
+      result = _.isFunction(type.defaultVal) ? type.defaultVal() : type.defaultVal;
+    } else {
+      errors.push('Argument ' + elName + ' is required;');
+    }
   } else if (type.type === 'map') {
     if (!_.isPlainObject(value)) errors.push(elName + ' must be an object;');
     else if (type.hasOwnProperty('key')) {

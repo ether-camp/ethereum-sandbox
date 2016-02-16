@@ -527,7 +527,6 @@
       "name": "eth_call",
       "params": [
         {
-          "from": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
           "to": "0xdedb49385ad5b94a16f236a6890cf9e0b1e30392",
           "data": "0xf8a8fd6d"
         },
