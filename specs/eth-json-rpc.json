@@ -260,6 +260,13 @@
       "result": "0x123456"
     }
   ],
+  "Returns zero balance for the empty account": [
+    {
+      "name": "eth_getBalance",
+      "params": ["0xdedb49385ad5b94a16f236a6890cf9e0b1e30392", "latest"],
+      "result": "0x0"
+    }
+  ],
   "Returns the value from a storage position at a given address": [
     {
       "name": "sandbox_addAccounts",

@@ -6,7 +6,7 @@ module.exports = {
   init: function(dataOrDetails, address) {
     this.address = address;
     
-    if (Buffer.isBuffer(dataOrDetails)) {
+    if (!dataOrDetails || Buffer.isBuffer(dataOrDetails)) {
       this.raw = new Account(dataOrDetails);
       this.nonce = util.toBigNumber(this.raw.nonce);
       this.balance = util.toBigNumber(this.raw.balance);
