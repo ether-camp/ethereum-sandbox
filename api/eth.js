@@ -28,7 +28,7 @@ module.exports = function(services) {
     },
     gasPrice: {
       args: [],
-      handler: function(cb) { cb(null, '0x0'); }
+      handler: function(cb) { cb(null, '0x' + sandbox.gasPrice.toString(16)); }
     },
     accounts: {
       args: [],
