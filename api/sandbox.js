@@ -66,12 +66,14 @@ module.exports = function(services) {
         values: {
           coinbase: { type: 'address', defaultVal: null },
           difficulty: { type: 'number', defaultVal: null },
+          gasPrice: { type: 'number', defaultVal: null },
           gasLimit: { type: 'number', defaultVal: null }
         }
       }],
       handler: function(options, cb) {
         if (options.coinbase) sandbox.coinbase = options.coinbase;
         if (options.difficulty) sandbox.difficulty = options.difficulty;
+        if (options.gasPrice) sandbox.gasPrice = options.gasPrice;
         if (options.gasLimit) sandbox.gasLimit = options.gasLimit;
         cb();
       }
@@ -126,6 +128,10 @@ module.exports = function(services) {
     },
     contracts: { args: [], handler: function(cb) {
       cb(null, sandbox.contracts);
-    }}
+    }},
+    gasLimit: {
+      args: [],
+      handler: function(cb) { cb(null, '0x' + sandbox.gasLimit.toString(16)); }
+    }
   };
 };
