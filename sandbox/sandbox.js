@@ -32,6 +32,7 @@ Sandbox.init = function(id, cb) {
   this.accounts = {};
   this.transactions = [];
   this.contracts = {};
+  this.accountNames = {};
   this.filters = Object.create(Filters).init(this);
   this.gasLimit = this.DEFAULT_TX_GAS_LIMIT;
   this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
@@ -119,6 +120,8 @@ Sandbox.addAccount = function(address, pkey) {
 Sandbox.createAccount = function(details, address, cb) {
   var account = Object.create(Account).init(details, address);
   var raw = account.raw();
+
+  if (details.name) this.accountNames[address] = details.name;
   
   async.series([
     storeCode.bind(this),

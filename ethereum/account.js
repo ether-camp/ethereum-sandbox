@@ -43,6 +43,7 @@ module.exports = {
   },
   getDetails: function() {
     return {
+      name: this.name,
       nonce: this.nonce == null || this.nonce.isZero() ? null : util.toHex(this.nonce),
       balance: this.balance == null || this.balance.isZero() ? null : util.toHex(this.balance),
       storage: this.storage,

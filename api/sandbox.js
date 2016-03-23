@@ -43,6 +43,7 @@ module.exports = function(services) {
         values: {
           type: 'map',
           values: {
+            name: { type: 'string', defaultVal: null },
             balance: { type: 'number', defaultVal: null },
             nonce: { type: 'number', defaultVal: null },
             code: { type: 'hex', defaultVal: null },
@@ -88,7 +89,12 @@ module.exports = function(services) {
           var stream = sandbox.vm.trie.createReadStream();
           var accounts = [];
           stream.on('data', function(data) {
-            accounts.push(Object.create(Account).init(data.value, util.toHex(data.key)));
+            var address = util.toHex(data.key);
+            var account = Object.create(Account).init(data.value, address);
+            if (sandbox.accountNames.hasOwnProperty(address))
+              account.name = sandbox.accountNames[address];
+            
+            accounts.push(account);
           });
           stream.on('end', function() {
             async.each(accounts, function(account, cb) {
