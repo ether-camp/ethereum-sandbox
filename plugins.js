@@ -5,7 +5,7 @@ var _ = require('lodash');
 function load(events) {
   fs.readdir(__dirname + '/node_modules', function(err, dirs) {
     if (err) return console.error(err);
-    
+
     async.waterfall([
       function(cb) { async.filter(dirs, hasPackageJson, _.partial(cb, null)); },
       _.partial(async.map, _, parsePackageJson, _),
@@ -16,12 +16,12 @@ function load(events) {
     });
 
     function hasPackageJson(dir, cb) {
-      fs.stat('./node_modules/' + dir + '/package.json', function(err) {
+      fs.stat(__dirname + '/node_modules/' + dir + '/package.json', function(err) {
         cb(!err);
       });
     }
     function parsePackageJson(dir, cb) {
-      fs.readFile('./node_modules/' + dir + '/package.json', function(err, data) {
+      fs.readFile(__dirname + '/node_modules/' + dir + '/package.json', function(err, data) {
         if (err) return cb(err);
         try {
           cb(null, JSON.parse(data));
