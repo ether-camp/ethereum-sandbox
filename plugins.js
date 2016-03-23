@@ -3,7 +3,7 @@ var async = require('async');
 var _ = require('lodash');
 
 function load(events) {
-  fs.readdir('./node_modules', function(err, dirs) {
+  fs.readdir(__dirname + '/node_modules', function(err, dirs) {
     if (err) return console.error(err);
     
     async.waterfall([
