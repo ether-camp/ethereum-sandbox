@@ -98,10 +98,40 @@ util.toNumber = function(obj) {
 
 util.encodeRlp = function(buf) {
   return rlp.encode(buf);
-}
+};
 
 util.decodeRlp = function(buf) {
   return rlp.decode(buf);
-}
+};
+
+util.synchronize = function(fn) {
+  return function() {
+    if (this._lock) {
+      if (!this._deferredCalls) this._deferredCalls = [];
+      this._deferredCalls.push({
+        fn: fn,
+        args: arguments
+      });
+    } else call(this, fn, arguments);
+
+    function call(obj, fn, args) {
+      obj._lock = true;
+      var cb = args[args.length - 1];
+      if (!_.isFunction(cb))
+        throw 'the last arg of synchronized function has to be a callback';
+      args[args.length - 1] = function() {
+        if (!obj._deferredCalls) obj._deferredCalls = [];
+        if (obj._deferredCalls.length > 0) {
+          var params = obj._deferredCalls.shift();
+          call(obj, params.fn, params.args);
+        } else {
+          obj._lock = false;
+        }
+        cb.apply(null, arguments);
+      };
+      fn.apply(obj, args);
+    }
+  };
+};
 
 module.exports = util;

@@ -117,7 +117,7 @@ Sandbox.stop = function(cb) {
 Sandbox.addAccount = function(address, pkey) {
   this.accounts[address] = pkey;
 };
-Sandbox.createAccount = function(details, address, cb) {
+Sandbox.createAccount = util.synchronize(function(details, address, cb) {
   var account = Object.create(Account).init(details, address);
   var raw = account.raw();
 
@@ -182,8 +182,8 @@ Sandbox.createAccount = function(details, address, cb) {
       cb
     );
   }
-};
-Sandbox.sendTx = function(options, cb) {
+});
+Sandbox.sendTx = util.synchronize(function(options, cb) {
   if (!_.isString(options)) {
     if (!this.accounts.hasOwnProperty(options.from))
       return cb('Could not find a private key for ' + options.from);
@@ -250,7 +250,7 @@ Sandbox.sendTx = function(options, cb) {
       }
     }).bind(this));
   }
-};
+});
 Sandbox.addPendingTx = function(tx) {
   this.filters.newPendingTx(tx);
   this.pendingTransactions.push(tx);
@@ -313,7 +313,7 @@ Sandbox.mineBlock = function() {
     }).bind(this));
   }).bind(this));
 };
-Sandbox.call = function(options, cb) {
+Sandbox.call = util.synchronize(function(options, cb) {
   if (!this.accounts.hasOwnProperty(options.from))
     return cb('Could not find a private key for ' + options.from);
   options.pkey = this.accounts[options.from];
@@ -344,7 +344,7 @@ Sandbox.call = function(options, cb) {
       else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
     }).bind(this));
   }
-};
+});
 Sandbox.createNextBlock = function(transactions, cb) {
   this.blockchain.getHead((function(err, lastBlock) {
     if (err) return cb(err);

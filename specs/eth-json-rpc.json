@@ -31,7 +31,7 @@
     {
       "name": "eth_gasPrice",
       "params": [],
-      "result": "0x0"
+      "result": "0xba43b7400"
     }
   ],
   "Returns a list of addresses owned by client": [
