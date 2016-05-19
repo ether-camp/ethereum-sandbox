@@ -43,6 +43,7 @@ Sandbox.init = function(id, cb) {
   this.createVM(cb);
   this.miner = setInterval(this.mineBlock.bind(this), 5000);
   this.logListeners = [];
+  this.projectName = null;
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;

@@ -138,6 +138,19 @@ module.exports = function(services) {
     gasLimit: {
       args: [],
       handler: function(cb) { cb(null, '0x' + sandbox.gasLimit.toString(16)); }
+    },
+    setProjectName: {
+      args: [{ type: 'string' }],
+      handler: function(name, cb) {
+        sandbox.projectName = name;
+        cb();
+      }
+    },
+    projectName: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.projectName);
+      }
     }
   };
 };
