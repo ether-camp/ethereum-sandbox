@@ -1,6 +1,6 @@
 {
   "name": "ethereum-sandbox",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Ethereum Sandbox",
   "main": "app.js",
   "devDependencies": {
