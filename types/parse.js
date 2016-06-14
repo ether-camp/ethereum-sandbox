@@ -1,6 +1,6 @@
 /*
  * Ethereum Sandbox
- * Copyright (C) 2016 by <ether.camp> (http://ether.camp)
+ * Copyright (C) 2016  <ether.camp> ALL RIGHTS RESERVED  (http://ether.camp)
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License version 3
