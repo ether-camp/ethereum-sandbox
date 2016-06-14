@@ -2,6 +2,7 @@
   "name": "ethereum-sandbox",
   "version": "1.0.0",
   "description": "Ethereum Sandbox",
+  "license": "AGPL-3.0"
   "main": "app.js",
   "devDependencies": {
     "grunt": "^0.4.5",
