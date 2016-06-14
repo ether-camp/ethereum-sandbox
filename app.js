@@ -1,19 +1,41 @@
+var http = require('http');
+var fork = require('child_process').fork;
 var express = require('express');
 var cors = require('cors');
 var app = express();
-var jayson = require('jayson');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
 var EventEmitter = require('events').EventEmitter;
 var events = new EventEmitter();
-var control = require('./sandbox_control').init(events);
+var Control = require('./sandbox_control');
 var plugins = require('./plugins');
 
 plugins.load(events);
 
-function start(cb) {
+var server, control, unusedWatcher;
+var lastTouch = Date.now();
+var defaultPort = 8555;
+var testModeUnusedLifetime = 15 * 1000;
+var testModeUnusedCheckInterval = 10 * 1000;
+
+function start(testMode, port, cb) {
+  if (_.isFunction(port)) {
+    cb = port;
+    port = defaultPort;
+  }
+  
+  control = Control.init(events);
+  
   app.use(cors());
   app.use(bodyParser.json());
+  
+  if (testMode) {
+    app.use(function(req, res, next) {
+      lastTouch = Date.now();
+      next();
+    });
+  }
+  
   app.post('/sandbox', function(req, res) {
     control.create(req.query.id, req.body, function(err, instance) {
       if (err) res.status(500).send(err);
@@ -43,13 +65,66 @@ function start(cb) {
     });
   });
   
-  var server = app.listen(8555, function () {
+  server = app.listen(port, function () {
     var host = server.address().address;
     var port = server.address().port;
     console.log('Sandbox is listening at http://%s:%s', host, port);
     if (cb) cb();
   });
+  
+  if (testMode) {
+    unusedWatcher = setInterval(stopIfUnused, testModeUnusedCheckInterval);
+  }
 }
 
-if (require.main === module) start();
-else module.exports = { start: start };
+function stopIfUnused() {
+  if (Date.now() > lastTouch + testModeUnusedLifetime) stop();
+}
+
+function startDetached(port, cb) {
+  console.log('starting');
+  if (_.isFunction(port)) {
+    cb = port;
+    port = defaultPort;
+  }
+  
+  fork(__filename, [ '--test', '--port=' + port ]);
+  var checksNum = 15;
+  var check = setInterval(function() {
+    http.get('http://localhost:' + port, function() {
+      clearInterval(check);
+      cb();
+    }).on('error', function() {
+      if (checksNum-- == 0) {
+        clearInterval(check);
+        cb('Sandbox has not been started');
+      }
+    });
+  }, 1000);
+}
+
+function stop() {
+  if (unusedWatcher) {
+    console.log('Stopping the sandbox.');
+    clearInterval(unusedWatcher);
+  }
+  control.reset();
+  control.stopWatchingUnused();
+  server.close();
+}
+
+if (require.main === module) {
+  var testMode = false;
+  var port = defaultPort;
+  process.argv.forEach(function(arg) {
+    if (arg == '--test') testMode = true;
+    if (arg.indexOf('--port=') == 0) port = arg.substr(7);
+  });
+  start(testMode, port);
+} else {
+  module.exports = {
+    start: start.bind(null, true),
+    startDetached: startDetached,
+    stop: stop
+  };
+}
