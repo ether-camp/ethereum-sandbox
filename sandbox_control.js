@@ -29,6 +29,7 @@ var Control = {
   instances: {},
   init: function(events) {
     this.events = events;
+    this.watchUnused();
     return this;
   },
   contains: function(id) {
@@ -93,8 +94,14 @@ var Control = {
       instance.services.sandbox.stop(cb);
     }, (function(err) {
       this.instances = {};
-      cb(err);
+      if (cb) cb(err);
     }).bind(this));
+  },
+  watchUnused: function() {
+    this.unusedWatcher = setInterval(this.stopUnused.bind(this), checkPeriod);
+  },
+  stopWatchingUnused: function() {
+    clearInterval(this.unusedWatcher);
   },
   stopUnused: function() {
     var now = Date.now();
@@ -110,8 +117,5 @@ var Control = {
       .value();
   }
 };
-
-
-setInterval(Control.stopUnused.bind(Control), checkPeriod);
 
 module.exports = Control;
