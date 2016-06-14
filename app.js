@@ -82,7 +82,6 @@ function stopIfUnused() {
 }
 
 function startDetached(port, cb) {
-  console.log('starting');
   if (_.isFunction(port)) {
     cb = port;
     port = defaultPort;
@@ -100,7 +99,7 @@ function startDetached(port, cb) {
         cb('Sandbox has not been started');
       }
     });
-  }, 1000);
+  }, 10000);
 }
 
 function stop() {
