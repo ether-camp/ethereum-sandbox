@@ -105,18 +105,21 @@ function startDetached(port, cb) {
   }
   
   fork(__filename, [ '--test', '--port=' + port ]);
-  var checksNum = 15;
-  var check = setInterval(function() {
-    http.get('http://localhost:' + port, function() {
-      clearInterval(check);
-      cb();
-    }).on('error', function() {
-      if (checksNum-- == 0) {
-        clearInterval(check);
-        cb('Sandbox has not been started');
-      }
+  var checksNum = 20;
+  (function check() {
+    if (checksNum-- == 0) return cb('Sandbox has not been started in 10 sec.');
+    
+    isRunning(function(running) {
+      if (running) cb();
+      else setTimeout(check, 500);
     });
-  }, 10000);
+  })();
+  
+  function isRunning(cb) {
+    http.get('http://localhost:' + port + '/sandbox', function(res) {
+      cb(res.statusCode == 200);
+    }).on('error', cb.bind(null, false));
+  }
 }
 
 function stop() {
