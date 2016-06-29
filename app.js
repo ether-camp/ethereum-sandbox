@@ -120,10 +120,7 @@ function startDetached(port, cb) {
 }
 
 function stop() {
-  if (unusedWatcher) {
-    console.log('Stopping the sandbox.');
-    clearInterval(unusedWatcher);
-  }
+  if (unusedWatcher) clearInterval(unusedWatcher);
   control.reset();
   control.stopWatchingUnused();
   server.close();
