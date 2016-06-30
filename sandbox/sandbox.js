@@ -211,8 +211,10 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
 
   check.call(this, tx, (function(err) {
     if (err) return cb(err);
+    this.pendingTransactions.push(tx);
+    this.filters.newPendingTx(tx);
     cb(null, util.toHex(tx.getTx().hash()));
-    this.addPendingTx(tx);
+    this.runPendingTx();
   }).bind(this));
 
   function check(tx, cb) {
@@ -241,7 +243,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
       function checkNonce() {
-        var prevTx = _.find(this.pendingTransactions, { from: tx.from });
+        var prevTx = _.findLast(this.pendingTransactions, { from: tx.from });
         if (prevTx) {
           var prevNonce = util.toBigNumber(prevTx.nonce);
           if (tx.nonce) {
@@ -270,11 +272,6 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     }).bind(this));
   }
 });
-Sandbox.addPendingTx = function(tx) {
-  this.filters.newPendingTx(tx);
-  this.pendingTransactions.push(tx);
-  this.runPendingTx();
-};
 Sandbox.runPendingTx = function() {
   if (this.miningBlock || this.pendingTransactions.length === 0) return;
   this.miningBlock = true;
