@@ -4,7 +4,8 @@ module.exports = function(grunt) {
     run: {
       app: {
         options: {
-          wait: false
+          wait: false,
+          ready: /Sandbox is listening at/
         },
         cmd: 'node',
         args: ['app.js']

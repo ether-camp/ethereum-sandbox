@@ -1,7 +1,8 @@
 {
   "name": "ethereum-sandbox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ethereum Sandbox",
+  "license": "AGPL-3.0",
   "main": "app.js",
   "devDependencies": {
     "grunt": "^0.4.5",
@@ -27,6 +28,7 @@
     "lodash": "^3.10.0",
     "merkle-patricia-tree": "2.1.2",
     "rlp": "2.0.0",
-    "sha3": "^1.2.0"
+    "sha3": "^1.2.0",
+    "solc": "^0.3.5"
   }
 }
