@@ -168,6 +168,20 @@ module.exports = function(services) {
       handler: function(cb) {
         cb(null, sandbox.projectName);
       }
+    },
+    pauseMiner: {
+      args: [],
+      handler: function (cb) {
+        sandbox.pauseMiner = true;
+        cb();
+      }
+    },
+    resumeMiner: {
+      args: [],
+      handler: function (cb) {
+        sandbox.pauseMiner = false;
+        cb();
+      }
     }
   };
 };
