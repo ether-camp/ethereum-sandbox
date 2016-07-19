@@ -17,7 +17,6 @@
  
 var fs = require('fs');
 var EventEmitter = require('events').EventEmitter;
-var nodeUtil = require('util');
 var VM = require('ethereumjs-vm');
 var EthAccount = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
@@ -58,7 +57,7 @@ Sandbox.init = function(id, cb) {
   this.pendingTransactions = [];
   this.receipts = {};
   this.createVM(cb);
-  this.miner = setInterval(this.mineBlock.bind(this), 5000);
+  this.miner = setInterval(this.mineBlock.bind(this, function() {}), 5000);
   this.logListeners = [];
   this.projectName = null;
 };
@@ -218,6 +217,8 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
 
   function check(tx, cb) {
     this.vm.trie.get(util.toBuffer(tx.from), (function(err, data) {
+      if (err) return cb(err);
+      
       var account = new EthAccount(data);
 
       cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
@@ -315,22 +316,24 @@ Sandbox.runPendingTx = function() {
     }).bind(this));
   }).bind(this));
 };
-Sandbox.mineBlock = function() {
+Sandbox.mineBlock = util.synchronize(function(cb) {
   if (this.miningBlock) return;
   this.miningBlock = true;
   this.createNextBlock([], (function(err, block) {
     if (err) {
       this.miningBlock = false;
-      return console.error(err);
+      console.error(err);
+      return cb();
     }
     this.blockchain.putBlock(block, (function(err) {
       this.miningBlock = false;
       if (err) console.error(err);
       else this.filters.newBlock(block);
+      cb();
       this.runPendingTx();
     }).bind(this));
   }).bind(this));
-};
+});
 Sandbox.call = util.synchronize(function(options, cb) {
   if (!this.accounts.hasOwnProperty(options.from))
     return cb('Could not find a private key for ' + options.from);
