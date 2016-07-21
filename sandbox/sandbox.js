@@ -58,6 +58,7 @@ Sandbox.init = function(id, cb) {
   this.receipts = {};
   this.createVM(cb);
   this.miner = setInterval(this.mineBlock.bind(this, function() {}), 5000);
+  this.pauseMiner = false;
   this.logListeners = [];
   this.projectName = null;
 };
@@ -212,7 +213,11 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
   check.call(this, tx, (function(err) {
     if (err) return cb(err);
     cb(null, util.toHex(tx.getTx().hash()));
-    this.addPendingTx(tx);
+    if (options.delayed) {
+      this.addPendingTxDelayed(tx);
+    } else {
+      this.addPendingTx(tx);
+    }
   }).bind(this));
 
   function check(tx, cb) {
@@ -275,11 +280,22 @@ Sandbox.addPendingTx = function(tx) {
   this.pendingTransactions.push(tx);
   this.runPendingTx();
 };
+Sandbox.addPendingTxDelayed = function(tx) {
+  this.filters.newPendingTx(tx);
+  this.pendingTransactions.push(tx);
+};
 Sandbox.runPendingTx = function() {
-  if (this.miningBlock || this.pendingTransactions.length === 0) return;
+  if (this.pendingTransactions.length == 0) return;
+  runTxs.bind(this)([this.pendingTransactions[0]], false);
+};
+Sandbox.runAllPendingTxs = function() {
+  runTxs.bind(this)(this.pendingTransactions, true);
+};
+function runTxs(txs, runAllImmediately) {
+  if (this.miningBlock || txs.length === 0) return;
   this.miningBlock = true;
 
-  this.createNextBlock([this.pendingTransactions[0].getTx()], (function(err, block) {
+  this.createNextBlock(txs.map(tx => tx.getTx()), (function(err, block) {
     if (err) {
       this.miningBlock = false;
       return console.error(err);
@@ -294,30 +310,46 @@ Sandbox.runPendingTx = function() {
     ], (function(err, results) {
       if (!this.vm) return;
       
-      var tx = this.pendingTransactions.shift();
-      this.miningBlock = false;
-      this.runPendingTx();
       if (err) console.error(err);
       else {
-        var receipt = Object.create(Receipt)
-              .init(tx, block, results[0].receipts[0], results[0].results[0]);
-        this.receipts[util.toHex(tx.getTx().hash())] = receipt;
+        var i = 0;
+        function processTx(tx) {
+          var receipt = Object.create(Receipt)
+                .init(tx, block, results[0].receipts[i], results[0].results[i]);
+          this.receipts[util.toHex(tx.getTx().hash())] = receipt;
 
-        if (tx.contract && receipt.contractAddress) {
-          this.contracts[receipt.contractAddress] = tx.contract;
-          this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
-          this.contracts[receipt.contractAddress].data = tx.data;
+          if (tx.contract && receipt.contractAddress) {
+            this.contracts[receipt.contractAddress] = tx.contract;
+            this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
+            this.contracts[receipt.contractAddress].data = tx.data;
+          }
+
+          this.filters.newBlock(block);
+          this.newLogs(receipt.logs);
+          this.filters.newLogs(receipt.logs);
         }
-
-        this.filters.newBlock(block);
-        this.newLogs(receipt.logs);
-        this.filters.newLogs(receipt.logs);
+        if (runAllImmediately) { 
+          var txsToProcess = _.clone(this.pendingTransactions);
+          this.pendingTransactions = [];
+          this.miningBlock = false;
+          do {
+            var tx = txsToProcess.shift();
+            processTx.bind(this)(tx);
+            i++;
+          } while(txsToProcess.length > 0);
+          this.miningBlock = false;
+        } else {
+          var tx = this.pendingTransactions.shift();
+          this.miningBlock = false;
+          processTx.bind(this)(tx);
+          this.runPendingTx();
+        }
       }
     }).bind(this));
   }).bind(this));
 };
 Sandbox.mineBlock = util.synchronize(function(cb) {
-  if (this.miningBlock) return;
+  if (this.miningBlock || this.pauseMiner) return cb();
   this.miningBlock = true;
   this.createNextBlock([], (function(err, block) {
     if (err) {
@@ -330,7 +362,7 @@ Sandbox.mineBlock = util.synchronize(function(cb) {
       if (err) console.error(err);
       else this.filters.newBlock(block);
       cb();
-      this.runPendingTx();
+      this.runAllPendingTxs();
     }).bind(this));
   }).bind(this));
 });
