@@ -30,7 +30,8 @@ var apis = {
   sandbox: require('./api/sandbox'),
   eth: require('./api/eth'),
   net: require('./api/net'),
-  web3: require('./api/web3')
+  web3: require('./api/web3'),
+  debug: require('./api/debug')
 };
 
 function createCalls(apis, services) {

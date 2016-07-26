@@ -307,6 +307,7 @@ Sandbox.runPendingTx = function() {
           this.contracts[receipt.contractAddress] = tx.contract;
           this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
           this.contracts[receipt.contractAddress].data = tx.data;
+          this.contracts[receipt.contractAddress].breakpoints = [];
         }
 
         this.filters.newBlock(block);
@@ -403,6 +404,23 @@ Sandbox.newLogs = function(logs) {
       })
       .value();
   });
+};
+Sandbox.setBreakpoints = function(breakpoints, cb) {
+  console.log(breakpoints);
+  _.each(this.contracts, function(contract) {
+    _.each(breakpoints, function(breakpoint) {
+      var index = _.indexOf(contract.sourceList, breakpoint.source);
+      if (index != -1) {
+        contract.breakpoints.push({
+          from: breakpoints.from,
+          len: breakpoints.len,
+          source: index
+        });
+      }
+    });
+  });
+  console.log(this.contracts);
+  cb();
 };
 
 module.exports = Sandbox;
