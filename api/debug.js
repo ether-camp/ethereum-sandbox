@@ -30,14 +30,45 @@ module.exports = function(services) {
         values: {
           type: 'map',
           values: {
-            from: { type: 'number' },
-            len: { type: 'number' },
+            line: { type: 'number' },
+            column: { type: 'number' },
             source: { type: 'string' }
           }
         }
       }],
       handler: function(breakpoints, cb) {
         sandbox.setBreakpoints(breakpoints, cb);
+      }
+    },
+    newBreakpointFilter: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.filters.addBreakpointFilter());
+      }
+    },
+    getFilterChanges: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        cb(null, sandbox.filters.getChanges(filterId));
+      }
+    },
+    uninstallFilter: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        sandbox.filters.removeFilter(filterId);
+        cb();
+      }
+    },
+    resume: {
+      args: [],
+      handler: function(cb) {
+        sandbox.resume(cb);
+      }
+    },
+    stepInto: {
+      args: [],
+      handler: function(cb) {
+        sandbox.stepInto(cb);
       }
     }
   };

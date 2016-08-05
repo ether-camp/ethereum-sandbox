@@ -60,6 +60,9 @@ Sandbox.init = function(id, cb) {
   this.miner = setInterval(this.mineBlock.bind(this, function() {}), 5000);
   this.logListeners = [];
   this.projectName = null;
+  this.resumeCb = null;
+  this.prevBreakpoint = null;
+  this.inStepInto = false;
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -103,8 +106,54 @@ Sandbox.createVM = function(cb) {
   }
   function createVM(cb) {
     this.vm = new VM(new Trie(), this.blockchain);
+    this.vm.on('step', (function(data, cb) {
+      var address = '0x' + data.address.toString('hex');
+      if (address in this.contracts) {
+        var contract = this.contracts[address];
+        var mapping = _.find(contract.srcmap, { pc: data.pc });
+        if (!mapping) {
+          console.log(data.pc);
+          console.log(contract.srcmap);
+        }
+        var bp = null;
+        if (this.inStepInto) {
+          if (!matches(mapping, this.prevBreakpoint)) {
+            bp = {
+              line: mapping.line,
+              column: mapping.column,
+              source: mapping.source,
+              path: contract.sourceList[mapping.source]
+            };
+            this.inStepInto = false;
+          }
+        } else {
+          bp = _.find(contract.breakpoints, { line: mapping.line, source: mapping.source });
+
+          if (this.prevBreakpoint && bp && matches(this.prevBreakpoint, bp)) bp = null;
+          else this.prevBreakpoint = null;
+        }
+
+        if (!bp) return cb();
+
+        this.filters.newBreakpoint(bp);
+        this.prevBreakpoint = bp;
+        this.resumeCb = cb;
+        console.log('paused');
+      } else cb();
+    }).bind(this));
     cb();
   }
+  function matches(mapping, breakpoint) {
+    return mapping.source == breakpoint.source && mapping.line == breakpoint.line;
+  }
+};
+Sandbox.resume = function(cb) {
+  if (this.resumeCb) {
+    console.log('resume');
+    this.resumeCb();
+    this.resumeCb = null;
+  }
+  cb();
 };
 Sandbox.stop = function(cb) {
   this.emit('stop', this);
@@ -128,6 +177,10 @@ Sandbox.stop = function(cb) {
     this.receipts = null;
     this.pendingTransactions = null;
     this.logListeners = null;
+    this.prevBreakpoint = null;
+    this.resumeCb = null;
+    this.prevBreakpoint = null;
+    this.inStepInto = null;
     cb();
   }).bind(this));
 };
@@ -293,6 +346,8 @@ Sandbox.runPendingTx = function() {
       this.blockchain.putBlock.bind(this.blockchain, block)
     ], (function(err, results) {
       if (!this.vm) return;
+
+      console.log('tx is finished');
       
       var tx = this.pendingTransactions.shift();
       this.miningBlock = false;
@@ -304,10 +359,23 @@ Sandbox.runPendingTx = function() {
         this.receipts[util.toHex(tx.getTx().hash())] = receipt;
 
         if (tx.contract && receipt.contractAddress) {
-          this.contracts[receipt.contractAddress] = tx.contract;
-          this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
-          this.contracts[receipt.contractAddress].data = tx.data;
-          this.contracts[receipt.contractAddress].breakpoints = [];
+          var contract = this.contracts[receipt.contractAddress] = tx.contract;
+          contract.gasUsed = util.toHex(receipt.gasUsed);
+          contract.data = tx.data;
+          contract.breakpoints = [];
+
+          async.parallel({
+            code: (function(cb) {
+              this.vm.trie.get(util.toBuffer(receipt.contractAddress), (function(err, data) {
+                if (err) cb(err);
+                else new EthAccount(data).getCode(this.vm.trie, cb);
+              }).bind(this));
+            }).bind(this),
+            sources: _.partial(async.map, tx.contract.sourceList, _.partial(fs.readFile, _, 'utf8', _))
+          }, (function(err, results) {
+            if (err) console.error(err);
+            else contract.srcmap = parseSourceMap(contract.srcmap, results.code, results.sources);
+          }).bind(this));
         }
 
         this.filters.newBlock(block);
@@ -316,9 +384,70 @@ Sandbox.runPendingTx = function() {
       }
     }).bind(this));
   }).bind(this));
+
+  function parseSourceMap(srcmap, code, sources) {
+    console.log('code: ' + code.toString('hex'));
+    var prev = {
+      line: -1,
+      column: -1,
+      source: -1
+    };
+    var pc = 0;
+    return _.map(srcmap.split(';'), function(details) {
+      var entries = details.split(':');
+      
+      if (entries[0]) {
+        var position = calcPosition(
+          parseInt(entries[0]),
+          sources[entries[2] ? parseInt(entries[2]) - 1 : prev.source]
+        );
+      } else {
+        position = {
+          line: prev.line,
+          column: prev.column
+        };
+      }
+      
+      var mapping = {
+        line: position.line,
+        column: position.column,
+        source: entries[2] ? parseInt(entries[2]) - 1 : prev.source,
+        pc: pc
+      };
+
+      // skip push argument
+      if (code[pc] >= 0x60 && code[pc] <= 0x7f) {
+        pc += code[pc] - 0x60 + 1;
+      }
+      
+      pc++;
+      
+      prev = mapping;
+      return mapping;
+    });
+  }
+  function calcPosition(offset, source) {
+    var last = source.lastIndexOf('\n', offset);
+    return {
+      line: numberOf(source, '\n', offset),
+      column: offset - (last > 0 ? last : 0)
+    };
+
+    function numberOf(str, c, len) {
+      var n = 0;
+      var index = 0;
+      str = str.substr(0, len);
+      while (true) {
+        index = str.indexOf('\n', index) + 1;
+        if (index <= 0) break;
+        n++;
+      }
+      return n;
+    }
+  }
 };
 Sandbox.mineBlock = util.synchronize(function(cb) {
-  if (this.miningBlock) return;
+  if (this.miningBlock) return cb();
   this.miningBlock = true;
   this.createNextBlock([], (function(err, block) {
     if (err) {
@@ -406,20 +535,26 @@ Sandbox.newLogs = function(logs) {
   });
 };
 Sandbox.setBreakpoints = function(breakpoints, cb) {
-  console.log(breakpoints);
   _.each(this.contracts, function(contract) {
     _.each(breakpoints, function(breakpoint) {
       var index = _.indexOf(contract.sourceList, breakpoint.source);
       if (index != -1) {
         contract.breakpoints.push({
-          from: breakpoints.from,
-          len: breakpoints.len,
-          source: index
+          line: breakpoint.line.toNumber(),
+          column: breakpoint.column.toNumber(),
+          source: index,
+          path: breakpoint.source
         });
+        contract.breakpoints = _.sortBy(contract.breakpoints, 'line');
       }
+      console.log(contract);
     });
   });
-  console.log(this.contracts);
+  cb();
+};
+Sandbox.stepInto = function(cb) {
+  this.inStepInto = true;
+  this.resumeCb();
   cb();
 };
 
