@@ -189,6 +189,21 @@ module.exports = function(services) {
         sandbox.startMiner();
         cb();
       }
+    },
+    mine: {
+      args: [{ type: 'number' }],
+      handler: function(num, cb) {
+        async.timesSeries(
+          num.toNumber(),
+          function (n, cb) {
+            sandbox.mineBlock(false, cb);
+          },
+          function(err) {
+            if (err) console.error(err);
+          }
+        );
+        cb();
+      }
     }
   };
 };

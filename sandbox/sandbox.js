@@ -282,11 +282,15 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     }).bind(this));
   }
 });
-Sandbox.mineBlock = util.synchronize(function(cb) {
-  if (!this.minerEnabled) return cb();
+Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
+  if (_.isFunction(withRunNext)) {
+    cb = withRunNext;
+    withRunNext = true;
+  }
+  if (withRunNext && !this.minerEnabled) return cb();
 
   var self = this;
-  if (this.nextMinerRun) clearTimeout(this.nextMinerRun);
+  if (withRunNext) clearTimeout(this.nextMinerRun);
 
   var txs = [];
   var blockGasLimit = this.gasLimit;
@@ -295,7 +299,7 @@ Sandbox.mineBlock = util.synchronize(function(cb) {
     if (blockGasLimit.isNegative()) break;
     txs.push(this.pendingTransactions.shift());
   }
-  
+
   var block;
 
   async.series([
@@ -304,7 +308,7 @@ Sandbox.mineBlock = util.synchronize(function(cb) {
     putBlock
   ], function(err, results) {
     if (err) {
-      nextRun();
+      if (withRunNext) nextRun();
       return cb(err);
     }
 
@@ -325,7 +329,7 @@ Sandbox.mineBlock = util.synchronize(function(cb) {
 
     self.filters.newBlock(block);
 
-    nextRun();
+    if (withRunNext) nextRun();
     cb();
   });
 
