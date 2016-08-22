@@ -175,6 +175,20 @@ module.exports = function(services) {
         sandbox.timeOffset = timestamp - Math.floor(Date.now() / 1000);
         cb();
       }
+    },
+    stopMiner: {
+      args: [],
+      handler: function(cb) {
+        sandbox.stopMiner();
+        cb();
+      }
+    },
+    startMiner: {
+      args: [],
+      handler: function(cb) {
+        sandbox.startMiner();
+        cb();
+      }
     }
   };
 };

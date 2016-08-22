@@ -56,11 +56,13 @@ Sandbox.init = function(id, cb) {
   this.miningBlock = false;
   this.pendingTransactions = [];
   this.receipts = {};
-  this.createVM(cb);
-  this.miner = setInterval(this.mineBlock.bind(this, function() {}), 5000);
   this.logListeners = [];
   this.projectName = null;
   this.timeOffset = 0;
+  this.minePeriod = 5000;
+  this.minerEnabled = true;
+  
+  this.createVM(cb);
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -75,26 +77,29 @@ Sandbox.getGasPrice = function() {
   return this.gasPrice;
 };
 Sandbox.createVM = function(cb) {
+  var self = this;
+  
   async.series([
-    createBlockchain.bind(this),
-    createVM.bind(this)
+    createBlockchain,
+    createVM,
+    startMiner
   ], cb);
 
   function createBlockchain(cb) {
     createIfNotExists(dbDir);
-    var blockDB = levelup(dbDir + this.id);
-    this.blockchain = new Blockchain(blockDB, false);
+    var blockDB = levelup(dbDir + self.id);
+    self.blockchain = new Blockchain(blockDB, false);
     var block = new Block({
       header: {
-        coinbase: util.toBuffer(this.coinbase),
-        gasLimit: util.toBuffer(this.gasLimit),
+        coinbase: util.toBuffer(self.coinbase),
+        gasLimit: util.toBuffer(self.gasLimit),
         number: 0,
-        difficulty: util.toBuffer(this.difficulty),
-        timestamp: new Buffer(util.nowHex(this.timeOffset), 'hex')
+        difficulty: util.toBuffer(self.difficulty),
+        timestamp: new Buffer(util.nowHex(self.timeOffset), 'hex')
       }, transactions: [],
       uncleHeaders: []
     });
-    this.blockchain.putBlock(block, cb);
+    self.blockchain.putBlock(block, cb);
 
     function createIfNotExists(dir) {
       if (!fs.existsSync(dir)) {
@@ -103,13 +108,17 @@ Sandbox.createVM = function(cb) {
     }
   }
   function createVM(cb) {
-    this.vm = new VM(new Trie(), this.blockchain);
+    self.vm = new VM(new Trie(), self.blockchain);
+    cb();
+  }
+  function startMiner(cb) {
+    setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
     cb();
   }
 };
-Sandbox.stop = function(cb) {
+Sandbox.stop = util.synchronize(function(cb) {
   this.emit('stop', this);
-  clearInterval(this.miner);
+  this.stopMiner();
   async.series([
     this.blockchain.db.close.bind(this.blockchain.db),
     leveldown.destroy.bind(leveldown, './db/' + this.id)
@@ -131,7 +140,7 @@ Sandbox.stop = function(cb) {
     this.logListeners = null;
     cb();
   }).bind(this));
-};
+});
 Sandbox.addAccount = function(address, pkey) {
   this.accounts[address] = pkey;
 };
@@ -215,7 +224,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     this.pendingTransactions.push(tx);
     this.filters.newPendingTx(tx);
     cb(null, util.toHex(tx.getTx().hash()));
-    this.runPendingTx();
+    this.mineBlock(util.showError);
   }).bind(this));
 
   function check(tx, cb) {
@@ -273,64 +282,79 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     }).bind(this));
   }
 });
-Sandbox.runPendingTx = function() {
-  if (this.miningBlock || this.pendingTransactions.length === 0) return;
-  this.miningBlock = true;
-
-  this.createNextBlock([this.pendingTransactions[0].getTx()], (function(err, block) {
-    if (err) {
-      this.miningBlock = false;
-      return console.error(err);
-    }
-    async.series([
-      this.vm.runBlock.bind(this.vm, {
-        blockchain: this.blockchain,
-        block: block,
-        generate: true
-      }),
-      this.blockchain.putBlock.bind(this.blockchain, block)
-    ], (function(err, results) {
-      if (!this.vm) return;
-      
-      var tx = this.pendingTransactions.shift();
-      this.miningBlock = false;
-      this.runPendingTx();
-      if (err) console.error(err);
-      else {
-        var receipt = Object.create(Receipt)
-              .init(tx, block, results[0].receipts[0], results[0].results[0]);
-        this.receipts[util.toHex(tx.getTx().hash())] = receipt;
-
-        if (tx.contract && receipt.contractAddress) {
-          this.contracts[receipt.contractAddress] = tx.contract;
-          this.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
-          this.contracts[receipt.contractAddress].data = tx.data;
-        }
-
-        this.filters.newBlock(block);
-        this.newLogs(receipt.logs);
-        this.filters.newLogs(receipt.logs);
-      }
-    }).bind(this));
-  }).bind(this));
-};
 Sandbox.mineBlock = util.synchronize(function(cb) {
-  if (this.miningBlock) return cb();
-  this.miningBlock = true;
-  this.createNextBlock([], (function(err, block) {
+  if (!this.minerEnabled) return cb();
+
+  var self = this;
+  if (this.nextMinerRun) clearTimeout(this.nextMinerRun);
+
+  var txs = [];
+  var blockGasLimit = this.gasLimit;
+  while (this.pendingTransactions.length > 0) {
+    blockGasLimit = blockGasLimit.sub(this.pendingTransactions[0].gasLimit);
+    if (blockGasLimit.isNegative()) break;
+    txs.push(this.pendingTransactions.shift());
+  }
+  
+  var block;
+
+  async.series([
+    createBlock,
+    runBlock,
+    putBlock
+  ], function(err, results) {
     if (err) {
-      this.miningBlock = false;
-      console.error(err);
-      return cb();
+      nextRun();
+      return cb(err);
     }
-    this.blockchain.putBlock(block, (function(err) {
-      this.miningBlock = false;
-      if (err) console.error(err);
-      else this.filters.newBlock(block);
-      cb();
-      this.runPendingTx();
-    }).bind(this));
-  }).bind(this));
+
+    _.each(txs, function(tx, index) {
+      var receipt = Object.create(Receipt)
+            .init(tx, block, results[1].receipts[index], results[1].results[index]);
+      self.receipts[util.toHex(tx.getTx().hash())] = receipt;
+      
+      if (tx.contract && receipt.contractAddress) {
+        self.contracts[receipt.contractAddress] = tx.contract;
+        self.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
+        self.contracts[receipt.contractAddress].data = tx.data;
+      }
+
+      self.newLogs(receipt.logs);
+      self.filters.newLogs(receipt.logs);
+    });
+
+    self.filters.newBlock(block);
+
+    nextRun();
+    cb();
+  });
+
+  function createBlock(cb) {
+    self.createNextBlock(_.invoke(txs, 'getTx'), function(err, nextBlock) {
+      block = nextBlock;
+      cb(err);
+    });
+  }
+
+  function runBlock(cb) {
+    self.vm.runBlock({
+      blockchain: self.blockchain,
+      block: block,
+      generate: true
+    }, cb);
+  }
+
+  function putBlock(cb) {
+    self.blockchain.putBlock(block, cb);
+  }
+
+  function nextRun() {
+    if (self.pendingTransactions.length > 0) {
+      self.mineBlock(util.showError);
+    } else {
+      self.nextMinerRun = setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
+    }
+  }
 });
 Sandbox.call = util.synchronize(function(options, cb) {
   if (!this.accounts.hasOwnProperty(options.from))
@@ -401,6 +425,14 @@ Sandbox.newLogs = function(logs) {
       })
       .value();
   });
+};
+Sandbox.startMiner = function() {
+  this.minerEnabled = true;
+  this.mineBlock(util.showError);
+};
+Sandbox.stopMiner = function() {
+  this.minerEnabled = false;
+  clearTimeout(this.nextMinerRun);
 };
 
 module.exports = Sandbox;

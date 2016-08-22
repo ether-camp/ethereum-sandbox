@@ -152,4 +152,8 @@ util.synchronize = function(fn) {
   };
 };
 
+util.showError = function(err) {
+  if (err) console.error(err);
+};
+
 module.exports = util;
