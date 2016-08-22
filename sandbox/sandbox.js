@@ -314,7 +314,7 @@ Sandbox.runPendingTx = function() {
   }).bind(this));
 };
 Sandbox.mineBlock = util.synchronize(function(cb) {
-  if (this.miningBlock) return;
+  if (this.miningBlock) return cb();
   this.miningBlock = true;
   this.createNextBlock([], (function(err, block) {
     if (err) {
