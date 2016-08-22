@@ -60,6 +60,7 @@ Sandbox.init = function(id, cb) {
   this.miner = setInterval(this.mineBlock.bind(this, function() {}), 5000);
   this.logListeners = [];
   this.projectName = null;
+  this.timeOffset = 0;
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -89,7 +90,7 @@ Sandbox.createVM = function(cb) {
         gasLimit: util.toBuffer(this.gasLimit),
         number: 0,
         difficulty: util.toBuffer(this.difficulty),
-        timestamp: new Buffer(util.nowHex(), 'hex')
+        timestamp: new Buffer(util.nowHex(this.timeOffset), 'hex')
       }, transactions: [],
       uncleHeaders: []
     });
@@ -371,7 +372,7 @@ Sandbox.createNextBlock = function(transactions, cb) {
         coinbase: util.toBuffer(this.coinbase),
         gasLimit: util.toBuffer(this.gasLimit),
         number: ethUtils.bufferToInt(lastBlock.header.number) + 1,
-        timestamp: new Buffer(util.nowHex(), 'hex'),
+        timestamp: new Buffer(util.nowHex(this.timeOffset), 'hex'),
         difficulty: util.toBuffer(this.difficulty),
         parentHash: lastBlock.hash()
       }, transactions: transactions || [],

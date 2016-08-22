@@ -638,7 +638,6 @@
         "extraData":"0x0",
         "size":"0x256",
         "gasLimit":"0x2fefd8",
-        "minGasPrice":"0x2",
         "gasUsed":"0x0",
         "timestamp":"/^0x[\\dabcdef]+$/",
         "transactions":[
@@ -697,7 +696,6 @@
         "extraData":"0x0",
         "size":"0x256",
         "gasLimit":"0x2fefd8",
-        "minGasPrice":"0x2",
         "gasUsed":"0x0",
         "timestamp":"/^0x[\\dabcdef]+$/",
         "transactions":[

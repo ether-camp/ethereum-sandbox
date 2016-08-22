@@ -168,6 +168,13 @@ module.exports = function(services) {
       handler: function(cb) {
         cb(null, sandbox.projectName);
       }
+    },
+    setTimestamp: {
+      args: [{ type: 'number' }],
+      handler: function(timestamp, cb) {
+        sandbox.timeOffset = timestamp - Math.floor(Date.now() / 1000);
+        cb();
+      }
     }
   };
 };
