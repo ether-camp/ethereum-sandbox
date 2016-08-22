@@ -139,7 +139,9 @@ var Filters = {
       })
       .value();
   },
-  newBreakpoint: function(bp) {
+  newBreakpoint: function(bp, callstack, vars) {
+    bp.callstack = callstack;
+    bp.vars = vars;
     _(this.filters)
       .filter({ type: 'breakpoint' })
       .each(function(filter) {

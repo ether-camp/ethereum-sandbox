@@ -72,6 +72,10 @@ util.toBigNumber = function(number) {
 };
 
 util.toBuffer = function(number, toLength) {
+  if (typeof number == 'number') {
+    if (toLength) return new Buffer(util.fillWithZeroes(number.toString(16), toLength), 'hex');
+    else return new Buffer(util.pad(number.toString(16)), 'hex');
+  }
   if (util.isBigNumber(number)) {
     if (toLength) return new Buffer(util.fillWithZeroes(number.toString(16), toLength), 'hex');
     else return new Buffer(util.pad(number.toString(16)), 'hex');

@@ -33,6 +33,8 @@ var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
 var Filters = require('./filters');
 var Account = require('../ethereum/account');
+var SHA3Hash = require('sha3').SHA3Hash;
+var parseContracts = require('../ast/parser');
 
 var dbDir = './db/';
 
@@ -63,6 +65,7 @@ Sandbox.init = function(id, cb) {
   this.resumeCb = null;
   this.prevBreakpoint = null;
   this.inStepInto = false;
+  this.callStack = [];
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -105,16 +108,13 @@ Sandbox.createVM = function(cb) {
     }
   }
   function createVM(cb) {
+    var self = this;
     this.vm = new VM(new Trie(), this.blockchain);
     this.vm.on('step', (function(data, cb) {
       var address = '0x' + data.address.toString('hex');
       if (address in this.contracts) {
         var contract = this.contracts[address];
         var mapping = _.find(contract.srcmap, { pc: data.pc });
-        if (!mapping) {
-          console.log(data.pc);
-          console.log(contract.srcmap);
-        }
         var bp = null;
         if (this.inStepInto) {
           if (!matches(mapping, this.prevBreakpoint)) {
@@ -135,10 +135,17 @@ Sandbox.createVM = function(cb) {
 
         if (!bp) return cb();
 
-        this.filters.newBreakpoint(bp);
-        this.prevBreakpoint = bp;
-        this.resumeCb = cb;
-        console.log('paused');
+        contract.details.getStorageVars(data.account, this.vm.trie, function(err, vars) {
+          if (err) {
+            console.error(err);
+            return cb();
+          }
+          console.log(vars);
+          self.filters.newBreakpoint(bp, self.callStack, vars);
+          self.prevBreakpoint = bp;
+          self.resumeCb = cb;
+          console.log('paused');
+        });
       } else cb();
     }).bind(this));
     cb();
@@ -181,6 +188,7 @@ Sandbox.stop = function(cb) {
     this.resumeCb = null;
     this.prevBreakpoint = null;
     this.inStepInto = null;
+    this.callStack = null;
     cb();
   }).bind(this));
 };
@@ -363,6 +371,7 @@ Sandbox.runPendingTx = function() {
           contract.gasUsed = util.toHex(receipt.gasUsed);
           contract.data = tx.data;
           contract.breakpoints = [];
+          contract.details = _.find(parseContracts(contract.ast), { name: contract.name });
 
           async.parallel({
             code: (function(cb) {
@@ -386,7 +395,6 @@ Sandbox.runPendingTx = function() {
   }).bind(this));
 
   function parseSourceMap(srcmap, code, sources) {
-    console.log('code: ' + code.toString('hex'));
     var prev = {
       line: -1,
       column: -1,
@@ -547,7 +555,6 @@ Sandbox.setBreakpoints = function(breakpoints, cb) {
         });
         contract.breakpoints = _.sortBy(contract.breakpoints, 'line');
       }
-      console.log(contract);
     });
   });
   cb();
