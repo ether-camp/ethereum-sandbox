@@ -1,6 +1,6 @@
 {
   "name": "ethereum-sandbox",
-  "version": "1.1.0",
+  "version": "1.1.1-beta1",
   "description": "Ethereum Sandbox",
   "license": "AGPL-3.0",
   "main": "app.js",
