@@ -22,7 +22,7 @@ var ElementaryType = {
       position.index++;
       position.offset = 0;
     }
-    
+
     getter(util.toBuffer(position.index, 64), function(err, data) {
       if (err) return cb(err);
       
@@ -34,7 +34,7 @@ var ElementaryType = {
           value = data.toString('hex', from > 0 ? from : 0, data.length - position.offset);
         }
       }
-      
+
       if (self.size + position.offset >= 32) {
         position.index++;
         position.offset = 0;

@@ -38,7 +38,7 @@ function Contract(node) {
 
 Contract.prototype.getStorageVars = function(account, trie, cb) {
   var position = { index: 0, offset: 0 };
-  async.map(
+  async.mapSeries(
     this.vars,
     function(variable, cb) {
       variable.retrieve(account.getStorage.bind(account, trie), position, cb);
