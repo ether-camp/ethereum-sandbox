@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var async = require('async');
 var util = require('../util');
-var createVariable = require('./types');
+var creator = require('./type_creator');
 
 function parse(sources) {
   return _(sources)
@@ -30,21 +30,24 @@ function Contract(node) {
   this.vars =_(node.children)
     .filter({ name: 'VariableDeclaration' })
     .map(function(node) {
-      return createVariable(node);
+      var typeHandler = creator.create(node.children[0]);
+      if (typeHandler) typeHandler.name = node.attributes.name;
+      return typeHandler;
     })
     .compact()
     .value();
 }
 
-Contract.prototype.getStorageVars = function(account, trie, cb) {
-  var position = { index: 0, offset: 0 };
-  async.mapSeries(
-    this.vars,
-    function(variable, cb) {
-      variable.retrieve(account.getStorage.bind(account, trie), position, cb);
-    },
-    cb
-  );
+Contract.prototype.getStorageVars = function(storage, hashDict) {
+  var position = { index: new Buffer(32).fill(0), offset: 0 };
+  return _.map(this.vars, function(variable) {
+    var value = variable.retrieve(storage, hashDict, position);
+    return {
+      name: variable.name,
+      type: variable.type,
+      value: value
+    };
+  });
 };
 
 module.exports = parse;

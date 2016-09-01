@@ -13,8 +13,8 @@ UintType.getSize = function(type) {
   return size.length > 0 ? parseInt(size) / 8 : 32;
 };
 
-UintType.parseValue = function(value) {
-  return new BN(value, 16).toString();
+UintType.parseValue = function(buf) {
+  return buf ? new BN(buf.toString('hex'), 16).toString() : '0';
 };
 
 module.exports = UintType;

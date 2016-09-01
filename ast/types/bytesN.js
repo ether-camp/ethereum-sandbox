@@ -13,8 +13,10 @@ BytesNType.getSize = function(type) {
   return type == 'byte' ? 1 : parseInt(type.substr(5));
 };
 
-BytesNType.parseValue = function(value) {
-  return '0x' + util.fillWithZeroes(value, this.size * 2);
+BytesNType.parseValue = function(buf) {
+  return buf ?
+    '0x' + util.fillWithZeroes(buf.toString('hex'), this.size * 2) :
+    '0x' + _.repeat(this.size, '00');
 };
 
 module.exports = BytesNType;

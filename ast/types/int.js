@@ -13,8 +13,8 @@ IntType.getSize = function(type) {
   return size.length > 0 ? parseInt(size) / 8 : 32;
 };
 
-IntType.parseValue = function(value) {
-  return parseInt(value, this.size).toString();
+IntType.parseValue = function(buf) {
+  return parseInt(buf.toString('hex'), this.size).toString();
 
   function parseInt(hex, size) {
     var val = new BN(hex, 16);

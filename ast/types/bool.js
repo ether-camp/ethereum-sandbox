@@ -11,8 +11,8 @@ BoolType.getSize = function(type) {
   return 1;
 };
 
-BoolType.parseValue = function(value) {
-  return (!(new BN(value, 16).isZero())).toString();
+BoolType.parseValue = function(buf) {
+  return buf ? (buf[0] != 0).toString() : 'false';
 };
 
 module.exports = BoolType;

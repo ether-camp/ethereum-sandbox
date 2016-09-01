@@ -66,6 +66,7 @@ Sandbox.init = function(id, cb) {
   this.prevBreakpoint = null;
   this.inStepInto = false;
   this.callStack = [];
+  this.hashDict = [];
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -110,6 +111,20 @@ Sandbox.createVM = function(cb) {
   function createVM(cb) {
     var self = this;
     this.vm = new VM(new Trie(), this.blockchain);
+    this.vm.on('step', function(data, cb) {
+      if (data.opcode.name == 'SHA3') {
+        var offsetBuf = data.stack[data.stack.length - 1];
+        var offset = offsetBuf.readUIntBE(0, offsetBuf.length) || 0;
+        var lengthBuf = data.stack[data.stack.length - 2];
+        var length = lengthBuf.readUIntBE(0, lengthBuf.length) || 0;
+        var src = new Buffer(data.memory.slice(offset, offset + length));
+        self.hashDict.push({
+          src: src,
+          hash: util.sha3(src, 'binary')
+        });
+      }
+      cb();
+    });
     this.vm.on('step', (function(data, cb) {
       var address = '0x' + data.address.toString('hex');
       if (address in this.contracts) {
@@ -135,12 +150,16 @@ Sandbox.createVM = function(cb) {
 
         if (!bp) return cb();
 
-        contract.details.getStorageVars(data.account, this.vm.trie, function(err, vars) {
+        var account = Object.create(Account).init(data.account);
+        account.readStorage1(self.vm.trie, function(err, storage) {
           if (err) {
             console.error(err);
             return cb();
           }
-          console.log(vars);
+          
+          var vars = contract.details.getStorageVars(storage, self.hashDict);
+          console.log(JSON.stringify(vars, false, '  '));
+
           self.filters.newBreakpoint(bp, self.callStack, vars);
           self.prevBreakpoint = bp;
           self.resumeCb = cb;
@@ -189,6 +208,7 @@ Sandbox.stop = function(cb) {
     this.prevBreakpoint = null;
     this.inStepInto = null;
     this.callStack = null;
+    this.hashDict = null;
     cb();
   }).bind(this));
 };

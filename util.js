@@ -32,7 +32,7 @@ util.sha3 = function(strOrBuf, encoding) {
     strOrBuf = new Buffer(util.pad(strOrBuf.substr(2)), 'hex');
   sha.update(strOrBuf);
   var out = sha.digest(encoding);
-  return Buffer.isBuffer(out) ? out : util.toHex(out);
+  return encoding == 'binary' ? new Buffer(out, 'ascii') : util.toHex(out);
 };
 
 util.toHex = function(obj, toLength) {
@@ -153,6 +153,18 @@ util.synchronize = function(fn) {
       fn.apply(obj, args);
     }
   };
+};
+
+util.inc = function(buf, idx) {
+  if (idx == null) idx = 31;
+  if (idx < 0) return buf.fill(0);
+  var n = buf[idx] + 1;
+  if (n == 0x100) {
+    buf[idx] = 0;
+    util.inc(buf, idx - 1);
+  } else {
+    buf[idx] = n;
+  }
 };
 
 module.exports = util;
