@@ -158,7 +158,6 @@ Sandbox.createVM = function(cb) {
           }
           
           var vars = contract.details.getStorageVars(storage, self.hashDict);
-          console.log(JSON.stringify(vars, false, '  '));
 
           self.filters.newBreakpoint(bp, self.callStack, vars);
           self.prevBreakpoint = bp;

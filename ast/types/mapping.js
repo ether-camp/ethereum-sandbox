@@ -1,5 +1,4 @@
 var _ = require('lodash');
-var creator = require('../type_creator');
 var util = require('../../util');
 
 var MappingType = {
@@ -9,9 +8,9 @@ var MappingType = {
   is: function(node) {
     return node.name == 'Mapping';
   },
-  init: function(node) {
-    this.keyType = creator.create(node.children[0]);
-    this.valueType = creator.create(node.children[1]);
+  init: function(node, typeCreator, contract) {
+    this.keyType = typeCreator.create(node.children[0]);
+    this.valueType = typeCreator.create(node.children[1]);
     this.type = 'mapping (' + this.keyType.type + ' => ' + this.valueType.type + ')';
     return this;
   },

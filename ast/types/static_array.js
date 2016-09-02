@@ -1,7 +1,6 @@
 var _ = require('lodash');
 var async = require('async');
 var UintType = require('./uint');
-var creator = require('../type_creator');
 var util = require('../../util');
 
 var StaticArrayType = {
@@ -11,9 +10,9 @@ var StaticArrayType = {
       node.children[1].name == 'Literal' &&
       _.startsWith(node.children[1].attributes.type, 'int_const');
   },
-  init: function(node) {
+  init: function(node, typeCreator, contract) {
     this.size = parseInt(node.children[1].attributes.value);
-    this.internal = creator.create(node.children[0]);
+    this.internal = typeCreator.create(node.children[0], contract);
     this.type = this.internal.type + '[' + this.size + ']';
     return this;
   },

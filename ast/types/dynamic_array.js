@@ -1,14 +1,13 @@
 var _ = require('lodash');
 var async = require('async');
-var creator = require('../type_creator');
 var util = require('../../util');
 
 var DynamicArrayType = {
   is: function(node) {
     return node.name == 'ArrayTypeName' && node.children.length == 1;
   },
-  init: function(node) {
-    this.internal = creator.create(node.children[0]);
+  init: function(node, typeCreator, contract) {
+    this.internal = typeCreator.create(node.children[0], contract);
     this.type = this.internal.type + '[]';
     return this;
   },

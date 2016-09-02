@@ -1,12 +1,21 @@
 var _ = require('lodash');
 var async = require('async');
 var util = require('../util');
-var creator = require('./type_creator');
+var Creator = require('./type_creator');
+var ContractType = require('./types/contract');
+var StructType = require('./types/struct');
 
 function parse(sources) {
+  var userDefinedTypes = _(sources)
+        .map(function(ast, file) {
+          return parseTypes(ast.AST);
+        })
+        .flatten()
+        .value();
+  var typeCreator = Object.create(Creator).init(userDefinedTypes);
   return _(sources)
     .map(function(ast, file) {
-      var contracts = parseRoot(ast.AST);
+      var contracts = parseVariables(ast.AST, typeCreator);
       _.each(contracts, function(contract) {
         contract.file = file;
       });
@@ -16,21 +25,42 @@ function parse(sources) {
     .value();
 }
 
-function parseRoot(node) {
+function parseTypes(node) {
   return _(node.children)
     .filter({ name: 'ContractDefinition' })
     .map(function(node) {
-      return new Contract(node);
+      var name = node.attributes.name;
+      var types = [ Object.create(ContractType).create(name) ];
+      types = types.concat(
+        _(node.children)
+          .filter({ name: 'StructDefinition' })
+          .map(function(node) {
+            return Object.create(StructType).create(node, name);
+          })
+          .value()
+      );
+      return types;
+    })
+    .flatten()
+    .value();
+}
+
+function parseVariables(node, typeCreator) {
+  return _(node.children)
+    .filter({ name: 'ContractDefinition' })
+    .map(function(node) {
+      return new Contract(node, typeCreator);
     })
     .value();
 }
 
-function Contract(node) {
+function Contract(node, typeCreator) {
+  var self = this;
   this.name = node.attributes.name;
   this.vars =_(node.children)
     .filter({ name: 'VariableDeclaration' })
     .map(function(node) {
-      var typeHandler = creator.create(node.children[0]);
+      var typeHandler = typeCreator.create(node.children[0], self.name);
       if (typeHandler) typeHandler.name = node.attributes.name;
       return typeHandler;
     })

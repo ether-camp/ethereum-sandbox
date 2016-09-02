@@ -19,9 +19,16 @@ var types = [
   MappingType
 ];
 
-function create(nodeOrName) {
-  var type = _.find(types, function(type) { return type.is(nodeOrName); });
-  return type ? Object.create(type).init(nodeOrName) : null;
-}
+var Creator = {
+  types: [],
+  init: function(userDefinedTypes) {
+    this.types = types.concat(userDefinedTypes);
+    return this;
+  },
+  create: function(node, contract) {
+    var type = _.find(this.types, function(type) { return type.is(node, contract); });
+    return type ? Object.create(type).init(node, this, contract) : null;
+  }
+};
 
-module.exports.create = create;
+module.exports = Creator;
