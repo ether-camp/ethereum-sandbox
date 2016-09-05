@@ -40,7 +40,6 @@ module.exports = {
       extraData: util.toHex(this.block.header.extraData),
       size: util.toHex(this.block.serialize(true).length),
       gasLimit: util.toHex(this.block.header.gasLimit),
-      minGasPrice: util.toHex(_(this.block.transactions).map('gasPrice').map(util.toNumber).min()),
       // TODO: Fix the bug because of which block.header.gasPrice is empty
       gasUsed: util.toHex(this.block.header.gasUsed),
       timestamp: util.toHex(this.block.header.timestamp),
