@@ -108,7 +108,10 @@ Sandbox.createVM = function(cb) {
     }
   }
   function createVM(cb) {
-    self.vm = new VM(new Trie(), self.blockchain);
+    self.vm = new VM(new Trie(), self.blockchain, {
+      activatePrecompiles: true,
+      enableHomestead: true
+    });
     cb();
   }
   function startMiner(cb) {
