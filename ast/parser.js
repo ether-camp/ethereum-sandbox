@@ -4,6 +4,7 @@ var util = require('../util');
 var Creator = require('./type_creator');
 var ContractType = require('./types/contract');
 var StructType = require('./types/struct');
+var EnumType = require('./types/enum');
 
 function parse(sources) {
   var userDefinedTypes = _(sources)
@@ -36,6 +37,14 @@ function parseTypes(node) {
           .filter({ name: 'StructDefinition' })
           .map(function(node) {
             return Object.create(StructType).create(node, name);
+          })
+          .value()
+      );
+      types = types.concat(
+        _(node.children)
+          .filter({ name: 'EnumDefinition' })
+          .map(function(node) {
+            return Object.create(EnumType).create(node, name);
           })
           .value()
       );
