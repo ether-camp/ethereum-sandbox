@@ -107,8 +107,9 @@ util.fillWithZeroes = function(str, length, right) {
   return right ? str + zeroes : zeroes + str;
 };
 
-util.nowHex = function() {
-  return util.pad(Math.floor(Date.now() / 1000).toString(16));
+util.nowHex = function(offset) {
+  if (!offset) offset = 0;
+  return util.pad(Math.floor(Date.now() / 1000 + offset).toString(16));
 };
 
 util.toNumber = function(obj) {
@@ -165,6 +166,10 @@ util.inc = function(buf, idx) {
   } else {
     buf[idx] = n;
   }
+};
+
+util.showError = function(err) {
+  if (err) console.error(err);
 };
 
 module.exports = util;

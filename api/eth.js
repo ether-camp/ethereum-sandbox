@@ -246,8 +246,13 @@ module.exports = function(services) {
         { type: 'bool' }
       ],
       handler: function(blockNumber, fullTx, cb) {
-        blockNumber = blockNumber.toNumber();
-        if (sandbox.blockchain.meta.height < blockNumber) return cb();
+        if (blockNumber == 'latest') blockNumber = sandbox.blockchain.meta.height;
+        else if (blockNumber == 'earliest') blockNumber = 0;
+        else if (blockNumber == 'pending') return cb();
+        else {
+          blockNumber = blockNumber.toNumber();
+          if (sandbox.blockchain.meta.height < blockNumber) return cb();
+        }
         sandbox.blockchain.getHead(function(err, currBlock) {
           if (err) return cb(err);
           async.whilst(
@@ -256,15 +261,15 @@ module.exports = function(services) {
             },
             function(cb) {
               sandbox.blockchain.getBlock(currBlock.header.parentHash, function(err, block) {
-                if (err) cb(err)
+                if (err) cb(err);
                 else {
                   currBlock = block;
-                  cb()
+                  cb();
                 }
               });
             },
             function(err) {
-              if (err) cb(err)
+              if (err) cb(err);
               else cb(null, Object.create(Block).init(currBlock).getDetails(fullTx));
             }
           );

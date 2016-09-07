@@ -24,7 +24,6 @@ var EnumType = {
       position.offset = 0;
     }
 
-
     var entry = _.find(storage, function(entry) {
       return entry.key.equals(position.index);
     });

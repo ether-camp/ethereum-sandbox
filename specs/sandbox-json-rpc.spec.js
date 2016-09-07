@@ -47,7 +47,7 @@ function run(file) {
         async.forEachSeries(calls, function(info, cb) {
           substituteParams(info.params);
           
-          if (info.wait) async.retry({ times: 6, interval: 500 }, call, withResultSave(cb))
+          if (info.wait) async.retry({ times: 6, interval: 500 }, call, withResultSave(cb));
           else call(withResultSave(cb));
 
           function withResultSave(cb) {

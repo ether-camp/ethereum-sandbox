@@ -168,6 +168,42 @@ module.exports = function(services) {
       handler: function(cb) {
         cb(null, sandbox.projectName);
       }
+    },
+    setTimestamp: {
+      args: [{ type: 'number' }],
+      handler: function(timestamp, cb) {
+        sandbox.timeOffset = timestamp - Math.floor(Date.now() / 1000);
+        cb();
+      }
+    },
+    stopMiner: {
+      args: [],
+      handler: function(cb) {
+        sandbox.stopMiner();
+        cb();
+      }
+    },
+    startMiner: {
+      args: [],
+      handler: function(cb) {
+        sandbox.startMiner();
+        cb();
+      }
+    },
+    mine: {
+      args: [{ type: 'number' }],
+      handler: function(num, cb) {
+        async.timesSeries(
+          num.toNumber(),
+          function (n, cb) {
+            sandbox.mineBlock(false, cb);
+          },
+          function(err) {
+            if (err) console.error(err);
+          }
+        );
+        cb();
+      }
     }
   };
 };
