@@ -150,7 +150,15 @@ module.exports = function(services) {
       }
     },
     contracts: { args: [], handler: function(cb) {
-      cb(null, sandbox.contracts);
+      cb(
+        null,
+        _(sandbox.contracts)
+          .map(function(contract, address) {
+            return [address, contract.getDetails()];
+          })
+          .object()
+          .value()
+      );
     }},
     gasLimit: {
       args: [],

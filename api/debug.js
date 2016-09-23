@@ -31,7 +31,6 @@ module.exports = function(services) {
           type: 'map',
           values: {
             line: { type: 'number' },
-            column: { type: 'number' },
             source: { type: 'string' }
           }
         }
@@ -69,6 +68,18 @@ module.exports = function(services) {
       args: [],
       handler: function(cb) {
         sandbox.stepInto(cb);
+      }
+    },
+    stepOver: {
+      args: [],
+      handler: function(cb) {
+        sandbox.stepOver(cb);
+      }
+    },
+    stepOut: {
+      args: [],
+      handler: function(cb) {
+        sandbox.stepOut(cb);
       }
     }
   };

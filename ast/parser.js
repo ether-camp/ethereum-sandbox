@@ -1,3 +1,4 @@
+var fs = require('fs');
 var _ = require('lodash');
 var async = require('async');
 var util = require('../util');
@@ -6,24 +7,35 @@ var ContractType = require('./types/contract');
 var StructType = require('./types/struct');
 var EnumType = require('./types/enum');
 
-function parse(sources) {
-  var userDefinedTypes = _(sources)
-        .map(function(ast, file) {
-          return parseTypes(ast.AST);
-        })
-        .flatten()
-        .value();
-  var typeCreator = Object.create(Creator).init(userDefinedTypes);
-  return _(sources)
-    .map(function(ast, file) {
-      var contracts = parseVariables(ast.AST, typeCreator);
-      _.each(contracts, function(contract) {
-        contract.file = file;
-      });
-      return contracts;
-    })
-    .flatten()
-    .value();
+function parse(details, dir, cb) {
+  async.forEachOf(details, function(source, file, cb) {
+    fs.readFile('/root/workspace' + dir + file, 'utf8', function(err, text) {
+      if (err) return cb(err.message);
+      source.text = text;
+      cb();
+    });
+  }, function(err) {
+    if (err) return cb(err);
+
+    var userDefinedTypes = _(details)
+          .map(function(entry) {
+            return parseTypes(entry.AST);
+          })
+          .flatten()
+          .value();
+    var typeCreator = Object.create(Creator).init(userDefinedTypes);
+    var contracts = _(details)
+          .map(function(entry, file) {
+            var contracts = parseContracts(entry.AST, entry.text, typeCreator);
+            _.each(contracts, function(contract) {
+              contract.file = file;
+            });
+            return contracts;
+          })
+          .flatten()
+          .value();
+    cb(null, contracts);
+  });
 }
 
 function parseTypes(node) {
@@ -54,16 +66,16 @@ function parseTypes(node) {
     .value();
 }
 
-function parseVariables(node, typeCreator) {
+function parseContracts(node, source, typeCreator) {
   return _(node.children)
     .filter({ name: 'ContractDefinition' })
     .map(function(node) {
-      return new Contract(node, typeCreator);
+      return new Contract(node, source, typeCreator);
     })
     .value();
 }
 
-function Contract(node, typeCreator) {
+function Contract(node, source, typeCreator) {
   var self = this;
   this.name = node.attributes.name;
   this.vars =_(node.children)
@@ -75,6 +87,20 @@ function Contract(node, typeCreator) {
     })
     .compact()
     .value();
+  this.funcs = _(node.children)
+    .filter({ name: 'FunctionDefinition' })
+    .map(function(node) {
+      var details = node.src.split(':');
+      
+      return {
+        name: parseSignature(node, typeCreator),
+        line: calcLine(parseInt(details[0]), source),
+        source: details[2] - 1
+      };
+    })
+    .sortByOrder(['source', 'line'], ['asc', 'desc'])
+    .value();
+  console.log(JSON.stringify(this.funcs, false, '  '));
 }
 
 Contract.prototype.getStorageVars = function(storage, hashDict) {
@@ -88,5 +114,37 @@ Contract.prototype.getStorageVars = function(storage, hashDict) {
     };
   });
 };
+
+Contract.prototype.getFuncName = function(position) {
+  var func = _.find(this.funcs, function(func) {
+    return func.source == position.source &&
+      position.line >= func.line;
+  });
+  return func ? this.name + '.' + func.name : null;
+};
+
+function calcLine(offset, source) {
+  return numberOf(source, '\n', offset);
+
+  function numberOf(str, c, len) {
+    var n = 0;
+    var index = 0;
+    str = str.substr(0, len);
+    while (true) {
+      index = str.indexOf('\n', index) + 1;
+      if (index <= 0) break;
+      n++;
+    }
+    return n;
+  }
+}
+
+function parseSignature(node, typeCreator, contractName) {
+  var paramNodes = _.find(node.children, { name: 'ParameterList' }).children;
+  var params = _.map(paramNodes, function(node) {
+    return typeCreator.create(node.children[0], contractName).type;
+  });
+  return node.attributes.name + '(' + params.join(',')  + ')';
+}
 
 module.exports = parse;

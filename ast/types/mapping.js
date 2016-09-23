@@ -9,8 +9,9 @@ var MappingType = {
     return node.name == 'Mapping';
   },
   init: function(node, typeCreator, contract) {
-    this.keyType = typeCreator.create(node.children[0]);
-    this.valueType = typeCreator.create(node.children[1]);
+    this.keyType = typeCreator.create(node.children[0], contract);
+    this.valueType = typeCreator.create(node.children[1], contract);
+    console.log(this.keyType, this.valueType);
     this.type = 'mapping (' + this.keyType.type + ' => ' + this.valueType.type + ')';
     return this;
   },
