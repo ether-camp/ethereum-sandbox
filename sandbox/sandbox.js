@@ -138,9 +138,6 @@ Sandbox.createVM = function(cb) {
     setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
     cb();
   }
-  function matches(mapping, breakpoint) {
-    return mapping.source == breakpoint.source && mapping.line == breakpoint.line;
-  }
 };
 Sandbox.resume = function(cb) {
   this.debugger.resume();
@@ -482,19 +479,7 @@ Sandbox.newLogs = function(logs) {
   });
 };
 Sandbox.setBreakpoints = function(breakpoints, cb) {
-  _.each(this.contracts, function(contract) {
-    _.each(breakpoints, function(breakpoint) {
-      var index = _.indexOf(contract.sourceList, breakpoint.source);
-      if (index != -1) {
-        contract.breakpoints.push({
-          line: breakpoint.line.toNumber(),
-          source: index,
-          path: breakpoint.source
-        });
-        contract.breakpoints = _.sortByAll(contract.breakpoints, ['source', 'line']);
-      }
-    });
-  });
+  _.each(breakpoints, this.debugger.addBreakpoint.bind(this.debugger));
   cb();
 };
 Sandbox.stepInto = function(cb) {

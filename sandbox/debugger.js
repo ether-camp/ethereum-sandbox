@@ -5,6 +5,7 @@ var Debugger = {
   init: function(sandbox) {
     var self = this;
     this.sandbox = sandbox;
+    this.breakpoints = [];
     this.prevBreakpoint = null;
     this.resumeCb = null;
     this.callStack = [];
@@ -55,21 +56,21 @@ var Debugger = {
           entry.line = mapping.line;
         }
         
-        if (!this.prevBreakpoint || !equals(this.prevBreakpoint, mapping)) {
+        if (!this.prevBreakpoint ||
+            !(this.prevBreakpoint.source == contract.sourceList[mapping.source] &&
+              this.prevBreakpoint.line == mapping.line)) {
           if (this.inStepInto) {
             bp = {
-              source: mapping.source,
               line: mapping.line,
-              path: contract.sourceList[mapping.source]
+              source: contract.sourceList[mapping.source]
             };
             this.prevBreakpoint = bp;
             this.inStepInto = false;
           } else if (this.inStepOver) {
             if (this.callStack.length <= this.stepOverStackLevel) {
               bp = {
-                source: mapping.source,
                 line: mapping.line,
-                path: contract.sourceList[mapping.source]
+                source: contract.sourceList[mapping.source]
               };
               this.prevBreakpoint = bp;
               this.inStepOver = false;
@@ -77,16 +78,15 @@ var Debugger = {
           } else if (this.inStepOut) {
             if (this.callStack.length < this.stepOutStackLevel) {
               bp = {
-                source: mapping.source,
-                line: mapping.line,
-                path: contract.sourceList[mapping.source]
+                source: contract.sourceList[mapping.source],
+                line: mapping.line
               };
               this.prevBreakpoint = bp;
               this.inStepOut = false;
             }
           } else {
-            bp = _.find(contract.breakpoints, {
-              source: mapping.source,
+            bp = _.find(this.breakpoints, {
+              source: contract.sourceList[mapping.source],
               line: mapping.line
             });
             this.prevBreakpoint = bp;
@@ -110,6 +110,15 @@ var Debugger = {
       self.resumeCb = cb;
       console.log('paused');
     });
+  },
+  addBreakpoint: function(bp) {
+    bp = {
+      line: bp.line.toNumber(),
+      source: bp.source
+    };
+    if (!_.contains(this.breakpoints, bp)) {
+      this.breakpoints.push(bp);
+    }
   },
   resume: function() {
     if (this.resumeCb) {
