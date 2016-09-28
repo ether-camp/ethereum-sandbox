@@ -44,7 +44,7 @@ var Sandbox = Object.create(new EventEmitter());
 Sandbox.DEFAULT_TX_GAS_PRICE = new BigNumber(50000000000);
 Sandbox.DEFAULT_TX_GAS_LIMIT = new BigNumber(3141592);
 
-Sandbox.init = function(id, cb) {
+Sandbox.init = function(id, config, cb) {
   this.id = id;
   this.coinbase = '0x1337133713371337133713371337133713371337';
   this.defaultAccount = null;
@@ -67,7 +67,7 @@ Sandbox.init = function(id, cb) {
   this.minerEnabled = true;
   this.debugger = null;
   
-  this.createVM(cb);
+  this.createVM(config.debug, cb);
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -81,7 +81,7 @@ Sandbox.getGasLimit = function() {
 Sandbox.getGasPrice = function() {
   return this.gasPrice;
 };
-Sandbox.createVM = function(cb) {
+Sandbox.createVM = function(debug, cb) {
   var self = this;
   
   async.series([
@@ -117,21 +117,23 @@ Sandbox.createVM = function(cb) {
       activatePrecompiles: true,
       enableHomestead: true
     });
-    self.vm.on('step', function(data, cb) {
-      if (data.opcode.name == 'SHA3') {
-        var offsetBuf = data.stack[data.stack.length - 1];
-        var offset = offsetBuf.readUIntBE(0, offsetBuf.length) || 0;
-        var lengthBuf = data.stack[data.stack.length - 2];
-        var length = lengthBuf.readUIntBE(0, lengthBuf.length) || 0;
-        var src = new Buffer(data.memory.slice(offset, offset + length));
-        self.hashDict.push({
-          src: src,
-          hash: util.sha3(src, 'binary')
-        });
-      }
-      cb();
-    });
-    self.debugger = Object.create(Debugger).init(self);
+    if (debug) {
+      self.vm.on('step', function(data, cb) {
+        if (data.opcode.name == 'SHA3') {
+          var offsetBuf = data.stack[data.stack.length - 1];
+          var offset = offsetBuf.readUIntBE(0, offsetBuf.length) || 0;
+          var lengthBuf = data.stack[data.stack.length - 2];
+          var length = lengthBuf.readUIntBE(0, lengthBuf.length) || 0;
+          var src = new Buffer(data.memory.slice(offset, offset + length));
+          self.hashDict.push({
+            src: src,
+            hash: util.sha3(src, 'binary')
+          });
+        }
+        cb();
+      });
+      self.debugger = Object.create(Debugger).init(self);
+    }
     cb();
   }
   function startMiner(cb) {
@@ -140,7 +142,7 @@ Sandbox.createVM = function(cb) {
   }
 };
 Sandbox.resume = function(cb) {
-  this.debugger.resume();
+  if (this.debugger) this.debugger.resume();
   cb();
 };
 Sandbox.stop = util.synchronize(function(cb) {
@@ -166,7 +168,7 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.pendingTransactions = null;
     this.logListeners = null;
     this.hashDict = null;
-    this.debugger.clear();
+    if (this.debugger) this.debugger.clear();
     cb();
   }).bind(this));
 });
@@ -252,7 +254,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
   check.call(this, tx, function(err) {
     if (err) return cb(err);
     if (tx.contract) {
-      Object.create(Contract).init(tx, function(err, contract) {
+      Object.create(Contract).init(tx, !!self.debugger, function(err, contract) {
         if (err) return cb(err);
         var address = util.toHex(ethUtils.generateAddress(tx.from, tx.nonce.toNumber()));
         self.contracts[address] = contract;
@@ -479,19 +481,21 @@ Sandbox.newLogs = function(logs) {
   });
 };
 Sandbox.setBreakpoints = function(breakpoints, cb) {
-  _.each(breakpoints, this.debugger.addBreakpoint.bind(this.debugger));
+  if (this.debugger) {
+    _.each(breakpoints, this.debugger.addBreakpoint.bind(this.debugger));
+  }
   cb();
 };
 Sandbox.stepInto = function(cb) {
-  this.debugger.stepInto();
+  if (this.debugger) this.debugger.stepInto();
   cb();
 };
 Sandbox.stepOver = function(cb) {
-  this.debugger.stepOver();
+  if (this.debugger) this.debugger.stepOver();
   cb();
 };
 Sandbox.stepOut = function(cb) {
-  this.debugger.stepOut();
+  if (this.debugger) this.debugger.stepOut();
   cb();
 };
 Sandbox.startMiner = function() {

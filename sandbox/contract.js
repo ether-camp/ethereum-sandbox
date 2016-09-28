@@ -4,31 +4,36 @@ var async = require('async');
 var parseContracts = require('../ast/parser');
 
 var Contract = {
-  init: function(tx, cb) {
+  init: function(tx, withDebug, cb) {
     var self = this;
     _.assign(this, tx.contract);
     this.data = tx.data;
     this.breakpoints = [];
     this.deployed = false;
-    parseContracts(this.ast, this.root, function(err, contracts) {
-      if (err) return cb(err);
-      self.details = _.find(contracts, { name: self.name });
-      parseSourceMap(self.srcmap, self.data, self.sourceList, function(err, srcmap) {
+    this.withDebug = withDebug;
+    if (withDebug) {
+      parseContracts(this.ast, this.root, function(err, contracts) {
         if (err) return cb(err);
-        self.srcmap = srcmap;
-        cb(null, self);
+        self.details = _.find(contracts, { name: self.name });
+        parseSourceMap(self.srcmap, self.data, self.sourceList, function(err, srcmap) {
+          if (err) return cb(err);
+          self.srcmap = srcmap;
+          cb(null, self);
+        });
       });
-    });
+    } else cb(null, self);
   },
   deploy: function(gasUsed, code, cb) {
     var self = this;
     this.deployed = true;
     this.gasUsed = gasUsed;
-    parseSourceMap(this.srcmapRuntime, code, this.sourceList, function(err, srcmap) {
-      if (err) return cb(err);
-      self.srcmapRuntime = srcmap;
-      cb(null, self);
-    });
+    if (this.withDebug) {
+      parseSourceMap(this.srcmapRuntime, code, this.sourceList, function(err, srcmap) {
+        if (err) return cb(err);
+        self.srcmapRuntime = srcmap;
+        cb(null, self);
+      });
+    } else cb(null, self);
   },
   getDetails: function() {
     return {

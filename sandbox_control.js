@@ -69,7 +69,7 @@ var Control = {
         compiler: Object.create(Compiler)
       };
       
-      services.sandbox.init(id, (function(err) {
+      services.sandbox.init(id, config, (function(err) {
         if (err) cb(err);
         else {
           var instanceServices = _.clone(services);
