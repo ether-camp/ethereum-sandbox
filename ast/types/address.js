@@ -14,8 +14,9 @@ AddressType.getSize = function(type) {
   return 20;
 };
 
-AddressType.parseValue = function(buff) {
-  return buff ? '0x' + util.fillWithZeroes(buff.toString('hex'), 40) : emptyAddress;
+AddressType.parseValue = function(buf) {
+  if (buf && buf.length > 20) buf = buf.slice(buf.length - 20);
+  return buf ? '0x' + util.fillWithZeroes(buf.toString('hex'), 40) : emptyAddress;
 };
 
 module.exports = AddressType;

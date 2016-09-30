@@ -14,6 +14,7 @@ BytesNType.getSize = function(type) {
 };
 
 BytesNType.parseValue = function(buf) {
+  if (buf && buf.length > this.size) buf = buf.slice(0, this.size);
   return buf ?
     '0x' + util.fillWithZeroes(buf.toString('hex'), this.size * 2) :
     '0x' + _.repeat(this.size, '00');
