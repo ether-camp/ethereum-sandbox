@@ -14,7 +14,7 @@ UintType.getSize = function(type) {
 };
 
 UintType.parseValue = function(buf) {
-  return buf ? new BN(buf.toString('hex'), 16).toString() : '0';
+  return buf && buf.length > 0 ? new BN(buf.toString('hex'), 16).toString() : '0';
 };
 
 module.exports = UintType;

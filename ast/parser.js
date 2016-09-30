@@ -29,6 +29,9 @@ function parse(details, dir, cb) {
             var contracts = parseContracts(entry.AST, entry.text, typeCreator);
             _.each(contracts, function(contract) {
               contract.file = file;
+              contract.parents = _.map(contract.parents, function(name) {
+                return _.find(contracts, { name: name });
+              });
             });
             return contracts;
           })
@@ -100,19 +103,31 @@ function Contract(node, source, typeCreator) {
     })
     .sortByOrder(['source', 'line'], ['asc', 'desc'])
     .value();
-  console.log(JSON.stringify(this.funcs, false, '  '));
+  this.parents = _(node.children)
+    .filter({ name: 'InheritanceSpecifier' })
+    .map(function(node) {
+      return node.children[0].attributes.name;
+    })
+    .value();
 }
 
-Contract.prototype.getStorageVars = function(storage, hashDict) {
-  var position = { index: new Buffer(32).fill(0), offset: 0 };
-  return _.map(this.vars, function(variable) {
-    var value = variable.retrieve(storage, hashDict, position);
-    return {
-      name: variable.name,
-      type: variable.type,
-      value: value
-    };
-  });
+Contract.prototype.getStorageVars = function(storage, hashDict, position) {
+  if (!position) position = { index: new Buffer(32).fill(0), offset: 0 };
+  var variables = _(this.parents)
+        .map(function(contract) {
+          return contract.getStorageVars(storage, hashDict, position);
+        })
+        .flatten()
+        .value();
+  return variables.concat(
+    _.map(this.vars, function(variable) {
+      var value = variable.retrieve(storage, hashDict, position);
+      return {
+        name: variable.name,
+        type: variable.type,
+        value: value
+      };
+    }));
 };
 
 Contract.prototype.getFuncName = function(position) {

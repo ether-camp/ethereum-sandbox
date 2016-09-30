@@ -46,7 +46,7 @@ var EnumType = {
     return this.parseValue(value);
   },
   parseValue: function(buf) {
-    return this.values[buf ? buf[0] : 0];
+    return this.values[buf && buf.length > 0 ? buf[0] : 0];
   }
 };
 

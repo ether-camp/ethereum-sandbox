@@ -14,7 +14,8 @@ IntType.getSize = function(type) {
 };
 
 IntType.parseValue = function(buf) {
-  return parseInt(buf.toString('hex'), this.size).toString();
+  var hex = buf && buf.length > 0 ? buf.toString('hex') : '0';
+  return parseInt(hex, this.size).toString();
 
   function parseInt(hex, size) {
     var val = new BN(hex, 16);
