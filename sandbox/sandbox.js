@@ -486,6 +486,12 @@ Sandbox.setBreakpoints = function(breakpoints, cb) {
   }
   cb();
 };
+Sandbox.removeBreakpoints = function(breakpoints, cb) {
+  if (this.debugger) {
+    _.each(breakpoints, this.debugger.removeBreakpoint.bind(this.debugger));
+  }
+  cb();
+};
 Sandbox.stepInto = function(cb) {
   if (this.debugger) this.debugger.stepInto();
   cb();

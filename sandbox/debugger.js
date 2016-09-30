@@ -120,6 +120,13 @@ var Debugger = {
       this.breakpoints.push(bp);
     }
   },
+  removeBreakpoint: function(bp) {
+    bp = {
+      line: bp.line.toNumber(),
+      source: bp.source
+    };
+    _.remove(this.breakpoints, bp);
+  },
   resume: function() {
     if (this.resumeCb) {
       this.resumeCb();

@@ -39,6 +39,21 @@ module.exports = function(services) {
         sandbox.setBreakpoints(breakpoints, cb);
       }
     },
+    removeBreakpoints: {
+      args: [{
+        type: 'array',
+        values: {
+          type: 'map',
+          values: {
+            line: { type: 'number' },
+            source: { type: 'string' }
+          }
+        }
+      }],
+      handler: function(breakpoints, cb) {
+        sandbox.removeBreakpoints(breakpoints, cb);
+      }
+    },
     newBreakpointFilter: {
       args: [],
       handler: function(cb) {
