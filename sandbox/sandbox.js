@@ -176,58 +176,71 @@ Sandbox.addAccount = function(address, pkey) {
   this.accounts[address] = pkey;
 };
 Sandbox.createAccount = util.synchronize(function(details, address, cb) {
+  var self = this;
   var account = Object.create(Account).init(details, address);
   var raw = account.raw();
 
-  if (details.name) this.accountNames[address] = details.name;
+  if (details.name) self.accountNames[address] = details.name;
   
   async.series([
-    storeCode.bind(this),
-    saveStorage.bind(this),
-    (function(cb) {
-      this.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
-    }).bind(this),
-    runCode.bind(this)
+    storeCode,
+    saveStorage,
+    function(cb) {
+      self.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
+    },
+    runCode
   ], cb);
 
   function runCode(cb) {
     if (!account.runCode) return cb();
-    var address = util.toBuffer(account.address);
-    this.createNextBlock([], (function(err, block) {
-      if (err) return cb(err);
-      this.vm.runCode({
-        code: util.toBuffer(account.runCode.binary),
-        data: util.toBuffer(account.runCode.binary),
-        gasLimit: util.toBuffer(this.gasLimit),
-        address: address,
-        caller: util.toBuffer(this.coinbase),
-        block: block
-      }, (function(err, result) {
-        if (err) return cb(err);
-        
-        this.contracts[account.address] = account.runCode;
-        this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
-        this.contracts[account.address].data = '0x' + account.runCode.binary;
 
-        this.vm.trie.get(address, (function(err, data) {
+    Object.create(Contract).init(
+      {
+        data: account.runCode.binary,
+        contract: account.runCode
+      },
+      !!self.debugger,
+      function(err, contract) {
+        if (err) return cb(err);
+        self.contracts[account.address] = contract;
+    
+        var address = util.toBuffer(account.address);
+        self.createNextBlock([], function(err, block) {
           if (err) return cb(err);
-          var acc = new EthAccount(data);
-          acc.setCode(this.vm.trie, result.return, (function(err) {
-            if (err) cb(err);
-            else this.vm.trie.put(address, acc.serialize(), cb);
-          }).bind(this));
-        }).bind(this));
-        
-      }).bind(this));
-    }).bind(this));
+          self.vm.runCode({
+            code: util.toBuffer(account.runCode.binary),
+            data: util.toBuffer(account.runCode.binary),
+            gasLimit: util.toBuffer(self.gasLimit),
+            address: address,
+            caller: util.toBuffer(self.coinbase),
+            block: block
+          }, function(err, result) {
+            if (err) return cb(err);
+
+            self.contracts[account.address].deploy(util.toHex(result.gasUsed), result.return, function(err) {
+              if (err) return cb(err);
+            
+              self.vm.trie.get(address, function(err, data) {
+                if (err) return cb(err);
+                var acc = new EthAccount(data);
+                acc.setCode(self.vm.trie, result.return, function(err) {
+                  if (err) cb(err);
+                  else self.vm.trie.put(address, acc.serialize(), cb);
+                });
+              });
+            });
+          });
+        });
+      }
+    );
   }
   function storeCode(cb) {
     if (!account.code) cb();
-    else raw.setCode(this.vm.trie, util.toBuffer(account.code), cb);
+    else raw.setCode(self.vm.trie, util.toBuffer(account.code), cb);
   }
   function saveStorage(cb) {
     if (!account.storage || _.size(account.storage) === 0) return cb();
-    var strie = this.vm.trie.copy();
+    var strie = self.vm.trie.copy();
     strie.root = account.stateRoot;
     async.forEachOfSeries(
       account.storage,
