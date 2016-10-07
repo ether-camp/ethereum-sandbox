@@ -422,7 +422,7 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
       self.nextMinerRun = setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
     }
   }
-});
+}, '_minerLock');
 Sandbox.call = util.synchronize(function(options, cb) {
   if (!this.accounts.hasOwnProperty(options.from))
     return cb('Could not find a private key for ' + options.from);

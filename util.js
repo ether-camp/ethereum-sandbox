@@ -126,28 +126,32 @@ util.decodeRlp = function(buf) {
   return rlp.decode(buf);
 };
 
-util.synchronize = function(fn) {
+util.synchronize = function(fn, lockName) {
+  if (!lockName) lockName = '_lock';
   return function() {
-    if (this._lock) {
-      if (!this._deferredCalls) this._deferredCalls = [];
-      this._deferredCalls.push({
+    if (this[lockName]) {
+      if (!this._deferredCalls) this._deferredCalls = {};
+      if (!this._deferredCalls[lockName]) this.deferredCalls[lockName] = [];
+      this._deferredCalls[lockName].push({
         fn: fn,
-        args: arguments
+        args: arguments,
+        lockName: lockName
       });
-    } else call(this, fn, arguments);
+    } else call(this, fn, arguments, lockName);
 
-    function call(obj, fn, args) {
-      obj._lock = true;
+    function call(obj, fn, args, lockName) {
+      obj[lockName] = true;
       var cb = args[args.length - 1];
       if (!_.isFunction(cb))
         throw 'the last arg of synchronized function has to be a callback';
       args[args.length - 1] = function() {
-        if (!obj._deferredCalls) obj._deferredCalls = [];
-        if (obj._deferredCalls.length > 0) {
-          var params = obj._deferredCalls.shift();
-          call(obj, params.fn, params.args);
+        if (!obj._deferredCalls) obj._deferredCalls = {};
+        if (!obj._deferredCalls[lockName]) obj._deferredCalls[lockName] = [];
+        if (obj._deferredCalls[lockName].length > 0) {
+          var params = obj._deferredCalls[lockName].shift();
+          call(obj, params.fn, params.args, lockName);
         } else {
-          obj._lock = false;
+          obj[lockName] = false;
         }
         cb.apply(null, arguments);
       };
