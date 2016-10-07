@@ -97,7 +97,8 @@ function Contract(node, source, typeCreator) {
       
       return {
         name: parseSignature(node, typeCreator),
-        line: calcLine(parseInt(details[0]), source),
+        lineStart: calcLine(parseInt(details[0]), source),
+        lineEnd: calcLine(parseInt(details[0]) + parseInt(details[1]), source),
         source: details[2] - 1
       };
     })
@@ -133,7 +134,7 @@ Contract.prototype.getStorageVars = function(storage, hashDict, position) {
 Contract.prototype.getFuncName = function(position) {
   var func = _.find(this.funcs, function(func) {
     return func.source == position.source &&
-      position.line >= func.line;
+      position.line > func.lineStart && position.line < func.lineEnd;
   });
   return func ? this.name + '.' + func.name : null;
 };

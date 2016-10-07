@@ -11,6 +11,7 @@ var Debugger = {
     this.callStack = [];
     this.waitingForCall = false;
     this.waitingForReturn = false;
+    this.variablesDefinition = false;
     this.inStepInto = false;
     this.inStepOver = false;
     this.stepOverStackLevel = 0;
@@ -20,6 +21,7 @@ var Debugger = {
       self.callStack = [];
       self.waitingForCall = false;
       self.waitingForReturn = false;
+      self.variablesDefinition = false;
     });
     sandbox.vm.on('step', this.trace.bind(this));
     
@@ -36,7 +38,10 @@ var Debugger = {
       if (mapping) {
         if (this.callStack.length == 0) {
           var func = contract.details.getFuncName(mapping);
-          if (func) this.callStack.push({ name: func });
+          if (func) {
+            this.callStack.push({ name: func });
+            this.variablesDefinition = true;
+          }
         } else if (mapping.type == 'i') {
           this.waitingForCall = true;
         } else if (mapping.type == 'o') {
@@ -50,12 +55,17 @@ var Debugger = {
           this.waitingForReturn = false;
         }
 
+        if (this.variablesDefinition) {
+          if (data.opcode.name != 'PUSH1') this.variablesDefinition = false;
+          else return cb();
+        }
+
         if (this.callStack.length > 0) {
           var entry = _.last(this.callStack);
           entry.source = contract.sourceList[mapping.source];
           entry.line = mapping.line;
         }
-        
+
         if (!this.prevBreakpoint ||
             !(this.prevBreakpoint.source == contract.sourceList[mapping.source] &&
               this.prevBreakpoint.line == mapping.line)) {
