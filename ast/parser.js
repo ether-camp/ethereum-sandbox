@@ -25,18 +25,20 @@ function parse(details, dir, cb) {
           .value();
     var typeCreator = Object.create(Creator).init(userDefinedTypes);
     var contracts = _(details)
-          .map(function(entry, file) {
-            var contracts = parseContracts(entry.AST, entry.text, typeCreator);
-            _.each(contracts, function(contract) {
-              contract.file = file;
-              contract.parents = _.map(contract.parents, function(name) {
-                return _.find(contracts, { name: name });
-              });
-            });
-            return contracts;
-          })
-          .flatten()
-          .value();
+        .map(function(entry, file) {
+          var contracts = parseContracts(entry.AST, entry.text, typeCreator);
+          _.each(contracts, function(contract) {
+            contract.file = file;
+          });
+          return contracts;
+        })
+        .flatten()
+        .value();
+    _.each(contracts, function(contract) {
+      contract.parents = _.map(contract.parents, function(name) {
+        return _.find(contracts, { name: name });
+      });
+    });
     cb(null, contracts);
   });
 }
