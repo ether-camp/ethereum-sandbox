@@ -131,7 +131,7 @@ util.synchronize = function(fn, lockName) {
   return function() {
     if (this[lockName]) {
       if (!this._deferredCalls) this._deferredCalls = {};
-      if (!this._deferredCalls[lockName]) this.deferredCalls[lockName] = [];
+      if (!this._deferredCalls[lockName]) this._deferredCalls[lockName] = [];
       this._deferredCalls[lockName].push({
         fn: fn,
         args: arguments,
