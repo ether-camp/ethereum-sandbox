@@ -38,6 +38,9 @@ var StructType = {
       })
       .object()
       .value();
+  },
+  retrieveStack: function(stack, index) {
+    return '[not implemented]';
   }
 };
 

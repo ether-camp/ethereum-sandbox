@@ -6,6 +6,7 @@ var Creator = require('./type_creator');
 var ContractType = require('./types/contract');
 var StructType = require('./types/struct');
 var EnumType = require('./types/enum');
+var Func = require('./func');
 
 function parse(details, dir, cb) {
   async.forEachOf(details, function(source, file, cb) {
@@ -96,13 +97,15 @@ function Contract(node, source, typeCreator) {
     .filter({ name: 'FunctionDefinition' })
     .map(function(node) {
       var details = node.src.split(':');
-      
-      return {
-        name: parseSignature(node, typeCreator),
+
+      return Object.create(Func).init({
+        node: node,
+        typeCreator: typeCreator,
+        contractName: self.name,
         lineStart: calcLine(parseInt(details[0]), source),
         lineEnd: calcLine(parseInt(details[0]) + parseInt(details[1]), source),
         source: details[2] - 1
-      };
+      });
     })
     .sortByOrder(['source', 'line'], ['asc', 'desc'])
     .value();
@@ -133,12 +136,11 @@ Contract.prototype.getStorageVars = function(storage, hashDict, position) {
     }));
 };
 
-Contract.prototype.getFuncName = function(position) {
-  var func = _.find(this.funcs, function(func) {
+Contract.prototype.getFunc = function(position) {
+  return _.find(this.funcs, function(func) {
     return func.source == position.source &&
       position.line > func.lineStart && position.line < func.lineEnd;
   });
-  return func ? this.name + '.' + func.name : null;
 };
 
 function calcLine(offset, source) {
@@ -155,14 +157,6 @@ function calcLine(offset, source) {
     }
     return n;
   }
-}
-
-function parseSignature(node, typeCreator, contractName) {
-  var paramNodes = _.find(node.children, { name: 'ParameterList' }).children;
-  var params = _.map(paramNodes, function(node) {
-    return typeCreator.create(node.children[0], contractName).type;
-  });
-  return node.attributes.name + '(' + params.join(',')  + ')';
 }
 
 module.exports = parse;

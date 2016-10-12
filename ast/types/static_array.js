@@ -27,6 +27,9 @@ var StaticArrayType = {
     return _.times(this.size, function() {
       return self.internal.retrieve(storage, hashDict, position);
     });
+  },
+  retrieveStack: function(stack, index) {
+    return '[not implemented]';
   }
 };
 

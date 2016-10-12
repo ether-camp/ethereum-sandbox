@@ -37,9 +37,9 @@ var Debugger = {
       var bp = null;
       if (mapping) {
         if (this.callStack.length == 0) {
-          var func = contract.details.getFuncName(mapping);
+          var func = contract.details.getFunc(mapping);
           if (func) {
-            this.callStack.push({ name: func });
+            this.callStack.push({ name: func.name });
             this.variablesDefinition = true;
           }
         } else if (mapping.type == 'i') {
@@ -47,8 +47,8 @@ var Debugger = {
         } else if (mapping.type == 'o') {
           this.waitingForReturn = true;
         } else if (this.waitingForCall) {
-          func = contract.details.getFuncName(mapping);
-          this.callStack.push({ name: func });
+          func = contract.details.getFunc(mapping);
+          this.callStack.push({ name: func.name });
           this.waitingForCall = false;
         } else if (this.waitingForReturn) {
           this.callStack.pop();
@@ -113,8 +113,13 @@ var Debugger = {
         console.error(err);
         return cb();
       }
+
+      var func = contract.details.getFunc(mapping);
       
-      var vars = contract.details.getStorageVars(storage, self.sandbox.hashDict);
+      var vars = {
+        storage: contract.details.getStorageVars(storage, self.sandbox.hashDict),
+        func: func ? func.parseVariables(data.stack) : []
+      };
 
       self.sandbox.filters.newBreakpoint(bp, self.callStack, vars);
       self.resumeCb = cb;

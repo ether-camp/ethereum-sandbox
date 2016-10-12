@@ -88,6 +88,9 @@ var MappingType = {
       .compact()
       .object()
       .value();
+  },
+  retrieveStack: function(stack, index) {
+    return '[not implemented]';
   }
 };
 

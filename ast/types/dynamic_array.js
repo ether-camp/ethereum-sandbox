@@ -39,6 +39,9 @@ var DynamicArrayType = {
     
     util.inc(position.index);
     return value;
+  },
+  retrieveStack: function(stack, index) {
+    return '[not implemented]';
   }
 };
 
