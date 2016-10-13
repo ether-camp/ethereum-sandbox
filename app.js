@@ -44,7 +44,7 @@ function start(testMode, port, cb) {
   control = Control.init(events);
   
   app.use(cors());
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ limit: '10mb' }));
   
   if (testMode) {
     app.use(function(req, res, next) {
