@@ -19,12 +19,14 @@ var Func = {
     }
     return this;
   },
-  parseVariables: function(stack) {
+  parseVariables: function(stack, memory) {
     return _.map(this.variables, function(variable, index) {
       return {
         name: variable.name,
         type: variable.type,
-        value: variable.retrieveStack(stack, index)
+        value: variable.storageType == 'memory' ?
+          variable.retrieveStack(stack, memory, index) :
+          '[not implemented]'
       };
     });
   }
@@ -40,7 +42,11 @@ function parseSignature(node, typeCreator, contractName) {
 
 function buildVariable(typeCreator, contractName, node) {
   var typeHandler = typeCreator.create(node.children[0], contractName);
-  if (typeHandler) typeHandler.name = node.attributes.name;
+  if (typeHandler) {
+    typeHandler.name = node.attributes.name;
+    typeHandler.storageType = node.attributes.type.indexOf('storage') > 0 ?
+      'storage' : 'memory';
+  }
   return typeHandler;
 }
 

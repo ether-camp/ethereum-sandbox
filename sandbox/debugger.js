@@ -118,7 +118,7 @@ var Debugger = {
       
       var vars = {
         storage: contract.details.getStorageVars(storage, self.sandbox.hashDict),
-        func: func ? func.parseVariables(data.stack) : []
+        func: func ? func.parseVariables(data.stack, data.memory) : []
       };
 
       self.sandbox.filters.newBreakpoint(bp, self.callStack, vars);
