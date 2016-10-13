@@ -43,7 +43,7 @@ var ElementaryType = {
     return this.parseValue(value);
   },
   retrieveStack: function(stack, memory, index) {
-    return this.parseValue(stack[2 + index]);
+    return this.parseValue(stack[index]);
   }
 };
 

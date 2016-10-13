@@ -39,14 +39,14 @@ var Debugger = {
         var func = contract.details.getFunc(mapping);
         if (func) {
           if (this.callStack.length == 0) {
-            this.callStack.push({ name: func.name });
+            this.callStack.push(func);
             this.variablesDefinition = true;
           } else if (mapping.type == 'i') {
             this.waitingForCall = true;
           } else if (mapping.type == 'o') {
             this.waitingForReturn = true;
           } else if (this.waitingForCall) {
-            this.callStack.push({ name: func.name });
+            this.callStack.push(func);
             this.waitingForCall = false;
           } else if (this.waitingForReturn) {
             this.callStack.pop();
@@ -60,8 +60,10 @@ var Debugger = {
 
           if (this.callStack.length > 0) {
             var entry = _.last(this.callStack);
-            entry.source = contract.sourceList[mapping.source];
-            entry.line = mapping.line;
+            entry.mapping = {
+              source: contract.sourceList[mapping.source],
+              line: mapping.line
+            };
           }
 
           if (!this.prevBreakpoint ||
@@ -112,15 +114,21 @@ var Debugger = {
         console.error(err);
         return cb();
       }
-
-      var func = contract.details.getFunc(mapping);
       
-      var vars = {
-        storage: contract.details.getStorageVars(storage, self.sandbox.hashDict),
-        func: func ? func.parseVariables(data.stack, data.memory) : []
-      };
+      var storageVars = contract.details.getStorageVars(storage, self.sandbox.hashDict);
+      
+      var stackPointer = 2;
+      var callStack = _.map(self.callStack, function(func) {
+        var details = {
+          name: func.name,
+          mapping: func.mapping,
+          vars: func.parseVariables(stackPointer, data.stack, data.memory)
+        };
+        stackPointer += details.vars.length + 1;
+        return details;
+      });
 
-      self.sandbox.filters.newBreakpoint(bp, self.callStack, vars);
+      self.sandbox.filters.newBreakpoint(bp, callStack, storageVars);
       self.resumeCb = cb;
       console.log('paused');
     });
