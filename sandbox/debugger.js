@@ -36,72 +36,71 @@ var Debugger = {
       var mapping = _.find(srcmap, { pc: data.pc });
       var bp = null;
       if (mapping) {
-        if (this.callStack.length == 0) {
-          var func = contract.details.getFunc(mapping);
-          if (func) {
+        var func = contract.details.getFunc(mapping);
+        if (func) {
+          if (this.callStack.length == 0) {
             this.callStack.push({ name: func.name });
             this.variablesDefinition = true;
+          } else if (mapping.type == 'i') {
+            this.waitingForCall = true;
+          } else if (mapping.type == 'o') {
+            this.waitingForReturn = true;
+          } else if (this.waitingForCall) {
+            this.callStack.push({ name: func.name });
+            this.waitingForCall = false;
+          } else if (this.waitingForReturn) {
+            this.callStack.pop();
+            this.waitingForReturn = false;
           }
-        } else if (mapping.type == 'i') {
-          this.waitingForCall = true;
-        } else if (mapping.type == 'o') {
-          this.waitingForReturn = true;
-        } else if (this.waitingForCall) {
-          func = contract.details.getFunc(mapping);
-          this.callStack.push({ name: func.name });
-          this.waitingForCall = false;
-        } else if (this.waitingForReturn) {
-          this.callStack.pop();
-          this.waitingForReturn = false;
-        }
 
-        if (this.variablesDefinition) {
-          if (data.opcode.name != 'PUSH1') this.variablesDefinition = false;
-          else return cb();
-        }
+          if (this.variablesDefinition) {
+            if (data.opcode.name != 'PUSH1') this.variablesDefinition = false;
+            else return cb();
+          }
 
-        if (this.callStack.length > 0) {
-          var entry = _.last(this.callStack);
-          entry.source = contract.sourceList[mapping.source];
-          entry.line = mapping.line;
-        }
+          if (this.callStack.length > 0) {
+            var entry = _.last(this.callStack);
+            entry.source = contract.sourceList[mapping.source];
+            entry.line = mapping.line;
+          }
 
-        if (!this.prevBreakpoint ||
-            !(this.prevBreakpoint.source == contract.sourceList[mapping.source] &&
-              this.prevBreakpoint.line == mapping.line)) {
-          if (this.inStepInto) {
-            bp = {
-              line: mapping.line,
-              source: contract.sourceList[mapping.source]
-            };
-            this.prevBreakpoint = bp;
-            this.inStepInto = false;
-          } else if (this.inStepOver) {
-            if (this.callStack.length <= this.stepOverStackLevel) {
+          if (!this.prevBreakpoint ||
+              !(this.prevBreakpoint.source == contract.sourceList[mapping.source] &&
+                this.prevBreakpoint.line == mapping.line)) {
+            if (this.inStepInto) {
               bp = {
                 line: mapping.line,
                 source: contract.sourceList[mapping.source]
               };
               this.prevBreakpoint = bp;
-              this.inStepOver = false;
-            }
-          } else if (this.inStepOut) {
-            if (this.callStack.length < this.stepOutStackLevel) {
-              bp = {
+              this.inStepInto = false;
+            } else if (this.inStepOver) {
+              if (this.callStack.length <= this.stepOverStackLevel) {
+                bp = {
+                  line: mapping.line,
+                  source: contract.sourceList[mapping.source]
+                };
+                this.prevBreakpoint = bp;
+                this.inStepOver = false;
+              }
+            } else if (this.inStepOut) {
+              if (this.callStack.length < this.stepOutStackLevel) {
+                bp = {
+                  source: contract.sourceList[mapping.source],
+                  line: mapping.line
+                };
+                this.prevBreakpoint = bp;
+                this.inStepOut = false;
+              }
+            } else {
+              bp = _.find(this.breakpoints, {
                 source: contract.sourceList[mapping.source],
                 line: mapping.line
-              };
+              });
               this.prevBreakpoint = bp;
-              this.inStepOut = false;
             }
-          } else {
-            bp = _.find(this.breakpoints, {
-              source: contract.sourceList[mapping.source],
-              line: mapping.line
-            });
-            this.prevBreakpoint = bp;
           }
-        }
+        } else this.prevBreakpoint = null;
       } else this.prevBreakpoint = null;
     } else this.prevBreakpoint = null;
 
