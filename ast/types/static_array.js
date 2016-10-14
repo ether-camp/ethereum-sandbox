@@ -28,8 +28,16 @@ var StaticArrayType = {
       return self.internal.retrieve(storage, hashDict, position);
     });
   },
-  retrieveStack: function(stack, index) {
-    return '[not implemented]';
+  retrieveStack: function(stack, memory, index) {
+    var self = this;
+    var offset = stack[index].readUIntBE(0, stack[index].length);
+    return _.times(this.size, function(i) {
+      return self.internal.retrieveStack(
+        [ Buffer.from(memory.slice(offset + i * 32, offset + i * 32 + 32)) ],
+        memory,
+        0
+      );
+    });
   }
 };
 
