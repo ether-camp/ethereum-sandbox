@@ -46,7 +46,7 @@ var EnumType = {
     return this.parseValue(value);
   },
   retrieveStack: function(stack, index) {
-    return '[not implemented]';
+    return this.parseValue(stack[index]);
   },
   parseValue: function(buf) {
     return this.values[buf && buf.length > 0 ? buf[0] : 0];
