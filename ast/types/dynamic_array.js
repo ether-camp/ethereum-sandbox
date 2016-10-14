@@ -40,8 +40,18 @@ var DynamicArrayType = {
     util.inc(position.index);
     return value;
   },
-  retrieveStack: function(stack, index) {
-    return '[not implemented]';
+  retrieveStack: function(stack, memory, index) {
+    var self = this;
+    var offset = stack[index].readUIntBE(0, stack[index].length);
+    var length = Buffer.from(memory.slice(offset, offset + 32)).readUIntBE(0, 32);
+    offset += 32;
+    return _.times(length, function(i) {
+      return self.internal.retrieveStack(
+        [ Buffer.from(memory.slice(offset + i * 32, offset + i * 32 + 32)) ],
+        memory,
+        0
+      );
+    });
   }
 };
 
