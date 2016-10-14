@@ -19,14 +19,18 @@ var Func = {
     }
     return this;
   },
-  parseVariables: function(stackPointer, stack, memory) {
+  parseVariables: function(stackPointer, stack, memory, storage, hashDict) {
     return _.map(this.variables, function(variable, index) {
       return {
         name: variable.name,
         type: variable.type,
         value: variable.storageType == 'memory' ?
           variable.retrieveStack(stack, memory, stackPointer + index) :
-          '[not implemented]'
+          variable.retrieve(
+            storage,
+            hashDict,
+            { index: new Buffer(32).fill(0), offset: 0 }
+          )
       };
     });
   }

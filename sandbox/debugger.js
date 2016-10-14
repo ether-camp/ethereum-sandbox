@@ -122,7 +122,7 @@ var Debugger = {
         var details = {
           name: func.name,
           mapping: func.mapping,
-          vars: func.parseVariables(stackPointer, data.stack, data.memory)
+          vars: func.parseVariables(stackPointer, data.stack, data.memory, storage, self.sandbox.hashDict)
         };
         stackPointer += details.vars.length + 1;
         return details;
