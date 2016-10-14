@@ -42,17 +42,15 @@ var StructType = {
   retrieveStack: function(stack, memory, index) {
     var offset = stack[index].readUIntBE(0, stack[index].length);
     return _(this.fields)
-      .map(function(field) {
-        var value = [
+      .map(function(field, i) {
+        return [
           field.name,
           field.retrieveStack(
-            [ Buffer.from(memory.slice(offset, offset + 32)) ],
+            [ Buffer.from(memory.slice(offset + i * 32, offset + i * 32 + 32)) ],
             memory,
             0
           )
         ];
-        offset += 32;
-        return value;
       })
       .object()
       .value();
