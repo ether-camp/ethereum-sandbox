@@ -17,6 +17,7 @@ var Debugger = {
     this.stepOverStackLevel = 0;
     this.inStepOut = false;
     this.stepOutStackLevel = 0;
+    this.delegateCallStack = {};
     sandbox.vm.on('afterTx', function() {
       self.callStack = [];
       self.waitingForCall = false;
@@ -30,6 +31,26 @@ var Debugger = {
   trace: function(data, cb) {
     var self = this;
     var address = '0x' + data.address.toString('hex');
+    var baseAddress = address;
+
+    if (!this.delegateCallStack.hasOwnProperty(address))
+      this.delegateCallStack[address] = [];
+    
+    var dcStack = this.delegateCallStack[address];
+    
+    if (data.opcode.name == 'DELEGATECALL') {
+      var targetAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
+      this.waitingForCall = true;
+      dcStack.push(targetAddress);
+    }
+    
+    if (dcStack.length > 0) {
+      if (data.opcode.name == 'STOP') {
+        dcStack.pop();
+        this.callStack.pop();
+      } else address = dcStack[dcStack.length - 1];
+    }
+
     if (address in self.sandbox.contracts) {
       var contract = self.sandbox.contracts[address];
       var srcmap = contract.deployed ? contract.srcmapRuntime : contract.srcmap;
@@ -114,8 +135,12 @@ var Debugger = {
         console.error(err);
         return cb();
       }
-      
-      var storageVars = contract.details.getStorageVars(storage, self.sandbox.hashDict);
+
+      var storageVars = [];
+      if (baseAddress in self.sandbox.contracts) {
+        storageVars = self.sandbox.contracts[baseAddress]
+          .details.getStorageVars(storage, self.sandbox.hashDict);
+      }
       
       var stackPointer = 2;
       var callStack = _.map(self.callStack, function(func) {

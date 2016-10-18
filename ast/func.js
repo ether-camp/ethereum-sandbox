@@ -4,6 +4,7 @@ var Func = {
   init: function(options) {
     var self = this;
     this.name = parseSignature(options.node, options.typeCreator, options.contractName);
+    this.public = options.node.attributes.public;
     this.lineStart = options.lineStart;
     this.lineEnd = options.lineEnd;
     this.source = options.source;

@@ -28,8 +28,19 @@ function parse(details, dir, cb) {
     var contracts = _(details)
         .map(function(entry, file) {
           var contracts = parseContracts(entry.AST, entry.text, typeCreator);
+          var internalLibFuncs = _(contracts)
+              .map(function(contract) {
+                if (contract.isLibrary) {
+                  return _.filter(contract.funcs, { public: false });
+                } else {
+                  return [];
+                }
+              })
+              .flatten()
+              .value();
           _.each(contracts, function(contract) {
             contract.file = file;
+            contract.funcs = contract.funcs.concat(internalLibFuncs);
           });
           return contracts;
         })
@@ -84,6 +95,7 @@ function parseContracts(node, source, typeCreator) {
 function Contract(node, source, typeCreator) {
   var self = this;
   this.name = node.attributes.name;
+  this.isLibrary = node.attributes.isLibrary;
   this.vars =_(node.children)
     .filter({ name: 'VariableDeclaration' })
     .map(function(node) {
