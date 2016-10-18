@@ -9,7 +9,6 @@ var Debugger = {
     this.prevBreakpoint = null;
     this.resumeCb = null;
     this.callStack = [];
-    this.waitingForCall = false;
     this.waitingForReturn = false;
     this.variablesDefinition = false;
     this.inStepInto = false;
@@ -20,9 +19,9 @@ var Debugger = {
     this.delegateCallStack = {};
     sandbox.vm.on('afterTx', function() {
       self.callStack = [];
-      self.waitingForCall = false;
       self.waitingForReturn = false;
       self.variablesDefinition = false;
+      self.delegateCallStack = {};
     });
     sandbox.vm.on('step', this.trace.bind(this));
     
@@ -62,16 +61,14 @@ var Debugger = {
           if (this.callStack.length == 0) {
             this.callStack.push(func);
             this.variablesDefinition = true;
-          } else if (mapping.type == 'i') {
-            this.waitingForCall = true;
           } else if (mapping.type == 'o') {
             this.waitingForReturn = true;
-          } else if (this.waitingForCall) {
-            this.callStack.push(func);
-            this.waitingForCall = false;
           } else if (this.waitingForReturn) {
             this.callStack.pop();
             this.waitingForReturn = false;
+          } else if (func.name != _.last(this.callStack).name) {
+            this.callStack.push(func);
+            this.variablesDefinition = true;
           }
 
           if (this.variablesDefinition) {
