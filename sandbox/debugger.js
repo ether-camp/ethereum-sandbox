@@ -46,7 +46,8 @@ var Debugger = {
       }
       
       var callStack = self.callStack.details(data.stack, data.memory, storage, self.sandbox.hashDict);
-      var storageVars = call.contract.details.getStorageVars(storage, self.sandbox.hashDict);
+      var storageVars = call.contract ?
+          call.contract.details.getStorageVars(storage, self.sandbox.hashDict) : [];
       self.sandbox.filters.newBreakpoint(bp, callStack, storageVars);
     });
   },

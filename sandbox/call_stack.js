@@ -73,25 +73,36 @@ var callStack = {
         if (mapping.type == 'i') this.state = 'waitingForCall';
         else if (mapping.type == 'o') this.state = 'waitingForReturn';
       }
-
-      if (data.opcode.name == 'CALL') this.state = 'waitingForCall';
-      else if (data.opcode.name == 'DELEGATECALL') {
-        this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
-        this.state = 'waitingForLibCall';
-      } else if (data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') {
-        this.calls.pop();
-        this.state = this.calls.length == 0 ? 'empty' : 'running';
+    } else {
+      if (this.state == 'waitingForCall' || this.state == 'waitingForLibCall') {
+        this.calls.push({
+          address: address,
+          contract: null,
+          func: null
+        });
+        this.state = 'running';
       }
     }
+
+    if (data.opcode.name == 'CALL') this.state = 'waitingForCall';
+    else if (data.opcode.name == 'DELEGATECALL') {
+      this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
+      this.state = 'waitingForLibCall';
+    } else if (data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') {
+      this.calls.pop();
+      this.state = this.calls.length == 0 ? 'empty' : 'running';
+    }
+
     return _.last(this.calls);
   },
   details: function(stack, memory, storage, hashDict) {
     var stackPointer = 2;
     return _.map(this.calls, function(call) {
       var details = {
-        name: call.func.name,
+        name: call.func ? call.func.name : call.address,
         mapping: call.mapping,
-        vars: call.func.parseVariables(stackPointer, stack, memory, storage, hashDict)
+        vars: call.func ?
+          call.func.parseVariables(stackPointer, stack, memory, storage, hashDict) : []
       };
       stackPointer += details.vars.length + 1;
       return details;
