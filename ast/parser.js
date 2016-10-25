@@ -113,7 +113,7 @@ function Contract(node, source, typeCreator) {
       return Object.create(Func).init({
         node: node,
         typeCreator: typeCreator,
-        contractName: self.name,
+        contract: self,
         lineStart: calcLine(parseInt(details[0]), source),
         lineEnd: calcLine(parseInt(details[0]) + parseInt(details[1]), source),
         source: details[2] - 1

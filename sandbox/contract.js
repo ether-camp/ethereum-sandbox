@@ -61,16 +61,18 @@ function parseSourceMap(srcmap, code, paths, cb) {
       var entries = details.split(':');
 
       line = prev.line;
+      var sourceIndex = entries[2] ? parseInt(entries[2]) - 1 : prev.source;
       if (entries[0]) {
         var line = calcLine(
           parseInt(entries[0]),
-          sources[entries[2] ? parseInt(entries[2]) - 1 : prev.source]
+          sources[sourceIndex]
         );
       }
-    
+
       var mapping = {
         line: line,
-        source: entries[2] ? parseInt(entries[2]) - 1 : prev.source,
+        source: sourceIndex,
+        path: paths[sourceIndex],
         type: entries[3],
         pc: pc
       };

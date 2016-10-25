@@ -1,14 +1,16 @@
 var _ = require('lodash');
 var Account = require('../ethereum/account');
+var CallStack = require('./call_stack');
+var Tracer = require('./tracer');
 
 var Debugger = {
   init: function(sandbox) {
     var self = this;
     this.sandbox = sandbox;
-    this.breakpoints = [];
     this.prevBreakpoint = null;
     this.resumeCb = null;
-    this.callStack = [];
+    this.callStack = Object.create(CallStack).init(this.sandbox.contracts);
+    this.tracer = Object.create(Tracer).init();
     this.waitingForReturn = false;
     this.variablesDefinition = false;
     this.inStepInto = false;
@@ -16,12 +18,8 @@ var Debugger = {
     this.stepOverStackLevel = 0;
     this.inStepOut = false;
     this.stepOutStackLevel = 0;
-    this.delegateCallStack = {};
     sandbox.vm.on('afterTx', function() {
-      self.callStack = [];
-      self.waitingForReturn = false;
-      self.variablesDefinition = false;
-      self.delegateCallStack = {};
+      self.callStack.clean();
     });
     sandbox.vm.on('step', this.trace.bind(this));
     
@@ -32,99 +30,13 @@ var Debugger = {
     var address = '0x' + data.address.toString('hex');
     var baseAddress = address;
 
-    if (!this.delegateCallStack.hasOwnProperty(address))
-      this.delegateCallStack[address] = [];
-    
-    var dcStack = this.delegateCallStack[address];
-    
-    if (data.opcode.name == 'DELEGATECALL') {
-      var targetAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
-      this.waitingForCall = true;
-      dcStack.push(targetAddress);
-    }
-    
-    if (dcStack.length > 0) {
-      if (data.opcode.name == 'STOP') {
-        dcStack.pop();
-        this.callStack.pop();
-      } else address = dcStack[dcStack.length - 1];
-    }
+    var call = this.callStack.trace(data);
+    if (!call || !call.hasOwnProperty('mapping')) return cb();
 
-    if (address in self.sandbox.contracts) {
-      var contract = self.sandbox.contracts[address];
-      var srcmap = contract.deployed ? contract.srcmapRuntime : contract.srcmap;
-      var mapping = _.find(srcmap, { pc: data.pc });
-      var bp = null;
-      if (mapping) {
-        var func = contract.details.getFunc(mapping);
-        if (func) {
-          if (this.callStack.length == 0) {
-            this.callStack.push(func);
-            this.variablesDefinition = true;
-          } else if (mapping.type == 'o') {
-            this.waitingForReturn = true;
-          } else if (this.waitingForReturn) {
-            this.callStack.pop();
-            this.waitingForReturn = false;
-          } else if (func.name != _.last(this.callStack).name) {
-            this.callStack.push(func);
-            this.variablesDefinition = true;
-          }
-
-          if (this.variablesDefinition) {
-            if (data.opcode.name != 'PUSH1') this.variablesDefinition = false;
-            else return cb();
-          }
-
-          if (this.callStack.length > 0) {
-            var entry = _.last(this.callStack);
-            entry.mapping = {
-              source: contract.sourceList[mapping.source],
-              line: mapping.line
-            };
-          }
-
-          if (!this.prevBreakpoint ||
-              !(this.prevBreakpoint.source == contract.sourceList[mapping.source] &&
-                this.prevBreakpoint.line == mapping.line)) {
-            if (this.inStepInto) {
-              bp = {
-                line: mapping.line,
-                source: contract.sourceList[mapping.source]
-              };
-              this.prevBreakpoint = bp;
-              this.inStepInto = false;
-            } else if (this.inStepOver) {
-              if (this.callStack.length <= this.stepOverStackLevel) {
-                bp = {
-                  line: mapping.line,
-                  source: contract.sourceList[mapping.source]
-                };
-                this.prevBreakpoint = bp;
-                this.inStepOver = false;
-              }
-            } else if (this.inStepOut) {
-              if (this.callStack.length < this.stepOutStackLevel) {
-                bp = {
-                  source: contract.sourceList[mapping.source],
-                  line: mapping.line
-                };
-                this.prevBreakpoint = bp;
-                this.inStepOut = false;
-              }
-            } else {
-              bp = _.find(this.breakpoints, {
-                source: contract.sourceList[mapping.source],
-                line: mapping.line
-              });
-              this.prevBreakpoint = bp;
-            }
-          }
-        } else this.prevBreakpoint = null;
-      } else this.prevBreakpoint = null;
-    } else this.prevBreakpoint = null;
-
+    var bp = this.tracer.trace(call.mapping, this.callStack);
     if (!bp) return cb();
+
+    this.resumeCb = cb;
 
     var account = Object.create(Account).init(data.account);
     account.readStorage1(self.sandbox.vm.trie, function(err, storage) {
@@ -132,44 +44,17 @@ var Debugger = {
         console.error(err);
         return cb();
       }
-
-      var storageVars = [];
-      if (baseAddress in self.sandbox.contracts) {
-        storageVars = self.sandbox.contracts[baseAddress]
-          .details.getStorageVars(storage, self.sandbox.hashDict);
-      }
       
-      var stackPointer = 2;
-      var callStack = _.map(self.callStack, function(func) {
-        var details = {
-          name: func.name,
-          mapping: func.mapping,
-          vars: func.parseVariables(stackPointer, data.stack, data.memory, storage, self.sandbox.hashDict)
-        };
-        stackPointer += details.vars.length + 1;
-        return details;
-      });
-
+      var callStack = self.callStack.details(data.stack, data.memory, storage, self.sandbox.hashDict);
+      var storageVars = call.contract.details.getStorageVars(storage, self.sandbox.hashDict);
       self.sandbox.filters.newBreakpoint(bp, callStack, storageVars);
-      self.resumeCb = cb;
-      console.log('paused');
     });
   },
   addBreakpoint: function(bp) {
-    bp = {
-      line: bp.line.toNumber(),
-      source: bp.source
-    };
-    if (!_.contains(this.breakpoints, bp)) {
-      this.breakpoints.push(bp);
-    }
+    this.tracer.addBreakpoint(bp);
   },
   removeBreakpoint: function(bp) {
-    bp = {
-      line: bp.line.toNumber(),
-      source: bp.source
-    };
-    _.remove(this.breakpoints, bp);
+    this.tracer.removeBreakpoint(bp);
   },
   resume: function() {
     if (this.resumeCb) {
@@ -179,23 +64,23 @@ var Debugger = {
   },
   stepInto: function() {
     if (this.resumeCb) {
-      this.inStepInto = true;
+      this.tracer.state = 'stepInto';
       this.resumeCb();
       this.resumeCb = null;
     }
   },
   stepOver: function() {
     if (this.resumeCb) {
-      this.inStepOver = true;
-      this.stepOverStackLevel = this.callStack.length;
+      this.tracer.state = 'stepOver';
+      this.tracer.stepOverStackLevel = this.callStack.calls.length;
       this.resumeCb();
       this.resumeCb = null;
     }
   },
   stepOut: function() {
     if (this.resumeCb) {
-      this.inStepOut = true;
-      this.stepOutStackLevel = this.callStack.length;
+      this.tracer.state = 'stepOut';
+      this.tracer.stepOutStackLevel = this.callStack.calls.length;
       this.resumeCb();
       this.resumeCb = null;
     }

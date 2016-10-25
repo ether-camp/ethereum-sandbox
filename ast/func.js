@@ -3,19 +3,20 @@ var _ = require('lodash');
 var Func = {
   init: function(options) {
     var self = this;
-    this.name = parseSignature(options.node, options.typeCreator, options.contractName);
+    this.name = parseSignature(options.node, options.typeCreator, options.contract.name);
+    this.contract = options.contract;
     this.public = options.node.attributes.public;
     this.lineStart = options.lineStart;
     this.lineEnd = options.lineEnd;
     this.source = options.source;
-    var buildVar = buildVariable.bind(null, options.typeCreator, options.contractName);
+    var buildVar = buildVariable.bind(null, options.typeCreator, options.contract.name);
     this.variables = _.map(options.node.children[0].children, buildVar);
     this.variables = this.variables.concat(
       _.map(options.node.children[1].children, buildVar)
     );
     if (options.node.children.length == 3) {
       this.variables = this.variables.concat(
-        parseVariables(options.typeCreator, options.contractName, options.node.children[2])
+        parseVariables(options.typeCreator, options.contract.name, options.node.children[2])
       );
     }
     return this;
@@ -42,7 +43,7 @@ function parseSignature(node, typeCreator, contractName) {
   var params = _.map(paramNodes, function(node) {
     return typeCreator.create(node.children[0], contractName).type;
   });
-  return node.attributes.name + '(' + params.join(',')  + ')';
+  return contractName + '.' + node.attributes.name + '(' + params.join(',')  + ')';
 }
 
 function buildVariable(typeCreator, contractName, node) {
