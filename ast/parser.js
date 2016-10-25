@@ -149,10 +149,14 @@ Contract.prototype.getStorageVars = function(storage, hashDict, position) {
 };
 
 Contract.prototype.getFunc = function(position) {
-  return _.find(this.funcs, function(func) {
+  var func = _.find(this.funcs, function(func) {
     return func.source == position.source &&
       position.line > func.lineStart && position.line < func.lineEnd;
   });
+  for (var i = 0; i < this.parents.length && !func; i++) {
+    func = this.parents[i].getFunc(position);
+  }
+  return func;
 };
 
 function calcLine(offset, source) {
