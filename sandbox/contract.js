@@ -12,14 +12,22 @@ var Contract = {
     this.deployed = false;
     this.withDebug = withDebug;
     if (withDebug) {
-      parseContracts(this.ast, this.root, function(err, contracts) {
+      async.parallel({
+        contracts: function(cb) {
+          if (self.ast) parseContracts(self.ast, self.root, cb);
+          else cb();
+        },
+        srcmap: function(cb) {
+          if (self.srcmap)
+            parseSourceMap(self.srcmap, self.data, self.sourceList, cb);
+          else cb();
+        }
+      }, function(err, result) {
         if (err) return cb(err);
-        self.details = _.find(contracts, { name: self.name });
-        parseSourceMap(self.srcmap, self.data, self.sourceList, function(err, srcmap) {
-          if (err) return cb(err);
-          self.srcmap = srcmap;
-          cb(null, self);
-        });
+        self.details = result.contracts ?
+          _.find(result.contracts, { name: self.name }) : null;
+        self.srcmap = result.srcmap;
+        cb(null, self);
       });
     } else cb(null, self);
   },
