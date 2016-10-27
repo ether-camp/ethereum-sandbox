@@ -7,6 +7,10 @@ var Tracer = {
   init: function(sourceList) {
     return this;
   },
+  clean: function() {
+    this.prevBp = null;
+    this.state = 'running';
+  },
   trace: function(mapping, callStack) {
     var bp = null;
     if (!this.prevBp ||

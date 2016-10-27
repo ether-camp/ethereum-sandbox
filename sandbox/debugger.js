@@ -20,6 +20,7 @@ var Debugger = {
     this.stepOutStackLevel = 0;
     sandbox.vm.on('afterTx', function() {
       self.callStack.clean();
+      self.tracer.clean();
     });
     sandbox.vm.on('step', this.trace.bind(this));
     
