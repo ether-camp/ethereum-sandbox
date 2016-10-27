@@ -19,7 +19,7 @@ var Contract = {
         },
         srcmap: function(cb) {
           if (self.srcmap)
-            parseSourceMap(self.srcmap, self.data, self.sourceList, cb);
+            parseSourceMap(self.srcmap, self.data, self.root, self.sourceList, cb);
           else cb();
         }
       }, function(err, result) {
@@ -36,7 +36,7 @@ var Contract = {
     this.deployed = true;
     this.gasUsed = gasUsed;
     if (this.withDebug) {
-      parseSourceMap(this.srcmapRuntime, code, this.sourceList, function(err, srcmap) {
+      parseSourceMap(this.srcmapRuntime, code, this.root, this.sourceList, function(err, srcmap) {
         if (err) return cb(err);
         self.srcmapRuntime = srcmap;
         cb(null, self);
@@ -49,14 +49,16 @@ var Contract = {
       binary: this.binary,
       abi: this.abi,
       gasUsed: this.gasUsed,
-      data: this.data
+      data: this.data,
+      root: this.root,
+      sources: this.sourceList
     };
   }
 };
 
-function parseSourceMap(srcmap, code, paths, cb) {
+function parseSourceMap(srcmap, code, root, paths, cb) {
   async.map(paths, function(path, cb) {
-    fs.readFile(path, 'utf8', cb);
+    fs.readFile(root + path, 'utf8', cb);
   }, function(err, sources) {
     if (err) return cb(err);
     
@@ -80,7 +82,7 @@ function parseSourceMap(srcmap, code, paths, cb) {
       var mapping = {
         line: line,
         source: sourceIndex,
-        path: paths[sourceIndex],
+        path: root + paths[sourceIndex],
         type: entries[3],
         pc: pc
       };

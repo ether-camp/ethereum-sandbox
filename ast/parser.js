@@ -8,9 +8,9 @@ var StructType = require('./types/struct');
 var EnumType = require('./types/enum');
 var Func = require('./func');
 
-function parse(details, dir, cb) {
+function parse(details, root, cb) {
   async.forEachOf(details, function(source, file, cb) {
-    fs.readFile('/root/workspace' + dir + file, 'utf8', function(err, text) {
+    fs.readFile(root + file, 'utf8', function(err, text) {
       if (err) return cb(err.message);
       source.text = text;
       cb();

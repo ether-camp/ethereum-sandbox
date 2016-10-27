@@ -4,7 +4,7 @@ var Tracer = {
   breakpoints: [],
   prevBp: null,
   state: 'running', // running, stepInto, stepOver, stepOut
-  init: function(sourceList) {
+  init: function() {
     return this;
   },
   clean: function() {
