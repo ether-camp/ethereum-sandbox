@@ -201,7 +201,6 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
       },
       !!self.debugger,
       function(err, contract) {
-        console.log(err);
         if (err) return cb(err);
         self.contracts[account.address] = contract;
     
