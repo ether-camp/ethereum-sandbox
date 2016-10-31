@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var ethUtil = require('ethereumjs-util');
 
 var callStack = {
   // empty, variablesDefinition, running
@@ -84,8 +85,10 @@ var callStack = {
       }
     }
 
-    if (data.opcode.name == 'CALL') this.state = 'waitingForCall';
-    else if (data.opcode.name == 'DELEGATECALL') {
+    if (data.opcode.name == 'CALL' &&
+        !ethUtil.isPrecompiled(data.stack[data.stack.length - 2])) {
+      this.state = 'waitingForCall';
+    } else if (data.opcode.name == 'DELEGATECALL') {
       this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
       this.state = 'waitingForLibCall';
     } else if (data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') {
