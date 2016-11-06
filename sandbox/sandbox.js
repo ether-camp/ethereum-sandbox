@@ -59,6 +59,8 @@ Sandbox.init = function(id, cb) {
   this.logListeners = [];
   this.projectName = null;
   this.timeOffset = 0;
+  this.timestamp = 0;
+  this.keepTimestampConstant = false;
   this.minePeriod = 5000;
   this.minerEnabled = true;
   
@@ -403,7 +405,7 @@ Sandbox.createNextBlock = function(transactions, cb) {
         coinbase: util.toBuffer(this.coinbase),
         gasLimit: util.toBuffer(this.gasLimit),
         number: ethUtils.bufferToInt(lastBlock.header.number) + 1,
-        timestamp: new Buffer(util.nowHex(this.timeOffset), 'hex'),
+        timestamp: new Buffer(this.keepTimestampConstant ? util.pad(this.timestamp.toString(16)) : util.nowHex(this.timeOffset), 'hex'),
         difficulty: util.toBuffer(this.difficulty),
         parentHash: lastBlock.hash()
       }, transactions: transactions || [],
