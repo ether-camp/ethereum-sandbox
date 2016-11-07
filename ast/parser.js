@@ -7,7 +7,7 @@ var ContractType = require('./types/contract');
 var StructType = require('./types/struct');
 var EnumType = require('./types/enum');
 var Func = require('./func');
-//var Modifier = require('./modifier');
+var Modifier = require('./modifier');
 
 function parse(details, root, cb) {
   async.forEachOf(details, function(source, file, cb) {
@@ -113,23 +113,12 @@ function Contract(node, source, typeCreator) {
     })
     .sortByOrder(['source', 'line'], ['asc', 'desc'])
     .value();
-  /*
   this.modifiers = _(node.children)
     .filter({ name: 'ModifierDefinition' })
     .map(function(node) {
-      var details = node.src.split(':');
-
-      return Object.create(Modifier).init({
-        node: node,
-        typeCreator: typeCreator,
-        contract: self,
-        lineStart: calcLine(parseInt(details[0]), source),
-        lineEnd: calcLine(parseInt(details[0]) + parseInt(details[1]), source),
-        source: details[2] - 1
-      });
+      return Object.create(Modifier).init(node, typeCreator, self, source);
     })
     .value();
-*/
   this.parents = _(node.children)
     .filter({ name: 'InheritanceSpecifier' })
     .map(function(node) {
@@ -162,14 +151,11 @@ Contract.prototype.getFunc = function(position) {
   var func = _.find(this.funcs, function(func) {
     return func.inFunc(position);
   });
-/*
   if (!func) {
     func = _.find(this.modifiers, function(modifier) {
-      return modifier.source == position.source &&
-        position.line > modifier.lineStart && position.line < modifier.lineEnd;
+      return modifier.inFunc(position);
     });
   }
-*/
   for (var i = 0; i < this.parents.length && !func; i++) {
     func = this.parents[i].getFunc(position);
   }

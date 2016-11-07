@@ -1,12 +1,11 @@
 var _ = require('lodash');
 
-var Func = {
+var Modifier = {
   init: function(node, typeCreator, contract, source) {
-    var self = this;
     this.name = parseSignature(node, typeCreator, contract.name);
     this.contract = contract;
-    this.public = node.attributes.public;
-    
+    this.modifier = true;
+
     var funcSrcmap = node.src.split(':').map(_.partial(parseInt, _, 10));
     this.funcStart = calcPosition(funcSrcmap[0], source);
     this.funcEnd = calcPosition(funcSrcmap[0] + funcSrcmap[1], source);
@@ -17,20 +16,18 @@ var Func = {
       this.blockStart = calcPosition(blockSrcmap[0], source);
       this.blockEnd = calcPosition(blockSrcmap[0] + blockSrcmap[1], source);
     }
-    
+
     this.source = funcSrcmap[2] - 1;
-    
+
     var buildVar = buildVariable.bind(null, typeCreator, contract.name);
     this.variables = _.map(node.children[0].children, buildVar);
-    this.variables = this.variables.concat(
-      _.map(node.children[1].children, buildVar)
-    );
     if (blockNode) {
       this.variables = this.variables.concat(
         parseVariables(typeCreator, contract.name, blockNode)
       );
     }
-    
+    console.log('modifier ' + this.name);
+    console.log(this.variables);
     return this;
   },
   inFunc: function(position) {
@@ -74,7 +71,7 @@ function parseSignature(node, typeCreator, contractName) {
   var params = _.map(paramNodes, function(node) {
     return typeCreator.create(node.children[0], contractName).type;
   });
-  return contractName + '.' + node.attributes.name + '(' + params.join(',')  + ')';
+  return contractName + '.' + node.attributes.name + '(' + params.join(',') + ')';
 }
 
 function buildVariable(typeCreator, contractName, node) {
@@ -123,4 +120,4 @@ function calcPosition(offset, source) {
   }
 }
 
-module.exports = Func;
+module.exports = Modifier;

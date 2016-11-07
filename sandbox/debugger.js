@@ -24,7 +24,6 @@ var Debugger = {
     if (!call || !call.mapping) return cb();
 
     var bp = this.tracer.trace(call.mapping, this.callStack);
-    console.log(bp);
     if (!bp) return cb();
 
     this.resumeCb = cb;
