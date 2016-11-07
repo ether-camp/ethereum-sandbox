@@ -42,7 +42,7 @@ var Tracer = {
         });
       }
       this.prevBp = bp;
-      this.state = 'running';
+      if (bp) this.state = 'running';
     }
     return bp;
   },

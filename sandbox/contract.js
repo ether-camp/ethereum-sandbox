@@ -35,7 +35,7 @@ var Contract = {
     var self = this;
     this.deployed = true;
     this.gasUsed = gasUsed;
-    if (this.withDebug) {
+    if (this.withDebug && this.srcmapRuntime) {
       parseSourceMap(this.srcmapRuntime, code, this.root, this.sourceList, function(err, srcmap) {
         if (err) return cb(err);
         self.srcmapRuntime = srcmap;
@@ -64,23 +64,28 @@ function parseSourceMap(srcmap, code, root, paths, cb) {
     
     var prev = {
       line: 0,
+      column: 0,
       source: 0
     };
     var pc = 0;
     var result = _.map(srcmap.split(';'), function(details) {
       var entries = details.split(':');
 
-      line = prev.line;
+      var position = {
+        line: prev.line,
+        column: prev.column
+      };
       var sourceIndex = entries[2] ? parseInt(entries[2]) - 1 : prev.source;
       if (entries[0]) {
-        var line = calcLine(
+        position = calcPosition(
           parseInt(entries[0]),
           sources[sourceIndex]
         );
       }
 
       var mapping = {
-        line: line,
+        line: position.line,
+        column: position.column,
         source: sourceIndex,
         path: root + paths[sourceIndex],
         type: entries[3],
@@ -100,8 +105,17 @@ function parseSourceMap(srcmap, code, root, paths, cb) {
     cb(null, result);
   });
 }
-function calcLine(offset, source) {
-  return numberOf(source, '\n', offset);
+
+function calcPosition(offset, source) {
+  var line = numberOf(source, '\n', offset);
+  var column = offset;
+  if (line > 0) {
+    column = offset - source.substr(0, offset).lastIndexOf('\n') - 1;
+  }
+  return {
+    line: line,
+    column: column
+  };
 
   function numberOf(str, c, len) {
     var n = 0;

@@ -21,38 +21,47 @@ var callStack = {
     } else if (this.state == 'waitingForLibCall') {
       address = this.libraryAddress;
     } else {
-      address = _.last(this.calls).address;
+      var call = _.last(this.calls);
+      if (call) address = _.last(this.calls).address;
+      else address = '0x' + data.address.toString('hex');
     }
 
-    if (this.contracts.hasOwnProperty(address)) {
+    if (this.contracts.hasOwnProperty(address) &&
+        this.contracts[address].srcmap &&
+        this.contracts[address].details) {
       var contract = this.contracts[address];
       var srcmap = contract.deployed ? contract.srcmapRuntime : contract.srcmap;
       var mapping = _.find(srcmap, { pc: data.pc });
       if (mapping) {
         var func = contract.details.getFunc(mapping);
         if (func) {
-          if (this.state == 'variablesDefinition') {
-            if (data.opcode.name != 'PUSH1') this.state = 'running';
+          var inBlock = func.inBlock(mapping);
+          if (this.state == 'outOfBlock' && inBlock &&
+              data.opcode.name != 'PUSH1') {
+            this.state = 'running';
           }
-          
+
+          if (this.state == 'waitingForReturn' && inBlock) {
+            this.calls.pop();
+            this.state = this.calls.length == 0 ? 'empty' : 'running';
+          }
+
           if (this.state == 'empty') {
             this.calls.push({
               address: address,
               contract: contract,
               func: func
             });
-            this.state = data.opcode.name == 'PUSH1' ?
-              'running' : 'variablesDefinition';
+            this.state = 'outOfBlock';
           } else if (this.state == 'running') {
-            _.last(this.calls).mapping = mapping;
+            _.last(this.calls).mapping = inBlock ? mapping : null;
           } else if (this.state == 'waitingForCall') {
             this.calls.push({
               address: address,
               contract: contract,
               func: func
             });
-            this.state = data.opcode.name == 'PUSH1' ?
-              'running' : 'variablesDefinition';
+            this.state = 'outOfBlock';
           } else if (this.state == 'waitingForLibCall') {
             var baseAddress = '0x' + data.address.toString('hex');
             this.calls.push({
@@ -61,18 +70,15 @@ var callStack = {
                 this.contracts[baseAddress] : null,
               func: func
             });
-            this.state = data.opcode.name == 'PUSH1' ?
-              'running' : 'variablesDefinition';
-          } else if (this.state == 'waitingForReturn') {
-            this.calls.pop();
-            var call = _.last(this.calls);
-            if (call) call.mapping = mapping;
-            this.state = 'running';
+            this.state = 'outOfBlock';
           }
         }
 
         if (mapping.type == 'i') this.state = 'waitingForCall';
-        else if (mapping.type == 'o') this.state = 'waitingForReturn';
+        else if (mapping.type == 'o') {
+          this.state = 'waitingForReturn';
+          _.last(this.calls).mapping = null;
+        }
       }
     } else {
       if (this.state == 'waitingForCall' || this.state == 'waitingForLibCall') {
@@ -85,13 +91,15 @@ var callStack = {
       }
     }
 
-    if (data.opcode.name == 'CALL' &&
-        !ethUtil.isPrecompiled(data.stack[data.stack.length - 2])) {
+    if (data.opcode.name == 'CREATE' ||
+        (data.opcode.name == 'CALL' &&
+         !ethUtil.isPrecompiled(data.stack[data.stack.length - 2]))) {
       this.state = 'waitingForCall';
     } else if (data.opcode.name == 'DELEGATECALL') {
       this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
       this.state = 'waitingForLibCall';
-    } else if (data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') {
+    } else if ((data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') &&
+               (!mapping || this.state == 'waitingForReturn')) {
       this.calls.pop();
       this.state = this.calls.length == 0 ? 'empty' : 'running';
     }

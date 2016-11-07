@@ -7,6 +7,7 @@ var ContractType = require('./types/contract');
 var StructType = require('./types/struct');
 var EnumType = require('./types/enum');
 var Func = require('./func');
+//var Modifier = require('./modifier');
 
 function parse(details, root, cb) {
   async.forEachOf(details, function(source, file, cb) {
@@ -108,9 +109,17 @@ function Contract(node, source, typeCreator) {
   this.funcs = _(node.children)
     .filter({ name: 'FunctionDefinition' })
     .map(function(node) {
+      return Object.create(Func).init(node, typeCreator, self, source);
+    })
+    .sortByOrder(['source', 'line'], ['asc', 'desc'])
+    .value();
+  /*
+  this.modifiers = _(node.children)
+    .filter({ name: 'ModifierDefinition' })
+    .map(function(node) {
       var details = node.src.split(':');
 
-      return Object.create(Func).init({
+      return Object.create(Modifier).init({
         node: node,
         typeCreator: typeCreator,
         contract: self,
@@ -119,8 +128,8 @@ function Contract(node, source, typeCreator) {
         source: details[2] - 1
       });
     })
-    .sortByOrder(['source', 'line'], ['asc', 'desc'])
     .value();
+*/
   this.parents = _(node.children)
     .filter({ name: 'InheritanceSpecifier' })
     .map(function(node) {
@@ -132,11 +141,11 @@ function Contract(node, source, typeCreator) {
 Contract.prototype.getStorageVars = function(storage, hashDict, position) {
   if (!position) position = { index: new Buffer(32).fill(0), offset: 0 };
   var variables = _(this.parents)
-        .map(function(contract) {
-          return contract.getStorageVars(storage, hashDict, position);
-        })
-        .flatten()
-        .value();
+      .map(function(contract) {
+        return contract.getStorageVars(storage, hashDict, position);
+      })
+      .flatten()
+      .value();
   return variables.concat(
     _.map(this.vars, function(variable) {
       var value = variable.retrieve(storage, hashDict, position);
@@ -145,34 +154,27 @@ Contract.prototype.getStorageVars = function(storage, hashDict, position) {
         type: variable.type,
         value: value
       };
-    }));
+    })
+  );
 };
 
 Contract.prototype.getFunc = function(position) {
   var func = _.find(this.funcs, function(func) {
-    return func.source == position.source &&
-      position.line > func.lineStart && position.line < func.lineEnd;
+    return func.inFunc(position);
   });
+/*
+  if (!func) {
+    func = _.find(this.modifiers, function(modifier) {
+      return modifier.source == position.source &&
+        position.line > modifier.lineStart && position.line < modifier.lineEnd;
+    });
+  }
+*/
   for (var i = 0; i < this.parents.length && !func; i++) {
     func = this.parents[i].getFunc(position);
   }
   return func;
 };
 
-function calcLine(offset, source) {
-  return numberOf(source, '\n', offset);
-
-  function numberOf(str, c, len) {
-    var n = 0;
-    var index = 0;
-    str = str.substr(0, len);
-    while (true) {
-      index = str.indexOf('\n', index) + 1;
-      if (index <= 0) break;
-      n++;
-    }
-    return n;
-  }
-}
 
 module.exports = parse;

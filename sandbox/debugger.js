@@ -7,17 +7,9 @@ var Debugger = {
   init: function(sandbox) {
     var self = this;
     this.sandbox = sandbox;
-    this.prevBreakpoint = null;
     this.resumeCb = null;
     this.callStack = Object.create(CallStack).init(this.sandbox.contracts);
     this.tracer = Object.create(Tracer).init();
-    this.waitingForReturn = false;
-    this.variablesDefinition = false;
-    this.inStepInto = false;
-    this.inStepOver = false;
-    this.stepOverStackLevel = 0;
-    this.inStepOut = false;
-    this.stepOutStackLevel = 0;
     sandbox.vm.on('afterTx', function() {
       self.callStack.clean();
       self.tracer.clean();
@@ -28,13 +20,11 @@ var Debugger = {
   },
   trace: function(data, cb) {
     var self = this;
-    var address = '0x' + data.address.toString('hex');
-    var baseAddress = address;
-
     var call = this.callStack.trace(data);
-    if (!call || !call.hasOwnProperty('mapping')) return cb();
+    if (!call || !call.mapping) return cb();
 
     var bp = this.tracer.trace(call.mapping, this.callStack);
+    console.log(bp);
     if (!bp) return cb();
 
     this.resumeCb = cb;
