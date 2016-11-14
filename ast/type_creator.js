@@ -25,9 +25,11 @@ var Creator = {
     this.types = types.concat(userDefinedTypes);
     return this;
   },
-  create: function(node, contract) {
-    var type = _.find(this.types, function(type) { return type.is(node, contract); });
-    return type ? Object.create(type).init(node, this, contract) : null;
+  create: function(typeName, contract) {
+    var type = _.find(this.types, function(type) {
+      return type.is(typeName, contract);
+    });
+    return type ? Object.create(type).init(typeName, this, contract) : null;
   }
 };
 

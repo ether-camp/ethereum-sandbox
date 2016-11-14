@@ -4,16 +4,16 @@ var UintType = require('./uint');
 var util = require('../../util');
 
 var StaticArrayType = {
-  is: function(node) {
-    return node.name == 'ArrayTypeName' &&
-      node.children.length >= 2 &&
-      node.children[1].name == 'Literal' &&
-      _.startsWith(node.children[1].attributes.type, 'int_const');
+  is: function(typeName) {
+    return /\[\d+\] [\w ]+$/.test(typeName);
   },
-  init: function(node, typeCreator, contract) {
-    this.size = parseInt(node.children[1].attributes.value);
-    this.internal = typeCreator.create(node.children[0], contract);
-    this.type = this.internal.type + '[' + this.size + ']';
+  init: function(typeName, typeCreator, contract) {
+    this.type = typeName;
+    var parts = /^(.*)\[(\d+)\] ([\w ]+)$/.exec(typeName);
+    this.size = parseInt(parts[2]);
+    this.storageType = parts[3];
+    var internalTypeName = parts[1];
+    this.internal = typeCreator.create(internalTypeName, contract);
     return this;
   },
   retrieve: function(storage, hashDict, position) {

@@ -2,16 +2,13 @@ var _ = require('lodash');
 var util = require('../../util');
 
 var ElementaryType = {
-  name: null,
-  type: null,
-  size: null,
-  
-  is: function(node) {
-    return node.name == 'ElementaryTypeName' && this.matchType(node.attributes.name);
+  is: function(typeName) {
+    return this.matchType(typeName);
   },
-  init: function(node) {
-    this.type = node.attributes.name;
+  init: function(typeName) {
+    this.type = typeName;
     this.size = this.getSize(this.type);
+    this.storageType = 'memory'; // for func scope
     return this;
   },
   retrieve: function(storage, hashDict, position) {

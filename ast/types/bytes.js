@@ -2,8 +2,8 @@ var DynamicType = require('./dynamic_type');
 
 var BytesType = Object.create(DynamicType);
 
-BytesType.matchType = function(name) {
-  return name == 'bytes';
+BytesType.matchType = function(typeName) {
+  return /^bytes [\w ]+$/.test(typeName);
 };
 
 BytesType.appendValue = function(prev, data) {

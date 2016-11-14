@@ -3,12 +3,15 @@ var async = require('async');
 var util = require('../../util');
 
 var DynamicArrayType = {
-  is: function(node) {
-    return node.name == 'ArrayTypeName' && node.children.length == 1;
+  is: function(typeName) {
+    return /\[\] [\w ]+$/.test(typeName);
   },
-  init: function(node, typeCreator, contract) {
-    this.internal = typeCreator.create(node.children[0], contract);
-    this.type = this.internal.type + '[]';
+  init: function(typeName, typeCreator, contract) {
+    this.type = typeName;
+    var parts = /^(.*)\[\] ([\w ]+)$/.exec(typeName);
+    this.storageType = parts[2];
+    var internalTypeName = parts[1];
+    this.internal = typeCreator.create(internalTypeName, contract);
     return this;
   },
   retrieve: function(storage, hashDict, position) {

@@ -4,8 +4,8 @@ var ElementaryType = require('./elementary-type');
 
 var UintType = Object.create(ElementaryType);
 
-UintType.matchType = function(type) {
-  return _.startsWith(type, 'uint');
+UintType.matchType = function(typeName) {
+  return /^uint\d{0,3}$/.test(typeName);
 };
 
 UintType.getSize = function(type) {

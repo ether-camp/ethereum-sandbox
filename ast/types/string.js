@@ -2,8 +2,8 @@ var DynamicType = require('./dynamic_type');
 
 var StringType = Object.create(DynamicType);
 
-StringType.matchType = function(name) {
-  return name == 'string';
+StringType.matchType = function(typeName) {
+  return /^string [\w ]+$/.test(typeName);
 };
 
 StringType.appendValue = function(prev, data) {

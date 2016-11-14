@@ -5,19 +5,18 @@ var StructType = {
   create: function(node, contract) {
     this.contract = contract;
     this.type = contract + '.' + node.attributes.name;
+    this.localName = node.attributes.name;
     this.fieldNodes = node.children;
     return this;
   },
-  is: function(node, contract) {
-    if (node.name != 'UserDefinedTypeName') return false;
-    var name = node.attributes.name;
-    if (name.indexOf('.') == -1) name = contract + '.' + name;
-    return name == this.type;
+  is: function(typeName, contract) {
+    return _.startsWith(typeName, 'struct ' + this.localName + ' ');
   },
-  init: function(node, typeCreator, contract) {
+  init: function(typeName, typeCreator, contract) {
     var self = this;
+    this.storageType = typeName.substr(this.localName.length + 8);
     this.fields = _.map(this.fieldNodes, function(node) {
-      var typeHandler = typeCreator.create(node.children[0], self.contract);
+      var typeHandler = typeCreator.create(node.attributes.type, self.contract);
       typeHandler.name = node.attributes.name;
       return typeHandler;
     });

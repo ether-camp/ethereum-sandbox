@@ -2,16 +2,17 @@ var _ = require('lodash');
 var util = require('../../util');
 
 var MappingType = {
-  name: null,
-  type: null,
-
-  is: function(node) {
-    return node.name == 'Mapping';
+  is: function(typeName) {
+    return _.startsWith(typeName, 'mapping(');
   },
-  init: function(node, typeCreator, contract) {
-    this.keyType = typeCreator.create(node.children[0], contract);
-    this.valueType = typeCreator.create(node.children[1], contract);
-    this.type = 'mapping (' + this.keyType.type + ' => ' + this.valueType.type + ')';
+  init: function(typeName, typeCreator, contract) {
+    this.type = typeName;
+    var parts = /^mapping\((.*) => (.*)\)/.exec(typeName);
+    var keyTypeName = parts[1];
+    this.keyType = typeCreator.create(keyTypeName, contract);
+    var valueTypeName = parts[2];
+    this.valueType = typeCreator.create(valueTypeName, contract);
+    this.storageType = 'storage ref';
     return this;
   },
   retrieve: function(storage, hashDict, position) {
@@ -22,9 +23,9 @@ var MappingType = {
     }
 
     var result = MappingType.isPrototypeOf(this.valueType) ?
-          this.retrieveMapping(storage, hashDict, position) :
-          this.retrieveNotMapping(storage, hashDict, position);
-
+        this.retrieveMapping(storage, hashDict, position) :
+        this.retrieveNotMapping(storage, hashDict, position);
+    
     util.inc(position.index);
     return result;
   },

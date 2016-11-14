@@ -3,7 +3,6 @@ var _ = require('lodash');
 var Func = {
   init: function(node, typeCreator, contract, source) {
     var self = this;
-    this.name = parseSignature(node, typeCreator, contract.name);
     this.contract = contract;
     this.public = node.attributes.public;
     
@@ -22,6 +21,10 @@ var Func = {
     
     var buildVar = buildVariable.bind(null, typeCreator, contract.name);
     this.variables = _.map(node.children[0].children, buildVar);
+    
+    this.name = contract.name + '.' + node.attributes.name + '(' +
+      _(this.variables).map('type').join(',') + ')';
+      
     this.variables = this.variables.concat(
       _.map(node.children[1].children, buildVar)
     );
@@ -69,21 +72,9 @@ var Func = {
   }
 };
 
-function parseSignature(node, typeCreator, contractName) {
-  var paramNodes = node.children[0].children;
-  var params = _.map(paramNodes, function(node) {
-    return typeCreator.create(node.children[0], contractName).type;
-  });
-  return contractName + '.' + node.attributes.name + '(' + params.join(',')  + ')';
-}
-
 function buildVariable(typeCreator, contractName, node) {
-  var typeHandler = typeCreator.create(node.children[0], contractName);
-  if (typeHandler) {
-    typeHandler.name = node.attributes.name;
-    typeHandler.storageType = node.attributes.type.indexOf('storage') > 0 ?
-      'storage' : 'memory';
-  }
+  var typeHandler = typeCreator.create(node.attributes.type, contractName);
+  if (typeHandler) typeHandler.name = node.attributes.name;
   return typeHandler;
 }
 

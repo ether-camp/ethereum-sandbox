@@ -100,7 +100,7 @@ function Contract(node, source, typeCreator) {
   this.vars =_(node.children)
     .filter({ name: 'VariableDeclaration' })
     .map(function(node) {
-      var typeHandler = typeCreator.create(node.children[0], self.name);
+      var typeHandler = typeCreator.create(node.attributes.type, self.name);
       if (typeHandler) typeHandler.name = node.attributes.name;
       return typeHandler;
     })

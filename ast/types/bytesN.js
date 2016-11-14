@@ -4,9 +4,8 @@ var util = require('../../util');
 
 var BytesNType = Object.create(ElementaryType);
 
-BytesNType.matchType = function(type) {
-  return (_.startsWith(type, 'bytes') && type != 'bytes') ||
-    type == 'byte';
+BytesNType.matchType = function(typeName) {
+  return typeName == 'byte' || /^bytes\d+$/.test(typeName);
 };
 
 BytesNType.getSize = function(type) {

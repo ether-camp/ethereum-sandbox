@@ -7,8 +7,8 @@ ContractType.create = function(contract) {
   return this;
 };
 
-ContractType.is = function(node, contract) {
-  return node.name == 'UserDefinedTypeName' && node.attributes.name == this.contract;
+ContractType.is = function(typeName, contract) {
+  return typeName == 'contract ' + this.contract;
 };
 
 module.exports = ContractType;

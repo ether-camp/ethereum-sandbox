@@ -3,15 +3,12 @@ var async = require('async');
 var util = require('../../util');
 
 var DynamicType = {
-  name: null,
-  type: null,
-  size: null,
-  
-  is: function(node) {
-    return node.name == 'ElementaryTypeName' && this.matchType(node.attributes.name);
+  is: function(typeName) {
+    return this.matchType(typeName);
   },
-  init: function(node) {
-    this.type = node.attributes.name;
+  init: function(typeName) {
+    this.type = typeName;
+    this.storageType = typeName.substr(typeName.indexOf(' ') + 1);
     return this;
   },
   retrieve: function(storage, hashDict, position) {
