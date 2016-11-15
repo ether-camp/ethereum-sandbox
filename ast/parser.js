@@ -111,7 +111,6 @@ function Contract(node, source, typeCreator) {
     .map(function(node) {
       return Object.create(Func).init(node, typeCreator, self, source);
     })
-    .sortByOrder(['source', 'line'], ['asc', 'desc'])
     .value();
   this.modifiers = _(node.children)
     .filter({ name: 'ModifierDefinition' })

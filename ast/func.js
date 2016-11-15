@@ -57,16 +57,22 @@ var Func = {
   },
   parseVariables: function(stackPointer, stack, memory, storage, hashDict) {
     return _.map(this.variables, function(variable, index) {
+      var value;
+      if (variable.storageType == 'memory') {
+        value = variable.retrieveStack(stack, memory, stackPointer + index);
+      } else {
+        var idx = stack[stackPointer + index];
+        if (idx.length < 32) {
+          var i = new Buffer(32).fill(0);
+          idx.copy(i, 32 - idx.length);
+          idx = i;
+        }
+        value = variable.retrieve(storage, hashDict, { index: idx, offset: 0 });
+      }
       return {
         name: variable.name,
         type: variable.type,
-        value: variable.storageType == 'memory' ?
-          variable.retrieveStack(stack, memory, stackPointer + index) :
-          variable.retrieve(
-            storage,
-            hashDict,
-            { index: new Buffer(32).fill(0), offset: 0 }
-          )
+        value: value
       };
     });
   }
