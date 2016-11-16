@@ -118,14 +118,21 @@ var callStack = {
   },
   details: function(stack, memory, storage, hashDict) {
     var stackPointer = 2;
-    return _.map(this.calls, function(call) {
+    var address = _.last(this.calls).address;
+    var stackFrom = _.findLastIndex(this.calls, function(call) {
+      return call.address != address;
+    });
+    return _.map(this.calls, function(call, idx) {
+      var vars = [];
+      if (call.func && idx > stackFrom) {
+        vars = call.func.parseVariables(stackPointer, stack, memory, storage, hashDict);
+        stackPointer += vars.length + 1;
+      }
       var details = {
         name: call.func ? call.func.name : call.address,
         mapping: call.mapping,
-        vars: call.func ?
-          call.func.parseVariables(stackPointer, stack, memory, storage, hashDict) : []
+        vars: vars
       };
-      stackPointer += details.vars.length + 1;
       return details;
     });
   }
