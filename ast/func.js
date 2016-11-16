@@ -62,12 +62,9 @@ var Func = {
         value = variable.retrieveStack(stack, memory, stackPointer + index);
       } else {
         var idx = stack[stackPointer + index];
-        if (idx.length < 32) {
-          var i = new Buffer(32).fill(0);
-          idx.copy(i, 32 - idx.length);
-          idx = i;
-        }
-        value = variable.retrieve(storage, hashDict, { index: idx, offset: 0 });
+        var idxCopy = new Buffer(32).fill(0);
+        idx.copy(idxCopy, 32 - idx.length);
+        value = variable.retrieve(storage, hashDict, { index: idxCopy, offset: 0 });
       }
       return {
         name: variable.name,

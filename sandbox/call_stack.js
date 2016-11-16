@@ -43,7 +43,12 @@ var callStack = {
 
           if (this.state == 'waitingForReturn' && inBlock) {
             this.calls.pop();
-            this.state = this.calls.length == 0 ? 'empty' : 'running';
+            if (this.calls.length == 0) {
+              this.state = 'empty';
+            } else {
+              this.state = 'running';
+              _.last(this.calls).mapping = null;
+            }
           }
 
           if (this.state == 'empty') {
@@ -101,7 +106,12 @@ var callStack = {
     } else if ((data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') &&
                (!mapping || this.state == 'waitingForReturn')) {
       this.calls.pop();
-      this.state = this.calls.length == 0 ? 'empty' : 'running';
+      if (this.calls.length == 0) {
+        this.state = 'empty';
+      } else {
+        this.state = 'running';
+        _.last(this.calls).mapping = null;
+      }
     }
 
     return _.last(this.calls);
