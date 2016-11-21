@@ -2,7 +2,6 @@ var _ = require('lodash');
 
 var Func = {
   init: function(node, typeCreator, contract, source) {
-    var self = this;
     this.contract = contract;
     this.public = node.attributes.public;
     

@@ -2,7 +2,6 @@ var _ = require('lodash');
 
 var Modifier = {
   init: function(node, typeCreator, contract, source) {
-    this.name = parseSignature(node, typeCreator, contract.name);
     this.contract = contract;
     this.modifier = true;
 
@@ -19,15 +18,18 @@ var Modifier = {
 
     this.source = funcSrcmap[2] - 1;
 
-    var buildVar = buildVariable.bind(null, typeCreator, contract.name);
+    var buildVar = buildVariable.bind(null, typeCreator, contract.name, source);
     this.variables = _.map(node.children[0].children, buildVar);
+
+    this.name = contract.name + '.' + node.attributes.name + '(' +
+      _(this.variables).map('type').join(',') + ')';
+    
     if (blockNode) {
       this.variables = this.variables.concat(
-        parseVariables(typeCreator, contract.name, blockNode)
+        parseVariables(typeCreator, contract.name, source, blockNode)
       );
     }
-    console.log('modifier ' + this.name);
-    console.log(this.variables);
+
     return this;
   },
   inFunc: function(position) {
@@ -49,47 +51,55 @@ var Modifier = {
        (position.line == this.blockEnd.line &&
         position.column <= this.blockEnd.column));
   },
+  isVarDeclaration: function(position) {
+    var self = this;
+    return _.some(this.variables, function(variable) {
+      return position.source == self.source &&
+        (position.line > variable.start.line ||
+         (position.line == variable.start.line &&
+          position.column >= variable.start.column)) &&
+        (position.line < variable.end.line ||
+         (position.line == variable.end.line &&
+          position.column <= variable.end.column));
+    });
+  },
   parseVariables: function(stackPointer, stack, memory, storage, hashDict) {
     return _.map(this.variables, function(variable, index) {
+      var value;
+      if (variable.storageType == 'memory') {
+        value = variable.retrieveStack(stack, memory, stackPointer + index);
+      } else {
+        var idx = stack[stackPointer + index];
+        var idxCopy = new Buffer(32).fill(0);
+        idx.copy(idxCopy, 32 - idx.length);
+        value = variable.retrieve(storage, hashDict, { index: idxCopy, offset: 0 });
+      }
       return {
         name: variable.name,
         type: variable.type,
-        value: variable.storageType == 'memory' ?
-          variable.retrieveStack(stack, memory, stackPointer + index) :
-          variable.retrieve(
-            storage,
-            hashDict,
-            { index: new Buffer(32).fill(0), offset: 0 }
-          )
+        value: value
       };
     });
   }
 };
 
-function parseSignature(node, typeCreator, contractName) {
-  var paramNodes = node.children[0].children;
-  var params = _.map(paramNodes, function(node) {
-    return typeCreator.create(node.children[0], contractName).type;
-  });
-  return contractName + '.' + node.attributes.name + '(' + params.join(',') + ')';
-}
-
-function buildVariable(typeCreator, contractName, node) {
-  var typeHandler = typeCreator.create(node.children[0], contractName);
+function buildVariable(typeCreator, contractName, source, node) {
+  var typeHandler = typeCreator.create(node.attributes.type, contractName);
   if (typeHandler) {
     typeHandler.name = node.attributes.name;
-    typeHandler.storageType = node.attributes.type.indexOf('storage') > 0 ?
-      'storage' : 'memory';
+    var srcmap = node.src.split(':').map(_.partial(parseInt, _, 10));
+    typeHandler.start = calcPosition(srcmap[0], source);
+    typeHandler.end = calcPosition(srcmap[0] + srcmap[1], source);
   }
   return typeHandler;
 }
 
-function parseVariables(typeCreator, contractName, node) {
+function parseVariables(typeCreator, contractName, source, node) {
   return _(node.children)
     .map(function(node) {
       return node.name == 'VariableDeclaration' ?
-        buildVariable(typeCreator, contractName, node) :
-        parseVariables(typeCreator, contractName, node);
+        buildVariable(typeCreator, contractName, source, node) :
+        parseVariables(typeCreator, contractName, source, node);
     })
     .flatten()
     .compact()
