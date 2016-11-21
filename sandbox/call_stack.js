@@ -2,7 +2,6 @@ var _ = require('lodash');
 var ethUtil = require('ethereumjs-util');
 
 var callStack = {
-  // empty, variablesDefinition, running
   state: 'empty',
   calls: [],
 
@@ -37,7 +36,7 @@ var callStack = {
         if (func) {
           var inBlock = func.inBlock(mapping);
           if (this.state == 'outOfBlock' && inBlock &&
-              data.opcode.name != 'PUSH1') {
+              !func.isVarDeclaration(mapping)) {
             this.state = 'running';
           }
 

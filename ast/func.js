@@ -19,7 +19,7 @@ var Func = {
     
     this.source = funcSrcmap[2] - 1;
     
-    var buildVar = buildVariable.bind(null, typeCreator, contract.name);
+    var buildVar = buildVariable.bind(null, typeCreator, contract.name, source);
     this.variables = _.map(node.children[0].children, buildVar);
     
     this.name = contract.name + '.' + node.attributes.name + '(' +
@@ -30,10 +30,10 @@ var Func = {
     );
     if (blockNode) {
       this.variables = this.variables.concat(
-        parseVariables(typeCreator, contract.name, blockNode)
+        parseVariables(typeCreator, contract.name, source, blockNode)
       );
     }
-    
+
     return this;
   },
   inFunc: function(position) {
@@ -55,6 +55,18 @@ var Func = {
        (position.line == this.blockEnd.line &&
         position.column <= this.blockEnd.column));
   },
+  isVarDeclaration: function(position) {
+    var self = this;
+    return _.some(this.variables, function(variable) {
+      return position.source == self.source &&
+        (position.line > variable.start.line ||
+         (position.line == variable.start.line &&
+          position.column >= variable.start.column)) &&
+        (position.line < variable.end.line ||
+         (position.line == variable.end.line &&
+          position.column <= variable.end.column));
+    });
+  },
   parseVariables: function(stackPointer, stack, memory, storage, hashDict) {
     return _.map(this.variables, function(variable, index) {
       var value;
@@ -75,18 +87,23 @@ var Func = {
   }
 };
 
-function buildVariable(typeCreator, contractName, node) {
+function buildVariable(typeCreator, contractName, source, node) {
   var typeHandler = typeCreator.create(node.attributes.type, contractName);
-  if (typeHandler) typeHandler.name = node.attributes.name;
+  if (typeHandler) {
+    typeHandler.name = node.attributes.name;
+    var srcmap = node.src.split(':').map(_.partial(parseInt, _, 10));
+    typeHandler.start = calcPosition(srcmap[0], source);
+    typeHandler.end = calcPosition(srcmap[0] + srcmap[1], source);
+  }
   return typeHandler;
 }
 
-function parseVariables(typeCreator, contractName, node) {
+function parseVariables(typeCreator, contractName, source, node) {
   return _(node.children)
     .map(function(node) {
       return node.name == 'VariableDeclaration' ?
-        buildVariable(typeCreator, contractName, node) :
-        parseVariables(typeCreator, contractName, node);
+        buildVariable(typeCreator, contractName, source, node) :
+        parseVariables(typeCreator, contractName, source, node);
     })
     .flatten()
     .compact()
