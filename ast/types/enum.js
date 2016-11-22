@@ -4,14 +4,13 @@ var util = require('../../util');
 var EnumType = {
   create: function(node, contract) {
     this.type = contract + '.' + node.attributes.name;
-    this.localName = node.attributes.name;
     this.values = _.map(node.children, function(node) {
       return node.attributes.name;
     });
     return this;
   },
   is: function(typeName, contract) {
-    return typeName == 'enum ' + this.localName;
+    return typeName == 'enum ' + this.type;
   },
   init: function(node, typeCreator, contract) {
     this.storageType = 'memory';

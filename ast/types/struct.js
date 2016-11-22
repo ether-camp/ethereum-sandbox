@@ -5,16 +5,15 @@ var StructType = {
   create: function(node, contract) {
     this.contract = contract;
     this.type = contract + '.' + node.attributes.name;
-    this.localName = node.attributes.name;
     this.fieldNodes = node.children;
     return this;
   },
   is: function(typeName, contract) {
-    return _.startsWith(typeName, 'struct ' + this.localName + ' ');
+    return _.startsWith(typeName, 'struct ' + this.type + ' ');
   },
   init: function(typeName, typeCreator, contract) {
     var self = this;
-    this.storageType = typeName.substr(this.localName.length + 8);
+    this.storageType = typeName.substr(this.type.length + 8);
     this.fields = _.map(this.fieldNodes, function(node) {
       var typeHandler = typeCreator.create(node.attributes.type, self.contract);
       typeHandler.name = node.attributes.name;
