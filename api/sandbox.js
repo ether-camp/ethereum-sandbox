@@ -102,41 +102,29 @@ module.exports = function(services) {
     accounts: {
       args: [{ type: 'bool', defaultVal: false }],
       handler: function(full, cb) {
-        if (full) {
-          var stream = sandbox.vm.trie.createReadStream();
-          var accounts = [];
-          stream.on('data', function(data) {
-            var address = util.toHex(data.key);
-            var account = Object.create(Account).init(data.value, address);
+        var accounts = [];
+        var addresses = _.union(_.keys(sandbox.contracts), _.keys(sandbox.accounts));
+
+        if (!full) return cb(null, addresses);
+        
+        async.map(addresses, function(address, cb) {
+          sandbox.vm.trie.get(util.toBuffer(address, 40), function(err, data) {
+            if (err) return cb(err);
+            var account = Object.create(Account).init(data, address);
             if (sandbox.accountNames.hasOwnProperty(address))
               account.name = sandbox.accountNames[address];
-            
-            accounts.push(account);
-          });
-          stream.on('end', function() {
-            async.each(accounts, function(account, cb) {
-              async.parallel([
-                account.readStorage.bind(account, sandbox.vm.trie),
-                account.readCode.bind(account, sandbox.vm.trie),
-              ], cb);
-            }, function(err) {
+            async.parallel([
+              account.readStorage.bind(account, sandbox.vm.trie),
+              account.readCode.bind(account, sandbox.vm.trie)
+            ], function(err) {
               if (err) return cb(err);
-              cb(null, _.reduce(accounts, function(result, account) {
-                result[account.address] = account.getDetails();
-                return result;
-              }, {}));
+              cb(null, account.getDetails());
             });
           });
-        } else {
-          var stream = sandbox.vm.trie.createReadStream();
-          var accounts = [];
-          stream.on('data', function(data) {
-            accounts.push(util.toHex(data.key));
-          });
-          stream.on('end', function() {
-            cb(null, accounts);
-          });
-        }
+        }, function(err, accounts) {
+          if (err) return cb(err);
+          cb(null, _.indexBy(accounts, 'address'));
+        });
       }
     },
     transactions: { args: [], handler: function(cb) {
