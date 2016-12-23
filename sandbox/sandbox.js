@@ -113,7 +113,9 @@ Sandbox.createVM = function(debug, cb) {
     }
   }
   function createVM(cb) {
-    self.vm = new VM(new Trie(), self.blockchain, {
+    self.vm = new VM({
+      state: new Trie(),
+      blockchain: self.blockchain,
       activatePrecompiles: true,
       enableHomestead: true
     });

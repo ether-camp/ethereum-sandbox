@@ -8,7 +8,8 @@ var Debugger = {
     var self = this;
     this.sandbox = sandbox;
     this.resumeCb = null;
-    this.callStack = Object.create(CallStack).init(this.sandbox.contracts);
+    this.callStack = Object.create(CallStack)
+      .init(this.sandbox.contracts, this.sandbox.hashDict);
     this.tracer = Object.create(Tracer).init();
     sandbox.vm.on('afterTx', function() {
       self.callStack.clean();
@@ -28,17 +29,8 @@ var Debugger = {
 
     this.resumeCb = cb;
 
-    var account = Object.create(Account).init(data.account);
-    account.readStorage1(self.sandbox.vm.trie, function(err, storage) {
-      if (err) {
-        console.error(err);
-        return cb();
-      }
-      
-      var callStack = self.callStack.details(data.stack, data.memory, storage, self.sandbox.hashDict);
-      var storageVars = call.contract ?
-          call.contract.details.getStorageVars(storage, self.sandbox.hashDict) : [];
-      self.sandbox.filters.newBreakpoint(bp, callStack, storageVars);
+    this.callStack.details(this.sandbox.vm.trie, function(err, callStack) {
+      self.sandbox.filters.newBreakpoint(bp, callStack);
     });
   },
   addBreakpoint: function(bp) {
@@ -63,7 +55,8 @@ var Debugger = {
   stepOver: function() {
     if (this.resumeCb) {
       this.tracer.state = 'stepOver';
-      this.tracer.stepOverStackLevel = this.callStack.calls.length;
+      this.tracer.stepOverStackLevel =
+        this.tracer.calcStackDepth(this.callStack.contractsStack);
       this.resumeCb();
       this.resumeCb = null;
     }
@@ -71,7 +64,8 @@ var Debugger = {
   stepOut: function() {
     if (this.resumeCb) {
       this.tracer.state = 'stepOut';
-      this.tracer.stepOutStackLevel = this.callStack.calls.length;
+      this.tracer.stepOutStackLevel =
+        this.tracer.calcStackDepth(this.callStack.contractsStack);
       this.resumeCb();
       this.resumeCb = null;
     }

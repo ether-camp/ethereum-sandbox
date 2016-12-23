@@ -4,6 +4,7 @@ var Func = {
   init: function(node, typeCreator, contract, source) {
     this.contract = contract;
     this.public = node.attributes.public;
+    this.constructor = contract.name == node.attributes.name;
     
     var funcSrcmap = node.src.split(':').map(_.partial(parseInt, _, 10));
     this.funcStart = calcPosition(funcSrcmap[0], source);
@@ -32,6 +33,13 @@ var Func = {
         parseVariables(typeCreator, contract.name, source, blockNode)
       );
     }
+
+    this.modifiers = _(node.children)
+      .filter({ name: 'ModifierInvocation' })
+      .map(function(node) {
+        return node.children[0].attributes.value;
+      })
+      .value();
 
     return this;
   },
@@ -82,6 +90,12 @@ var Func = {
         type: variable.type,
         value: value
       };
+    });
+  },
+  getModifier: function(position) {
+    return _.find(this.modifiers, function(modifier) {
+      return modifier.modifier.inBlock(position) &&
+        !modifier.modifier.isVarDeclaration(position);
     });
   }
 };

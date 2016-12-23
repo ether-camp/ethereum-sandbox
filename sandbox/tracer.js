@@ -22,14 +22,14 @@ var Tracer = {
           source: mapping.path
         };
       } else if (this.state == 'stepOver') {
-        if (callStack.calls.length <= this.stepOverStackLevel) {
+        if (this.calcStackDepth(callStack.contractsStack) <= this.stepOverStackLevel) {
           bp = {
             line: mapping.line,
             source: mapping.path
           };
         }
       } else if (this.state == 'stepOut') {
-        if (callStack.calls.length < this.stepOutStackLevel) {
+        if (this.calcStackDepth(callStack.contractsStack) < this.stepOutStackLevel) {
           bp = {
             line: mapping.line,
             source: mapping.path
@@ -61,6 +61,13 @@ var Tracer = {
       source: bp.source
     };
     _.remove(this.breakpoints, bp);
+  },
+  calcStackDepth: function(contractsStack) {
+    return _(contractsStack)
+      .map(function(contract) {
+        return contract.calls.length;
+      })
+      .sum();
   }
 };
 

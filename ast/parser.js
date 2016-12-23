@@ -52,6 +52,19 @@ function parse(details, root, cb) {
         return _.find(contracts, { name: name });
       });
     });
+    _.each(contracts, function(contract) {
+      _.each(contract.funcs, function(func) {
+        var stackOffset = func.variables.length;
+        func.modifiers = _.map(func.modifiers, function(shortName) {
+          var details = {
+            modifier: contract.getModifier(shortName),
+            stackOffset: stackOffset
+          };
+          stackOffset += details.modifier.variables.length;
+          return details;
+        });
+      });
+    });
     cb(null, contracts);
   });
 }
@@ -150,16 +163,20 @@ Contract.prototype.getFunc = function(position) {
   var func = _.find(this.funcs, function(func) {
     return func.inFunc(position);
   });
-  if (!func) {
-    func = _.find(this.modifiers, function(modifier) {
-      return modifier.inFunc(position);
-    });
-  }
   for (var i = 0; i < this.parents.length && !func; i++) {
     func = this.parents[i].getFunc(position);
   }
   return func;
 };
 
+Contract.prototype.getModifier = function(shortName) {
+  var modifier = _.find(this.modifiers, function(modifier) {
+    return _.contains(modifier.name, '.' + shortName + '(');
+  });
+  for (var i = 0; i < this.parents.length && !modifier; i++) {
+    modifier = this.parents[i].getModifier(shortName);
+  }
+  return modifier;
+};
 
 module.exports = parse;

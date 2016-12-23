@@ -1,138 +1,150 @@
 var _ = require('lodash');
 var ethUtil = require('ethereumjs-util');
+var async = require('async');
+var Account = require('../ethereum/account');
 
 var callStack = {
-  state: 'empty',
-  calls: [],
+  state: 'waitingForCall',
+  contractsStack: [],
 
-  init: function(contracts) {
+  init: function(contracts, hashDict) {
     this.contracts = contracts;
+    this.hashDict = hashDict;
     return this;
   },
   clean: function() {
-    this.state = 'empty',
-    this.calls = [];
+    this.state = 'waitingForCall',
+    this.contractsStack = [];
   },
   trace: function(data) {
-    var address;
-    if (this.state == 'empty' || this.state == 'waitingForCall') {
-      address = '0x' + data.address.toString('hex');
-    } else if (this.state == 'waitingForLibCall') {
-      address = this.libraryAddress;
+    var contract;
+    
+    if (data.depth > this.contractsStack.length - 1) {
+      var address = this.state == 'waitingForLibCall' ?
+          this.libraryAddress :
+          '0x' + data.address.toString('hex');
+      contract = {
+        address: address,
+        baseAddress: '0x' + data.address.toString('hex'),
+        stack: data.stack,
+        memory: data.memory,
+        account: data.account,
+        calls: []
+      };
+      this.contractsStack.push(contract);
+      this.state = 'waitingForCall';
+    } else if (data.depth < this.contractsStack.length - 1) {
+      this.contractsStack.pop();
+      contract = _.last(this.contractsStack);
     } else {
-      var call = _.last(this.calls);
-      if (call) address = _.last(this.calls).address;
-      else address = '0x' + data.address.toString('hex');
+      contract = _.last(this.contractsStack);
     }
 
-    if (this.contracts.hasOwnProperty(address) &&
-        this.contracts[address].srcmap &&
-        this.contracts[address].details) {
-      var contract = this.contracts[address];
-      var srcmap = contract.deployed ? contract.srcmapRuntime : contract.srcmap;
+    if (contract && contract.calls.length == 1 &&
+        _.last(contract.calls).func && _.last(contract.calls).func.constructor) {
+      contract.calls = [];
+      this.state = 'waitingForCall';
+    }
+
+    var call;
+    if (_.has(this.contracts, contract.address) &&
+        this.contracts[contract.address].srcmap &&
+        this.contracts[contract.address].details) {
+      contract.obj = this.contracts[contract.address];
+      var srcmap = contract.obj.deployed ?
+          contract.obj.srcmapRuntime :
+          contract.obj.srcmap;
       var mapping = _.find(srcmap, { pc: data.pc });
       if (mapping) {
-        var func = contract.details.getFunc(mapping);
-        if (func) {
-          var inBlock = func.inBlock(mapping);
-          if (this.state == 'outOfBlock' && inBlock &&
-              !func.isVarDeclaration(mapping)) {
+        if (this.state == 'waitingForCall') {
+          var func = contract.obj.details.getFunc(mapping);
+          if (func) {
+            var stackPointer = 2;
+            if (contract.calls.length > 0) {
+              var prev = _.last(contract.calls);
+              stackPointer = prev.stackPointer + prev.func.variables.length + 1;
+            }
+            call = {
+              func: func,
+              stackPointer: stackPointer
+            };
+            contract.calls.push(call);
             this.state = 'running';
           }
-
-          if (this.state == 'waitingForReturn' && inBlock) {
-            this.calls.pop();
-            if (this.calls.length == 0) {
-              this.state = 'empty';
+        } else {
+          call = _.last(contract.calls);
+          if (call) {
+            if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
+              call.modifier = null;
+              call.mapping = mapping;
             } else {
-              this.state = 'running';
-              _.last(this.calls).mapping = null;
+              var modifier = call.func.getModifier(mapping);
+              if (modifier) {
+                call.modifier = {
+                  modifier: modifier.modifier,
+                  stackPointer: call.stackPointer + modifier.stackOffset
+                };
+                call.mapping = mapping;
+              } else {
+                call.mapping = null;
+              }
             }
           }
-
-          if (this.state == 'empty') {
-            this.calls.push({
-              address: address,
-              contract: contract,
-              func: func
-            });
-            this.state = 'outOfBlock';
-          } else if (this.state == 'running') {
-            _.last(this.calls).mapping = inBlock ? mapping : null;
-          } else if (this.state == 'waitingForCall') {
-            this.calls.push({
-              address: address,
-              contract: contract,
-              func: func
-            });
-            this.state = 'outOfBlock';
-          } else if (this.state == 'waitingForLibCall') {
-            var baseAddress = '0x' + data.address.toString('hex');
-            this.calls.push({
-              address: address,
-              contract: this.contracts.hasOwnProperty(baseAddress) ?
-                this.contracts[baseAddress] : null,
-              func: func
-            });
-            this.state = 'outOfBlock';
-          }
         }
-
-        if (mapping.type == 'i') this.state = 'waitingForCall';
-        else if (mapping.type == 'o') {
-          this.state = 'waitingForReturn';
-          _.last(this.calls).mapping = null;
+        
+        if (mapping.type == 'i') {
+          this.state = 'waitingForCall';
+        } else if (mapping.type == 'o') {
+          contract.calls.pop();
+          call = _.last(contract.calls);
+          if (call) call.mapping = null;
         }
-      }
-    } else {
-      if (this.state == 'waitingForCall' || this.state == 'waitingForLibCall') {
-        this.calls.push({
-          address: address,
-          contract: null,
-          func: null
-        });
-        this.state = 'running';
       }
     }
 
-    if (data.opcode.name == 'CREATE' ||
-        (data.opcode.name == 'CALL' &&
-         !ethUtil.isPrecompiled(data.stack[data.stack.length - 2]))) {
-      this.state = 'waitingForCall';
-    } else if (data.opcode.name == 'DELEGATECALL') {
-      this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex');
+    if (data.opcode.name == 'DELEGATECALL') {
+      this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex', 12);
       this.state = 'waitingForLibCall';
-    } else if ((data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') &&
-               (!mapping || this.state == 'waitingForReturn')) {
-      this.calls.pop();
-      if (this.calls.length == 0) {
-        this.state = 'empty';
-      } else {
-        this.state = 'running';
-        _.last(this.calls).mapping = null;
-      }
     }
 
-    return _.last(this.calls);
+    return call;
   },
-  details: function(stack, memory, storage, hashDict) {
-    var stackPointer = 2;
-    var address = _.last(this.calls).address;
-    var stackFrom = _.findLastIndex(this.calls, function(call) {
-      return call.address != address;
-    });
-    return _.map(this.calls, function(call, idx) {
-      var vars = [];
-      if (call.func && idx > stackFrom) {
-        vars = call.func.parseVariables(stackPointer, stack, memory, storage, hashDict);
-        stackPointer += vars.length + 1;
-      }
-      var details = {
-        name: call.func ? call.func.name : call.address,
-        mapping: call.mapping,
-        vars: vars
-      };
-      return details;
+  details: function(trie, cb) {
+    var self = this;
+    async.map(this.contractsStack, function(contract, cb) {
+      var account = Object.create(Account).init(contract.account);
+      account.readStorage1(trie, function(err, storage) {
+        if (err) return cb(err);
+
+        var storageVars = [];
+        if (_.has(self.contracts, contract.baseAddress)) {
+          storageVars = self.contracts[contract.baseAddress].details
+            .getStorageVars(storage, self.hashDict);
+        }
+        cb(null, _.map(contract.calls, function(call, idx) {
+          var func = call.func;
+          var stackPointer = call.stackPointer;
+          if (call.modifier) {
+            func = call.modifier.modifier;
+            stackPointer = call.modifier.stackPointer;
+          }
+
+          return {
+            name: func ? func.name : contract.address,
+            mapping: call.mapping,
+            storage: storageVars,
+            vars: func ?
+              func.parseVariables(
+                stackPointer, contract.stack,
+                contract.memory, storage, self.hashDict
+              ) :
+              []
+          };
+        }));
+      });
+    }, function(err, callStack) {
+      if (err) cb(err);
+      cb(null, _.flatten(callStack));
     });
   }
 };
