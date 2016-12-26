@@ -75,8 +75,14 @@ function parseSourceMap(srcmap, code, root, paths, cb) {
         line: prev.line,
         column: prev.column
       };
+
       var sourceIndex = entries[2] ? parseInt(entries[2]) - 1 : prev.source;
-      if (entries[0]) {
+      if (entries[0] == '-1') {
+        position = {
+          line: -1,
+          column: -1
+        };
+      } else if (entries[0]) {
         position = calcPosition(
           parseInt(entries[0]),
           sources[sourceIndex]
@@ -87,7 +93,7 @@ function parseSourceMap(srcmap, code, root, paths, cb) {
         line: position.line,
         column: position.column,
         source: sourceIndex,
-        path: root + paths[sourceIndex],
+        path: sourceIndex >= 0 ? root + paths[sourceIndex] : '',
         type: entries[3],
         pc: pc
       };
