@@ -177,10 +177,25 @@ module.exports = function(services) {
         cb(null, sandbox.projectName);
       }
     },
+    setProjectDir: {
+      args: [{ type: 'string' }],
+      handler: function(projectDir, cb) {
+        sandbox.projectDir = projectDir;
+        cb();
+      }
+    },
+    projectDir: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.projectDir);
+      }
+    },
     setTimestamp: {
-      args: [{ type: 'number' }],
-      handler: function(timestamp, cb) {
+      args: [{ type: 'number' }, { type: 'bool', defaultVal: false }],
+      handler: function(timestamp, keepTimestampConstant, cb) {
         sandbox.timeOffset = timestamp - Math.floor(Date.now() / 1000);
+        sandbox.timestamp = timestamp;
+        sandbox.keepTimestampConstant = keepTimestampConstant;
         cb();
       }
     },
