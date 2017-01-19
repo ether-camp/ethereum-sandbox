@@ -77,7 +77,7 @@ function parseSourceMap(srcmap, code, root, paths, cb) {
       };
 
       var sourceIndex = entries[2] ? parseInt(entries[2]) - 1 : prev.source;
-      if (entries[0] == '-1') {
+      if (entries.indexOf('-1') >= 0 || sourceIndex < 0) {
         position = {
           line: -1,
           column: -1
