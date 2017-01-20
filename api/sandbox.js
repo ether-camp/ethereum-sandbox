@@ -152,6 +152,7 @@ module.exports = function(services) {
               var contract = sandbox.contracts[receipt.createdAddress];
               receipt.contract = {
                 name: contract.name,
+                dir: contract.root,
                 sources: contract.sources,
                 args: contract.args
               };
