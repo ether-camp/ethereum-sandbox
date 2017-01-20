@@ -139,9 +139,27 @@ module.exports = function(services) {
         }
       }
     },
-    transactions: { args: [], handler: function(cb) {
-      cb(null, _.invoke(sandbox.receipts, 'getDetails'));
-    }},
+    transactions: {
+      args: [{
+        type: 'bool',
+        defaultVal: false
+      }],
+      handler: function(withContracts, cb) {
+        var receipts = _.invoke(sandbox.receipts, 'getDetails');
+        if (withContracts) {
+          _.each(receipts, function(receipt) {
+            if (receipt.createdAddress) {
+              var contract = sandbox.contracts[receipt.createdAddress];
+              receipt.contract = {
+                name: contract.name,
+                sources: contract.sources
+              };
+            }
+          });
+        }
+        cb(null, receipts);
+      }
+    },
     receipt: {
       args: [{ type: 'hex64' }],
       handler: function(txHash, cb) {
