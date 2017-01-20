@@ -54,7 +54,8 @@ var types = {
     if (typeof val !== 'object' ||
         !val.hasOwnProperty('name') ||
         !val.hasOwnProperty('binary') ||
-        !val.hasOwnProperty('abi'))
+        !val.hasOwnProperty('abi') ||
+        !val.hasOwnProperty('args'))
       errors.push('Contract must be an object with properties name, binary, abi;');
     return val;
   },
