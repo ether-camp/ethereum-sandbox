@@ -24,6 +24,12 @@ var Account = require('../ethereum/account');
 module.exports = function(services) {
   var sandbox = services.sandbox;
   return {
+    enabled: {
+      args: [],
+      handler: function(cb) {
+        cb(null, !!sandbox.debugger);
+      }
+    },
     setBreakpoints: {
       args: [{
         type: 'array',

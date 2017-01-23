@@ -153,7 +153,7 @@ module.exports = function(services) {
               receipt.contract = {
                 name: contract.name,
                 dir: contract.root,
-                sources: contract.sources,
+                sources: contract.sourceList,
                 args: contract.args
               };
             }
