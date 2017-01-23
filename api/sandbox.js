@@ -154,7 +154,7 @@ module.exports = function(services) {
                 name: contract.name,
                 dir: contract.root,
                 sources: contract.sourceList,
-                args: contract.args
+                args: _.has(contract, 'args') ? contract.args : []
               };
             }
           });
