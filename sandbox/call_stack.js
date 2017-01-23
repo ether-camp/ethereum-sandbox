@@ -71,7 +71,8 @@ var callStack = {
             contract.calls.push(call);
             this.state = 'running';
           }
-        } else {
+        }
+        if (this.state == 'running') {
           call = _.last(contract.calls);
           if (call) {
             if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
