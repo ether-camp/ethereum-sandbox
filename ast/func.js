@@ -5,6 +5,7 @@ var Func = {
     this.contract = contract;
     this.public = node.attributes.public;
     this.constructor = contract.name == node.attributes.name;
+    this._default = (node.attributes.name == '');
     
     var funcSrcmap = node.src.split(':').map(_.partial(parseInt, _, 10));
     this.funcStart = calcPosition(funcSrcmap[0], source);
@@ -24,7 +25,7 @@ var Func = {
     
     this.name = contract.name + '.' + node.attributes.name + '(' +
       _(this.variables).map('type').join(',') + ')';
-      
+
     this.variables = this.variables.concat(
       _.map(node.children[1].children, buildVar)
     );
@@ -97,6 +98,9 @@ var Func = {
       return modifier.modifier.inBlock(position) &&
         !modifier.modifier.isVarDeclaration(position);
     });
+  },
+  isDefault: function() {
+    return this._default;
   }
 };
 

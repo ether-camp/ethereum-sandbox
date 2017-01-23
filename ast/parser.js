@@ -55,14 +55,23 @@ function parse(details, root, cb) {
     _.each(contracts, function(contract) {
       _.each(contract.funcs, function(func) {
         var stackOffset = func.variables.length;
-        func.modifiers = _.map(func.modifiers, function(shortName) {
-          var details = {
-            modifier: contract.getModifier(shortName),
-            stackOffset: stackOffset
-          };
-          stackOffset += details.modifier.variables.length;
-          return details;
-        });
+        func.modifiers = _(func.modifiers)
+          .map(function(shortName) {
+            // it might be a call of a parent constructor
+            var modifier = contract.getModifier(shortName);
+            if (modifier) {
+              var details = {
+                modifier: modifier,
+                stackOffset: stackOffset
+              };
+              stackOffset += details.modifier.variables.length;
+              return details;
+            } else {
+              return null;
+            }
+          })
+          .compact()
+          .value();
       });
     });
     cb(null, contracts);
