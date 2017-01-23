@@ -59,7 +59,7 @@ var callStack = {
         if (this.state == 'waitingForCall') {
           var func = contract.obj.details.getFunc(mapping);
           if (func) {
-            var stackPointer = 2;
+            var stackPointer = func.constructor ? 0 : 2;
             if (contract.calls.length > 0) {
               var prev = _.last(contract.calls);
               stackPointer = prev.stackPointer + prev.func.variables.length + 1;
