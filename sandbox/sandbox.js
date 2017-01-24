@@ -219,6 +219,7 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
             caller: util.toBuffer(self.coinbase),
             block: block
           }, function(err, result) {
+            if (self.debugger) self.debugger.finish();
             if (err) return cb(err);
 
             self.contracts[account.address].deploy(util.toHex(result.gasUsed), result.return, function(err) {

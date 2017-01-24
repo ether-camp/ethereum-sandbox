@@ -5,16 +5,12 @@ var Tracer = require('./tracer');
 
 var Debugger = {
   init: function(sandbox) {
-    var self = this;
     this.sandbox = sandbox;
     this.resumeCb = null;
     this.callStack = Object.create(CallStack)
       .init(this.sandbox.contracts, this.sandbox.hashDict);
     this.tracer = Object.create(Tracer).init();
-    sandbox.vm.on('afterTx', function() {
-      self.callStack.clean();
-      self.tracer.clean();
-    });
+    sandbox.vm.on('afterTx', this.finish.bind(this));
     sandbox.vm.on('step', this.trace.bind(this));
     
     return this;
@@ -69,6 +65,10 @@ var Debugger = {
       this.resumeCb();
       this.resumeCb = null;
     }
+  },
+  finish: function() {
+    this.callStack.clean();
+    this.tracer.clean();
   },
   clear: function() {
     this.sandbox = null;
