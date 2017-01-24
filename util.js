@@ -32,7 +32,7 @@ util.sha3 = function(strOrBuf, encoding) {
     strOrBuf = new Buffer(util.pad(strOrBuf.substr(2)), 'hex');
   sha.update(strOrBuf);
   var out = sha.digest(encoding);
-  return Buffer.isBuffer(out) ? out : util.toHex(out);
+  return encoding == 'binary' ? new Buffer(out, 'ascii') : util.toHex(out);
 };
 
 util.toHex = function(obj, toLength) {
@@ -72,6 +72,10 @@ util.toBigNumber = function(number) {
 };
 
 util.toBuffer = function(number, toLength) {
+  if (typeof number == 'number') {
+    if (toLength) return new Buffer(util.fillWithZeroes(number.toString(16), toLength), 'hex');
+    else return new Buffer(util.pad(number.toString(16)), 'hex');
+  }
   if (util.isBigNumber(number)) {
     if (toLength) return new Buffer(util.fillWithZeroes(number.toString(16), toLength), 'hex');
     else return new Buffer(util.pad(number.toString(16)), 'hex');
@@ -122,34 +126,50 @@ util.decodeRlp = function(buf) {
   return rlp.decode(buf);
 };
 
-util.synchronize = function(fn) {
+util.synchronize = function(fn, lockName) {
+  if (!lockName) lockName = '_lock';
   return function() {
-    if (this._lock) {
-      if (!this._deferredCalls) this._deferredCalls = [];
-      this._deferredCalls.push({
+    if (this[lockName]) {
+      if (!this._deferredCalls) this._deferredCalls = {};
+      if (!this._deferredCalls[lockName]) this._deferredCalls[lockName] = [];
+      this._deferredCalls[lockName].push({
         fn: fn,
-        args: arguments
+        args: arguments,
+        lockName: lockName
       });
-    } else call(this, fn, arguments);
+    } else call(this, fn, arguments, lockName);
 
-    function call(obj, fn, args) {
-      obj._lock = true;
+    function call(obj, fn, args, lockName) {
+      obj[lockName] = true;
       var cb = args[args.length - 1];
       if (!_.isFunction(cb))
         throw 'the last arg of synchronized function has to be a callback';
       args[args.length - 1] = function() {
-        if (!obj._deferredCalls) obj._deferredCalls = [];
-        if (obj._deferredCalls.length > 0) {
-          var params = obj._deferredCalls.shift();
-          call(obj, params.fn, params.args);
+        if (!obj._deferredCalls) obj._deferredCalls = {};
+        if (!obj._deferredCalls[lockName]) obj._deferredCalls[lockName] = [];
+        if (obj._deferredCalls[lockName].length > 0) {
+          var params = obj._deferredCalls[lockName].shift();
+          call(obj, params.fn, params.args, lockName);
         } else {
-          obj._lock = false;
+          obj[lockName] = false;
         }
         cb.apply(null, arguments);
       };
       fn.apply(obj, args);
     }
   };
+};
+
+util.inc = function(buf, idx) {
+  if (idx == null) idx = 31;
+  if (idx < 0) return buf.fill(0);
+  var n = buf[idx] + 1;
+  if (n == 0x100) {
+    buf[idx] = 0;
+    util.inc(buf, idx - 1);
+  } else {
+    buf[idx] = n;
+  }
 };
 
 util.showError = function(err) {

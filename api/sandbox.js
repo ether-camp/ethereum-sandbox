@@ -153,8 +153,8 @@ module.exports = function(services) {
               receipt.contract = {
                 name: contract.name,
                 dir: contract.root,
-                sources: contract.sources,
-                args: contract.args
+                sources: contract.sourceList,
+                args: _.has(contract, 'args') ? contract.args : []
               };
             }
           });
@@ -170,7 +170,15 @@ module.exports = function(services) {
       }
     },
     contracts: { args: [], handler: function(cb) {
-      cb(null, sandbox.contracts);
+      cb(
+        null,
+        _(sandbox.contracts)
+          .map(function(contract, address) {
+            return [address, contract.getDetails()];
+          })
+          .object()
+          .value()
+      );
     }},
     gasLimit: {
       args: [],
