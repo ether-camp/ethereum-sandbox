@@ -12,7 +12,7 @@ BoolType.getSize = function(type) {
 };
 
 BoolType.parseValue = function(buf) {
-  return buf && buf.length > 0 ? (buf[0] != 0).toString() : 'false';
+  return buf && buf.length > 0 ? (buf[buf.length - 1] != 0).toString() : 'false';
 };
 
 module.exports = BoolType;
