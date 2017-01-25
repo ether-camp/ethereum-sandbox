@@ -40,6 +40,9 @@ var callStack = {
       contract = _.last(this.contractsStack);
     }
 
+    // update account to have the latest storage
+    contract.account = data.account;
+
     if (contract && contract.calls.length == 1 &&
         _.last(contract.calls).func && _.last(contract.calls).func.constructor) {
       contract.calls = [];
