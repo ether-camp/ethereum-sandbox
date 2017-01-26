@@ -58,6 +58,12 @@ var types = {
       errors.push('Contract must be an object with properties name, binary, abi;');
     return val;
   },
+  args: function(val, errors) {
+    if (!_.isArray(val)) {
+      errors.push('Args must be an array;');
+    }
+    return val;
+  },
   bool: function(val, errors) {
     if (typeof val !== 'boolean') errors.push('Not a boolean');
     return val;

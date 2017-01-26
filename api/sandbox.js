@@ -180,6 +180,16 @@ module.exports = function(services) {
           .value()
       );
     }},
+    contract: {
+      args: [{ type: 'address' }],
+      handler: function(address, cb) {
+        var contract = null;
+        if (_.has(sandbox.contracts, address)) {
+          contract = sandbox.contracts[address].getDetails();
+        }
+        cb(null, contract);
+      }
+    },
     gasLimit: {
       args: [],
       handler: function(cb) { cb(null, '0x' + sandbox.gasLimit.toString(16)); }

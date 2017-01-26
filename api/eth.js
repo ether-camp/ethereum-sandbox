@@ -160,7 +160,9 @@ module.exports = function(services) {
           value: { type: 'number', defaultVal: new BigNumber(0) },
           data: { type: 'hex', defaultVal: null },
           nonce: { type: 'number', defaultVal: null },
-          contract: { type: 'contract', defaultVal: null }
+          contract: { type: 'contract', defaultVal: null },
+          call: { type: 'string', defaultVal: null },
+          args: { type: 'args', defaultVal: [] }
         }
       }],
       handler: function(options, cb) {

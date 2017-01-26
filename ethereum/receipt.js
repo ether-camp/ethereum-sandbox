@@ -41,6 +41,11 @@ module.exports = {
     this.returnValue = result.vm.return ? util.toHex(result.vm.return) : null;
     this.exception = result.vm.exceptionError || null;
 
+    if (tx.call) {
+      this.call = tx.call;
+      this.args = tx.args;
+    }
+
     this.logs = _.map(result.vm.logs, function(log, index) {
       return {
         logIndex: '0x' + index,
@@ -84,7 +89,7 @@ module.exports = {
     };
   },
   getDetails: function() {
-    return {
+    var result = {
       from: this.from,
       nonce: util.toHex(this.nonce),
       to: this.to,
@@ -97,5 +102,10 @@ module.exports = {
       exception: this.exception,
       rlp: this.rlp
     };
+    if (_.has(this, 'call')) {
+      result.call = this.call;
+      result.args = this.args;
+    }
+    return result;
   }
 };
