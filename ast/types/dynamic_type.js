@@ -55,6 +55,14 @@ var DynamicType = {
     var length = Buffer.from(memory.slice(offset, offset + 32)).readUIntBE(0, 32);
     var data = Buffer.from(memory.slice(offset + 32, offset + 32 + length));
     return this.parseValue(data);
+  },
+  retrieveData: function(stack, calldata, position) {
+    var offset = stack[position.index].readUIntBE(0, stack[position.index].length);
+    position.index++;
+    var length = stack[position.index].readUIntBE(0, stack[position.index].length);
+    position.index++;
+    var data = Buffer.from(calldata.slice(offset, offset + length));
+    return this.parseValue(data);
   }
 };
 

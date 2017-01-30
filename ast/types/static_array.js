@@ -38,6 +38,18 @@ var StaticArrayType = {
         0
       );
     });
+  },
+  retrieveData: function(stack, calldata, position) {
+    var self = this;
+    var offset = stack[position.index].readUIntBE(0, stack[position.index].length);
+    position.index++;
+    return _.times(this.size, function(i) {
+      return self.internal.retrieveStack(
+        [ Buffer.from(calldata.slice(offset + i * 32, offset + i * 32 + 32)) ],
+        calldata,
+        0
+      );
+    });
   }
 };
 

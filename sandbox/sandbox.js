@@ -211,9 +211,11 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
         var address = util.toBuffer(account.address);
         self.createNextBlock([], function(err, block) {
           if (err) return cb(err);
+          var data = util.toBuffer(account.runCode.binary);
+          if (self.debugger) self.debugger.setCallData(data);
           self.vm.runCode({
-            code: util.toBuffer(account.runCode.binary),
-            data: util.toBuffer(account.runCode.binary),
+            code: data,
+            data: data,
             gasLimit: util.toBuffer(self.gasLimit),
             address: address,
             caller: util.toBuffer(self.coinbase),

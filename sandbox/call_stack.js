@@ -6,6 +6,7 @@ var Account = require('../ethereum/account');
 var callStack = {
   state: 'waitingForCall',
   contractsStack: [],
+  calldata: null,
 
   init: function(contracts, hashDict) {
     this.contracts = contracts;
@@ -142,7 +143,7 @@ var callStack = {
             storage: storageVars,
             vars: func ?
               func.parseVariables(
-                stackPointer, contract.stack,
+                stackPointer, self.calldata, contract.stack,
                 contract.memory, storage, self.hashDict
               ) :
               []

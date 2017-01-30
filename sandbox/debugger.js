@@ -5,11 +5,15 @@ var Tracer = require('./tracer');
 
 var Debugger = {
   init: function(sandbox) {
+    var self = this;
     this.sandbox = sandbox;
     this.resumeCb = null;
     this.callStack = Object.create(CallStack)
       .init(this.sandbox.contracts, this.sandbox.hashDict);
     this.tracer = Object.create(Tracer).init();
+    sandbox.vm.on('beforeTx', function(tx) {
+      self.setCallData(tx.data);
+    });
     sandbox.vm.on('afterTx', this.finish.bind(this));
     sandbox.vm.on('step', this.trace.bind(this));
     
@@ -28,6 +32,9 @@ var Debugger = {
     this.callStack.details(this.sandbox.vm.trie, function(err, callStack) {
       self.sandbox.filters.newBreakpoint(bp, callStack);
     });
+  },
+  setCallData: function(calldata) {
+    this.callStack.calldata = calldata;
   },
   addBreakpoint: function(bp) {
     this.tracer.addBreakpoint(bp);

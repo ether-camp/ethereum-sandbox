@@ -75,16 +75,21 @@ var Func = {
           position.column <= variable.end.column));
     });
   },
-  parseVariables: function(stackPointer, stack, memory, storage, hashDict) {
-    return _.map(this.variables, function(variable, index) {
+  parseVariables: function(stackPointer, calldata, stack, memory, storage, hashDict) {
+    var position = { index: stackPointer };
+    return _.map(this.variables, function(variable) {
       var value;
       if (variable.storageType == 'memory') {
-        value = variable.retrieveStack(stack, memory, stackPointer + index);
+        value = variable.retrieveStack(stack, memory, position.index);
+        position.index++;
+      } else if (variable.storageType == 'calldata') {
+        value = variable.retrieveData(stack, calldata, position);
       } else {
-        var idx = stack[stackPointer + index];
+        var idx = stack[position.index];
         var idxCopy = new Buffer(32).fill(0);
         idx.copy(idxCopy, 32 - idx.length);
         value = variable.retrieve(storage, hashDict, { index: idxCopy, offset: 0 });
+        position.index++;
       }
       return {
         name: variable.name,
