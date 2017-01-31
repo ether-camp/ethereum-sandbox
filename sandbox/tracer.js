@@ -5,9 +5,13 @@ var Tracer = {
   prevBp: null,
   state: 'running', // running, stepInto, stepOver, stepOut
   init: function() {
+    this.breakpoints = [];
+    this.prevBp = null;
+    this.state = 'running';
     return this;
   },
   clean: function() {
+    this.breakpoints = [];
     this.prevBp = null;
     this.state = 'running';
   },
