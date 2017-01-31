@@ -11,7 +11,6 @@ var Tracer = {
     return this;
   },
   clean: function() {
-    this.breakpoints = [];
     this.prevBp = null;
     this.state = 'running';
   },

@@ -58,6 +58,7 @@ Sandbox.init = function(id, config, cb) {
   this.difficulty = new BigNumber(1000);
   this.miningBlock = false;
   this.pendingTransactions = [];
+  this.miningTransactions = [];
   this.receipts = {};
   this.logListeners = [];
   this.projectName = null;
@@ -170,6 +171,7 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.filters = null;
     this.receipts = null;
     this.pendingTransactions = null;
+    this.miningTransactions = null;
     this.logListeners = null;
     this.hashDict = null;
     if (this.debugger) this.debugger.clear();
@@ -316,7 +318,9 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
       function checkNonce() {
-        var prevTx = _.findLast(this.pendingTransactions, { from: tx.from });
+        var prevTx = _.findLast(this.miningTransactions, { from: tx.from });
+        if (!prevTx)
+          prevTx = _.findLast(this.pendingTransactions, { from: tx.from });
         if (prevTx) {
           var prevNonce = util.toBigNumber(prevTx.nonce);
           if (tx.nonce) {
@@ -355,12 +359,11 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   var self = this;
   if (withRunNext) clearTimeout(this.nextMinerRun);
 
-  var txs = [];
   var blockGasLimit = this.gasLimit;
   while (this.pendingTransactions.length > 0) {
     blockGasLimit = blockGasLimit.sub(this.pendingTransactions[0].gasLimit);
     if (blockGasLimit.isNegative()) break;
-    txs.push(this.pendingTransactions.shift());
+    this.miningTransactions.push(this.pendingTransactions.shift());
   }
 
   var block;
@@ -374,6 +377,9 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
       if (withRunNext) nextRun();
       return cb(err);
     }
+
+    var txs = self.miningTransactions;
+    self.miningTransactions = [];
 
     _.each(txs, function(tx, index) {
       var receipt = Object.create(Receipt)
@@ -404,7 +410,7 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   });
 
   function createBlock(cb) {
-    self.createNextBlock(_.invoke(txs, 'getTx'), function(err, nextBlock) {
+    self.createNextBlock(_.invoke(self.miningTransactions, 'getTx'), function(err, nextBlock) {
       block = nextBlock;
       cb(err);
     });
