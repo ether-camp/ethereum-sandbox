@@ -20,7 +20,7 @@ var BigNumber = require('bignumber.js');
 
 var types = {
   address: function(val, errors) {
-    if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]{40}$/))
+    if (typeof val !== 'string' || !val.toLowerCase().match(/^0x[\dabcdef]{40}$/))
       errors.push('Address must contain 0x and 40 hex digits;');
     return val;
   },
