@@ -36,6 +36,7 @@ var Account = require('../ethereum/account');
 var SHA3Hash = require('sha3').SHA3Hash;
 var Contract = require('./contract');
 var Debugger = require('./debugger');
+var Txs = require('./txs');
 
 var dbDir = './db/';
 
@@ -57,8 +58,7 @@ Sandbox.init = function(id, config, cb) {
   this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
   this.difficulty = new BigNumber(1000);
   this.miningBlock = false;
-  this.pendingTransactions = [];
-  this.miningTransactions = [];
+  this.txs = Object.create(Txs).init();
   this.receipts = {};
   this.logListeners = [];
   this.projectName = null;
@@ -170,8 +170,7 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.filters.destroy();
     this.filters = null;
     this.receipts = null;
-    this.pendingTransactions = null;
-    this.miningTransactions = null;
+    this.txs = null;
     this.logListeners = null;
     this.hashDict = null;
     if (this.debugger) this.debugger.clear();
@@ -285,7 +284,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     } else finish();
     
     function finish() {
-      self.pendingTransactions.push(tx);
+      self.txs.add(tx);
       self.filters.newPendingTx(tx);
       cb(null, util.toHex(tx.getTx().hash()));
       self.mineBlock(util.showError);
@@ -293,11 +292,11 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
   });
 
   function check(tx, cb) {
-    this.vm.trie.get(util.toBuffer(tx.from), (function(err, data) {
+    readAccount(util.toBuffer(tx.from), (function(err, data) {
       if (err) return cb(err);
-      
-      var account = new EthAccount(data);
 
+      var account = new EthAccount(data);
+      
       cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
       
       function checkGasLimit() {
@@ -318,9 +317,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
       function checkNonce() {
-        var prevTx = _.findLast(this.miningTransactions, { from: tx.from });
-        if (!prevTx)
-          prevTx = _.findLast(this.pendingTransactions, { from: tx.from });
+        var prevTx = this.txs.getLatest(tx.from);
         if (prevTx) {
           var prevNonce = util.toBigNumber(prevTx.nonce);
           if (tx.nonce) {
@@ -347,6 +344,23 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
     }).bind(this));
+    // workaround for https://github.com/ether-camp/ethereum-sandbox/issues/18
+    function readAccount(address, cb) {
+      var tries = 5;
+      var data;
+      async.whilst(
+        function() { return tries-- > 0 && !data; },
+        function(cb) {
+          self.vm.trie.get(util.toBuffer(tx.from), function(err, d) {
+            data = d;
+            cb(err);
+          });
+        },
+        function(err) {
+          cb(err, data);
+        }
+      );
+    }
   }
 });
 Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
@@ -360,12 +374,8 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   if (withRunNext) clearTimeout(this.nextMinerRun);
 
   var blockGasLimit = this.gasLimit;
-  while (this.pendingTransactions.length > 0) {
-    blockGasLimit = blockGasLimit.sub(this.pendingTransactions[0].gasLimit);
-    if (blockGasLimit.isNegative()) break;
-    this.miningTransactions.push(this.pendingTransactions.shift());
-  }
-
+  var txs = this.txs.getPendingTxs(blockGasLimit);
+  this.txs.mining(txs);
   var block;
 
   async.series([
@@ -378,8 +388,7 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
       return cb(err);
     }
 
-    var txs = self.miningTransactions;
-    self.miningTransactions = [];
+    self.txs.mined(txs);
 
     _.each(txs, function(tx, index) {
       var receipt = Object.create(Receipt)
@@ -410,7 +419,7 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   });
 
   function createBlock(cb) {
-    self.createNextBlock(_.invoke(self.miningTransactions, 'getTx'), function(err, nextBlock) {
+    self.createNextBlock(_.invoke(txs, 'getTx'), function(err, nextBlock) {
       block = nextBlock;
       cb(err);
     });
@@ -429,7 +438,7 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   }
 
   function nextRun() {
-    if (self.pendingTransactions.length > 0) {
+    if (self.txs.hasPending()) {
       self.mineBlock(util.showError);
     } else {
       self.nextMinerRun = setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
@@ -456,7 +465,7 @@ Sandbox.call = util.synchronize(function(options, cb) {
       if (err) return cb(err);
       
       var account = new EthAccount(data);
-      var prevTx = _.find(this.pendingTransactions, { from: tx.from });
+      var prevTx = this.txs.getLatest(tx.from);
       tx.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
       cb();
     }).bind(this));
