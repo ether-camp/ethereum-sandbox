@@ -14,6 +14,7 @@ var StructType = {
   init: function(typeName, typeCreator, contract) {
     var self = this;
     this.storageType = typeName.substr(this.type.length + 8);
+    this.stackSize = 1;
     this.fields = _.map(this.fieldNodes, function(node) {
       var typeHandler = typeCreator.create(node.attributes.type, self.contract);
       typeHandler.name = node.attributes.name;

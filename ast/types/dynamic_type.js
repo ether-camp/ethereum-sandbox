@@ -9,6 +9,7 @@ var DynamicType = {
   init: function(typeName) {
     this.type = typeName;
     this.storageType = typeName.substr(typeName.indexOf(' ') + 1);
+    this.stackSize = this.storageType == 'calldata' ? 2 : 1;
     return this;
   },
   retrieve: function(storage, hashDict, position) {

@@ -13,6 +13,7 @@ var MappingType = {
     var valueTypeName = parts[2];
     this.valueType = typeCreator.create(valueTypeName, contract);
     this.storageType = 'storage ref';
+    this.stackSize = 1;
     return this;
   },
   retrieve: function(storage, hashDict, position) {

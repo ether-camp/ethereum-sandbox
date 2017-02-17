@@ -10,6 +10,7 @@ var DynamicArrayType = {
     this.type = typeName;
     var parts = /^(.*)\[\] ([\w ]+)$/.exec(typeName);
     this.storageType = parts[2];
+    this.stackSize = this.storageType == 'calldata' ? 2 : 1;
     var internalTypeName = parts[1];
     this.internal = typeCreator.create(internalTypeName, contract);
     return this;

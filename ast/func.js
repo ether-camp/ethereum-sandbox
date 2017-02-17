@@ -29,6 +29,7 @@ var Func = {
     this.variables = this.variables.concat(
       _.map(node.children[1].children, buildVar)
     );
+    this.argsStackSize = _.sum(this.variables, 'stackSize');
     if (blockNode) {
       this.variables = this.variables.concat(
         parseVariables(typeCreator, contract.name, source, blockNode)

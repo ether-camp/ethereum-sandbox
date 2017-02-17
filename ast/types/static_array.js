@@ -12,6 +12,7 @@ var StaticArrayType = {
     var parts = /^(.*)\[(\d+)\] ([\w ]+)$/.exec(typeName);
     this.size = parseInt(parts[2]);
     this.storageType = parts[3];
+    this.stackSize = 1;
     var internalTypeName = parts[1];
     this.internal = typeCreator.create(internalTypeName, contract);
     return this;

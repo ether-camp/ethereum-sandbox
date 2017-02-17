@@ -14,6 +14,7 @@ var EnumType = {
   },
   init: function(node, typeCreator, contract) {
     this.storageType = 'memory';
+    this.stackSize = 1;
     return this;
   },
   retrieve: function(storage, hashDict, position) {

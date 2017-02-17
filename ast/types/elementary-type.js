@@ -8,6 +8,7 @@ var ElementaryType = {
   init: function(typeName) {
     this.type = typeName;
     this.size = this.getSize(this.type);
+    this.stackSize = 1;
     this.storageType = 'memory'; // for func scope
     return this;
   },
