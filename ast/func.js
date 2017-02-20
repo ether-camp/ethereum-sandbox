@@ -31,9 +31,11 @@ var Func = {
     );
     this.argsStackSize = _.sum(this.variables, 'stackSize');
     if (blockNode) {
-      this.variables = this.variables.concat(
-        parseVariables(typeCreator, contract.name, source, blockNode)
-      );
+      var blockVars = parseVariables(typeCreator, contract.name, source, blockNode);
+      var lastMemoryVarIdx = _.findLastIndex(blockVars, { storageType: 'memory' });
+      if (lastMemoryVarIdx >= 0)
+        this.argsStackSize += _.sum(blockVars.slice(0, lastMemoryVarIdx + 1), 'stackSize');
+      this.variables = this.variables.concat(blockVars);
     }
 
     this.modifiers = _(node.children)
@@ -80,7 +82,7 @@ var Func = {
     var position = { index: stackPointer };
     return _.map(this.variables, function(variable) {
       var value;
-      if (variable.storageType == 'memory') {
+      if (variable.storageType == 'memory' || variable.storageType == 'stack') {
         value = variable.retrieveStack(stack, memory, position.index);
         position.index++;
       } else if (variable.storageType == 'calldata') {

@@ -67,7 +67,7 @@ var Modifier = {
     var position = { index: stackPointer };
     return _.map(this.variables, function(variable, index) {
       var value;
-      if (variable.storageType == 'memory') {
+      if (variable.storageType == 'memory' || variable.storageType == 'stack') {
         value = variable.retrieveStack(stack, memory, position.index);
         position.index++;
       } else if (variable.storageType == 'calldata') {
