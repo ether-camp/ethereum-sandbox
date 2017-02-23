@@ -44,7 +44,7 @@ var EnumType = {
 
     return this.parseValue(value);
   },
-  retrieveStack: function(stack, index) {
+  retrieveStack: function(stack, memory, index) {
     return this.parseValue(stack[index]);
   },
   parseValue: function(buf) {
