@@ -40,16 +40,20 @@ var StructType = {
   },
   retrieveStack: function(stack, memory, index) {
     var offset = stack[index].readUIntBE(0, stack[index].length);
+    var idx = 0;
     return _(this.fields)
-      .map(function(field, i) {
-        return [
-          field.name,
-          field.retrieveStack(
-            [ Buffer.from(memory.slice(offset + i * 32, offset + i * 32 + 32)) ],
+      .map(function(field) {
+        var value;
+        if (_.startsWith(field.type, 'mapping(')) value = 'No value';
+        else {
+          value = field.retrieveStack(
+            [ Buffer.from(memory.slice(offset + idx * 32, offset + idx * 32 + 32)) ],
             memory,
             0
-          )
-        ];
+          );
+          idx++;
+        }
+        return [ field.name, value ];
       })
       .object()
       .value();
