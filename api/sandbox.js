@@ -150,12 +150,14 @@ module.exports = function(services) {
           _.each(receipts, function(receipt) {
             if (receipt.createdAddress) {
               var contract = sandbox.contracts[receipt.createdAddress];
-              receipt.contract = {
-                name: contract.name,
-                dir: contract.root,
-                sources: contract.sourceList,
-                args: _.has(contract, 'args') ? contract.args : []
-              };
+              if (contract) {
+                receipt.contract = {
+                  name: contract.name,
+                  dir: contract.root,
+                  sources: contract.sourceList,
+                  args: _.has(contract, 'args') ? contract.args : []
+                };
+              }
             }
           });
         }
