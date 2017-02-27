@@ -4,13 +4,12 @@ var async = require('async');
 var Account = require('../ethereum/account');
 
 var callStack = {
-  state: 'waitingForCall',
-  contractsStack: [],
-  calldata: null,
-
   init: function(contracts, hashDict) {
     this.contracts = contracts;
     this.hashDict = hashDict;
+    this.contractsStack = [];
+    this.calldata = null;
+    this.state = 'waitingForCall';
     return this;
   },
   clean: function() {
