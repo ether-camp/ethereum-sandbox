@@ -259,6 +259,25 @@ module.exports = function(services) {
         );
         cb();
       }
+    },
+    newMessageFilter: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.filters.addMessageFilter());
+      }
+    },
+    getFilterChanges: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        cb(null, sandbox.filters.getChanges(filterId));
+      }
+    },
+    uninstallFilter: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        sandbox.filters.removeFilter(filterId);
+        cb();
+      }
     }
   };
 };

@@ -284,10 +284,12 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     } else finish();
     
     function finish() {
-      self.txs.add(tx);
-      self.filters.newPendingTx(tx);
-      cb(null, util.toHex(tx.getTx().hash()));
-      self.mineBlock(util.showError);
+      checkIfTargetAddressIsEmpty(tx, function() {
+        self.txs.add(tx);
+        self.filters.newPendingTx(tx);
+        cb(null, util.toHex(tx.getTx().hash()));
+        self.mineBlock(util.showError);
+      });
     }
   });
 
@@ -344,23 +346,38 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
     }).bind(this));
-    // workaround for https://github.com/ether-camp/ethereum-sandbox/issues/18
-    function readAccount(address, cb) {
-      var tries = 5;
-      var data;
-      async.whilst(
-        function() { return tries-- > 0 && !data; },
-        function(cb) {
-          self.vm.trie.get(util.toBuffer(tx.from), function(err, d) {
-            data = d;
-            cb(err);
-          });
-        },
-        function(err) {
-          cb(err, data);
-        }
-      );
-    }
+  }
+  function checkIfTargetAddressIsEmpty(tx, cb) {
+    if (tx.to) return cb();
+    var target = ethUtils.generateAddress(tx.from, tx.nonce.toNumber());
+    readAccount(target, function(err, data) {
+      if (err) console.error(err);
+      else if (data != null) {
+        self.filters.newWarning(
+          'You are creating a contract on address 0x' + target.toString('hex') +
+            ' but it is not empty already. You probably defined this account ' +
+            'in the ethereum.json.'
+        );
+      }
+      cb();
+    });
+  }
+  // workaround for https://github.com/ether-camp/ethereum-sandbox/issues/18
+  function readAccount(address, cb) {
+    var tries = 5;
+    var data;
+    async.whilst(
+      function() { return tries-- > 0 && !data; },
+      function(cb) {
+        self.vm.trie.get(address, function(err, d) {
+          data = d;
+          cb(err);
+        });
+      },
+      function(err) {
+        cb(err, data);
+      }
+    );
   }
 });
 Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {

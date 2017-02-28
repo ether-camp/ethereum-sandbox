@@ -93,6 +93,15 @@ var Filters = {
     };
     return num;
   },
+  addMessageFilter: function() {
+    var num = this.nextNum();
+    this.filters[num] = {
+      type: 'message',
+      entries: [],
+      sent: []
+    };
+    return num;
+  },
   newBlock: function(block) {
     this.currentBlockNum = util.toBigNumber(block.header.number);
     var hash = util.toHex(block.hash());
@@ -147,6 +156,17 @@ var Filters = {
         filter.entries.push(bp);
       })
       .value();
+  },
+  newMessage: function(message) {
+    _(this.filters)
+      .filter({ type: 'message' })
+      .each(function(filter) {
+        filter.entries.push(message);
+      })
+      .value();
+  },
+  newWarning: function(text) {
+    this.newMessage({ type: 'WARNING', text: text });
   },
   removeFilter: function(id) {
     if (this.filters.hasOwnProperty(id)) delete this.filters[id];
