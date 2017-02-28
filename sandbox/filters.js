@@ -165,9 +165,6 @@ var Filters = {
       })
       .value();
   },
-  newWarning: function(text) {
-    this.newMessage({ type: 'WARNING', text: text });
-  },
   removeFilter: function(id) {
     if (this.filters.hasOwnProperty(id)) delete this.filters[id];
   },

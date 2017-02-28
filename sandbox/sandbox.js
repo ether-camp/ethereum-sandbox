@@ -353,11 +353,14 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
     readAccount(target, function(err, data) {
       if (err) console.error(err);
       else if (data != null) {
-        self.filters.newWarning(
-          'You are creating a contract on address 0x' + target.toString('hex') +
-            ' but it is not empty already. You probably defined this account ' +
-            'in the ethereum.json.'
-        );
+        var hexTarget = '0x' + target.toString('hex');
+        self.filters.newMessage({
+          id: 'NEW_CONTRACT_AT_NOT_EMPTY_ACCOUNT',
+          address: hexTarget,
+          text: 'You are creating a contract at address ' + hexTarget +
+            ' but it is not empty already. You probably created this account ' +
+            'using web3.sandbox.createAccount().'
+        });
       }
       cb();
     });
