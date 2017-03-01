@@ -84,6 +84,24 @@ var Filters = {
     };
     return num;
   },
+  addBreakpointFilter: function() {
+    var num = this.nextNum();
+    this.filters[num] = {
+      type: 'breakpoint',
+      entries: [],
+      sent: []
+    };
+    return num;
+  },
+  addMessageFilter: function() {
+    var num = this.nextNum();
+    this.filters[num] = {
+      type: 'message',
+      entries: [],
+      sent: []
+    };
+    return num;
+  },
   newBlock: function(block) {
     this.currentBlockNum = util.toBigNumber(block.header.number);
     var hash = util.toHex(block.hash());
@@ -127,6 +145,23 @@ var Filters = {
       .filter({type: 'pending'})
       .each(function(filter) {
         filter.entries.push(hash);
+      })
+      .value();
+  },
+  newBreakpoint: function(bp, callStack) {
+    bp.callStack = callStack;
+    _(this.filters)
+      .filter({ type: 'breakpoint' })
+      .each(function(filter) {
+        filter.entries.push(bp);
+      })
+      .value();
+  },
+  newMessage: function(message) {
+    _(this.filters)
+      .filter({ type: 'message' })
+      .each(function(filter) {
+        filter.entries.push(message);
       })
       .value();
   },

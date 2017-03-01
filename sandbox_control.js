@@ -30,7 +30,8 @@ var apis = {
   sandbox: require('./api/sandbox'),
   eth: require('./api/eth'),
   net: require('./api/net'),
-  web3: require('./api/web3')
+  web3: require('./api/web3'),
+  debug: require('./api/debug')
 };
 
 function createCalls(apis, services) {
@@ -68,7 +69,7 @@ var Control = {
         compiler: Object.create(Compiler)
       };
       
-      services.sandbox.init(id, (function(err) {
+      services.sandbox.init(id, config, (function(err) {
         if (err) cb(err);
         else {
           var instanceServices = _.clone(services);
