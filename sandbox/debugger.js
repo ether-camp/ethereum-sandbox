@@ -4,22 +4,24 @@ var CallStack = require('./call_stack');
 var Tracer = require('./tracer');
 
 var Debugger = {
-  init: function(sandbox) {
+  init: function(ethVm, sandbox) {
     var self = this;
+    this.ethVm = ethVm;
     this.sandbox = sandbox;
     this.resumeCb = null;
     this.callStack = Object.create(CallStack)
       .init(this.sandbox.contracts, this.sandbox.hashDict);
     this.tracer = Object.create(Tracer).init();
-    sandbox.vm.on('beforeTx', function(tx) {
+    this.ethVm.on('beforeTx', function(tx) {
       self.setCallData(tx.data);
     });
-    sandbox.vm.on('afterTx', this.finish.bind(this));
-    sandbox.vm.on('step', this.trace.bind(this));
-    
+    this.ethVm.on('afterTx', this.finish.bind(this));
+    this.ethVm.on('step', this.trace.bind(this));
+
     return this;
   },
   trace: function(data, cb) {
+
     var self = this;
     var call = this.callStack.trace(data);
     if (!call || !call.mapping) return cb();
@@ -29,7 +31,7 @@ var Debugger = {
 
     this.resumeCb = cb;
 
-    this.callStack.details(this.sandbox.vm.trie, function(err, callStack) {
+    this.callStack.details(this.ethVm.trie, function(err, callStack) {
       self.sandbox.filters.newBreakpoint(bp, callStack);
     });
   },
@@ -77,10 +79,19 @@ var Debugger = {
     this.callStack.clean();
     this.tracer.clean();
   },
-  clear: function() {
+  destroy: function() {
     this.sandbox = null;
     this.prevBreakpoint = null;
     this.resumeCb = null;
+    this.ethVm = null;
+  },
+  copy: function(other) {
+
+    // tracer properties
+    this.tracer.copy(other.tracer);
+
+    // callStack properties
+    this.callStack.copy(other.callStack);
   }
 };
 

@@ -71,6 +71,9 @@ var Tracer = {
         return contract.calls.length;
       })
       .sum();
+  },
+  copy: function(other) {
+    this.breakpoints = other.breakpoints.slice()
   }
 };
 

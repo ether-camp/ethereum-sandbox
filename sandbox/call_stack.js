@@ -151,6 +151,14 @@ var callStack = {
       if (err) cb(err);
       cb(null, _.flatten(callStack));
     });
+  },
+  copy: function(other) {
+    this.state = other.state;
+    if (other.contractsStack) {
+      this.contractsStack = other.contractsStack.slice();
+    }
+    this.calldata = other.calldata;
+    this.libraryAddress = other.libraryAddress;
   }
 };
 
