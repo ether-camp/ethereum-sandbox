@@ -123,8 +123,6 @@ Sandbox.createVM = function(debug, cb) {
       enableHomestead: true
     }, self, debug);
 
-    console.log(self.vm);
-
     cb();
   }
   function startMiner(cb) {
