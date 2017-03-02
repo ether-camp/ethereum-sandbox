@@ -117,8 +117,20 @@ var VM = {
     return this.ethVm.runBlock(options, cb);
   },
 
-  runTx: function(options, cb) {
-    return this.ethVm.runTx(options, cb);
+  call: function(options, cb) {
+
+    var self = this;
+
+    // swap trie root
+    var storedRoot = this.trie.root;
+
+    return this.ethVm.runTx(options, function(err, results) {
+
+      // restore root
+      self.trie.root = storedRoot;
+
+      cb(err, results);
+    });
   },
 
   // debugger calls
