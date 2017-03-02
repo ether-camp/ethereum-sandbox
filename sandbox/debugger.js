@@ -4,13 +4,13 @@ var CallStack = require('./call_stack');
 var Tracer = require('./tracer');
 
 var Debugger = {
-  init: function(ethVm, sandbox) {
+  init: function(ethVm, sandbox, hashDict) {
     var self = this;
     this.ethVm = ethVm;
     this.sandbox = sandbox;
     this.resumeCb = null;
     this.callStack = Object.create(CallStack)
-      .init(this.sandbox.contracts, this.sandbox.hashDict);
+      .init(this.sandbox.contracts, hashDict);
     this.tracer = Object.create(Tracer).init();
     this.ethVm.on('beforeTx', function(tx) {
       self.setCallData(tx.data);

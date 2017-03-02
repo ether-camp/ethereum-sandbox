@@ -62,7 +62,6 @@ Sandbox.init = function(id, config, cb) {
   this.receipts = {};
   this.logListeners = [];
   this.projectName = null;
-  this.hashDict = [];
   this.timeOffset = 0;
   this.timestamp = 0;
   this.keepTimestampConstant = false;
@@ -157,7 +156,6 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.receipts = null;
     this.txs = null;
     this.logListeners = null;
-    this.hashDict = null;
     cb();
   }).bind(this));
 });

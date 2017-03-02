@@ -22,7 +22,7 @@ var _ = require('lodash');
 
 var VM = {
 
-  init: function(optionsOrVm, sandbox, withDebug) {
+  init: function(optionsOrVm, sandbox, withDebug, hashDict) {
 
     var self = this;
     
@@ -31,6 +31,7 @@ var VM = {
     this.sandbox = sandbox;
     this.withDebug = withDebug;
     this.debugger = null;
+    this.hashDict = hashDict ? hashDict : [];
 
     if (this.withDebug) {
       this.ethVm.on('step', function(data, cb) {
@@ -40,7 +41,7 @@ var VM = {
           var lengthBuf = data.stack[data.stack.length - 2];
           var length = lengthBuf.readUIntBE(0, lengthBuf.length) || 0;
           var src = new Buffer(data.memory.slice(offset, offset + length));
-          self.sandbox.hashDict.push({
+          self.hashDict.push({
             src: src,
             hash: util.sha3(src, 'binary')
           });
@@ -48,7 +49,7 @@ var VM = {
         cb();
       });
 
-      this.debugger = Object.create(Debugger).init(this.ethVm, this.sandbox);
+      this.debugger = Object.create(Debugger).init(this.ethVm, this.sandbox, this.hashDict);
     }
 
     return this;
@@ -56,10 +57,14 @@ var VM = {
 
   copy: function() {
 
+    // copy hash dictionary
+    var hashDict = this.hashDict.slice();
+
     var cp = Object.create(VM).init(
       this.ethVm.copy(),
       this.sandbox, 
-      this.withDebug
+      this.withDebug,
+      hashDict
     );
 
     if (this.debugger) {
