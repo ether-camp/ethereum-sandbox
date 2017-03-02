@@ -89,9 +89,6 @@ var Debugger = {
 
     // tracer properties
     this.tracer.copy(other.tracer);
-
-    // callStack properties
-    this.callStack.copy(other.callStack);
   }
 };
 
