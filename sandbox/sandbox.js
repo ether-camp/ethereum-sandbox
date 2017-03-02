@@ -454,12 +454,22 @@ Sandbox.call = util.synchronize(function(options, cb) {
     return cb('Could not find a private key for ' + options.from);
   options.pkey = this.accounts[options.from];
 
+  var self = this;
+
   var tx = Object.create(Tx).init(options);
+
+  // swap VM
+  var storedVM = this.vm;
+  this.vm = this.vm.copy();
   
   async.series([
     setNonce.bind(this),
     run.bind(this)
   ], function(err, results) {
+
+    // restore VM
+    self.vm = storedVM;
+
     if (err) cb(err);
     else cb(null, results[1]);
   });
@@ -477,10 +487,10 @@ Sandbox.call = util.synchronize(function(options, cb) {
   function run(cb) {
     this.blockchain.getHead((function(err, block) {
       if (err) cb(err);
-      else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
+      else this.vm.runTx({ tx: tx.getTx(), block: block }, cb);
     }).bind(this));
   }
-});
+}, '_minerLock');
 Sandbox.createNextBlock = function(transactions, cb) {
   this.blockchain.getHead((function(err, lastBlock) {
     if (err) return cb(err);
