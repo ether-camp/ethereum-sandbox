@@ -27,7 +27,7 @@ module.exports = function(services) {
     enabled: {
       args: [],
       handler: function(cb) {
-        cb(null, !!sandbox.debugger);
+        cb(null, sandbox.vm.withDebug);
       }
     },
     setBreakpoints: {

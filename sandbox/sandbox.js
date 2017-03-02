@@ -17,7 +17,7 @@
  
 var fs = require('fs');
 var EventEmitter = require('events').EventEmitter;
-var VM = require('ethereumjs-vm');
+var VM = require('./vm');
 var EthAccount = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
 var Blockchain = require('ethereumjs-blockchain');
@@ -37,6 +37,7 @@ var SHA3Hash = require('sha3').SHA3Hash;
 var Contract = require('./contract');
 var Debugger = require('./debugger');
 var Txs = require('./txs');
+var Breakpoints = require('./breakpoints');
 
 var dbDir = './db/';
 
@@ -62,13 +63,12 @@ Sandbox.init = function(id, config, cb) {
   this.receipts = {};
   this.logListeners = [];
   this.projectName = null;
-  this.hashDict = [];
   this.timeOffset = 0;
   this.timestamp = 0;
   this.keepTimestampConstant = false;
   this.minePeriod = 5000;
   this.minerEnabled = true;
-  this.debugger = null;
+  this.breakpoints = Object.create(Breakpoints).init();
   
   this.createVM(config.debug, cb);
 };
@@ -116,29 +116,14 @@ Sandbox.createVM = function(debug, cb) {
     }
   }
   function createVM(cb) {
-    self.vm = new VM({
+
+    self.vm = Object.create(VM).init({
       state: new Trie(),
       blockchain: self.blockchain,
       activatePrecompiles: true,
       enableHomestead: true
-    });
-    if (debug) {
-      self.vm.on('step', function(data, cb) {
-        if (data.opcode.name == 'SHA3') {
-          var offsetBuf = data.stack[data.stack.length - 1];
-          var offset = offsetBuf.readUIntBE(0, offsetBuf.length) || 0;
-          var lengthBuf = data.stack[data.stack.length - 2];
-          var length = lengthBuf.readUIntBE(0, lengthBuf.length) || 0;
-          var src = new Buffer(data.memory.slice(offset, offset + length));
-          self.hashDict.push({
-            src: src,
-            hash: util.sha3(src, 'binary')
-          });
-        }
-        cb();
-      });
-      self.debugger = Object.create(Debugger).init(self);
-    }
+    }, self, debug);
+
     cb();
   }
   function startMiner(cb) {
@@ -147,7 +132,7 @@ Sandbox.createVM = function(debug, cb) {
   }
 };
 Sandbox.resume = function(cb) {
-  if (this.debugger) this.debugger.resume();
+  this.vm.resume();
   cb();
 };
 Sandbox.stop = util.synchronize(function(cb) {
@@ -159,6 +144,7 @@ Sandbox.stop = util.synchronize(function(cb) {
   ], (function(err) {
     if (err) return cb(err);
     this.removeAllListeners();
+    this.vm.destroy();
     this.vm = null;
     this.blockchain = null;
     this.block = null;
@@ -172,8 +158,8 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.receipts = null;
     this.txs = null;
     this.logListeners = null;
-    this.hashDict = null;
-    if (this.debugger) this.debugger.clear();
+    this.breakpoints.destroy();
+    this.breakpoints = null;
     cb();
   }).bind(this));
 });
@@ -204,7 +190,7 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
         data: account.runCode.binary,
         contract: account.runCode
       },
-      !!self.debugger,
+      self.vm.withDebug,
       function(err, contract) {
         if (err) return cb(err);
         self.contracts[account.address] = contract;
@@ -213,7 +199,6 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
         self.createNextBlock([], function(err, block) {
           if (err) return cb(err);
           var data = util.toBuffer(account.runCode.binary);
-          if (self.debugger) self.debugger.setCallData(data);
           self.vm.runCode({
             code: data,
             data: data,
@@ -222,7 +207,6 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
             caller: util.toBuffer(self.coinbase),
             block: block
           }, function(err, result) {
-            if (self.debugger) self.debugger.finish();
             if (err) return cb(err);
 
             self.contracts[account.address].deploy(util.toHex(result.gasUsed), result.return, function(err) {
@@ -275,7 +259,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
   check.call(this, tx, function(err) {
     if (err) return cb(err);
     if (tx.contract) {
-      Object.create(Contract).init(tx, !!self.debugger, function(err, contract) {
+      Object.create(Contract).init(tx, self.vm.withDebug, function(err, contract) {
         if (err) return cb(err);
         var address = util.toHex(ethUtils.generateAddress(tx.from, tx.nonce.toNumber()));
         self.contracts[address] = contract;
@@ -471,7 +455,7 @@ Sandbox.call = util.synchronize(function(options, cb) {
   options.pkey = this.accounts[options.from];
 
   var tx = Object.create(Tx).init(options);
-  
+
   async.series([
     setNonce.bind(this),
     run.bind(this)
@@ -493,10 +477,10 @@ Sandbox.call = util.synchronize(function(options, cb) {
   function run(cb) {
     this.blockchain.getHead((function(err, block) {
       if (err) cb(err);
-      else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
+      else this.vm.call({ tx: tx.getTx(), block: block }, cb);
     }).bind(this));
   }
-});
+}, '_minerLock');
 Sandbox.createNextBlock = function(transactions, cb) {
   this.blockchain.getHead((function(err, lastBlock) {
     if (err) return cb(err);
@@ -536,27 +520,23 @@ Sandbox.newLogs = function(logs) {
   });
 };
 Sandbox.setBreakpoints = function(breakpoints, cb) {
-  if (this.debugger) {
-    _.each(breakpoints, this.debugger.addBreakpoint.bind(this.debugger));
-  }
+  this.breakpoints.setBreakpoints(breakpoints);
   cb();
 };
 Sandbox.removeBreakpoints = function(breakpoints, cb) {
-  if (this.debugger) {
-    _.each(breakpoints, this.debugger.removeBreakpoint.bind(this.debugger));
-  }
+  this.breakpoints.removeBreakpoints(breakpoints);
   cb();
 };
 Sandbox.stepInto = function(cb) {
-  if (this.debugger) this.debugger.stepInto();
+  this.vm.stepInto();
   cb();
 };
 Sandbox.stepOver = function(cb) {
-  if (this.debugger) this.debugger.stepOver();
+  this.vm.stepOver();
   cb();
 };
 Sandbox.stepOut = function(cb) {
-  if (this.debugger) this.debugger.stepOut();
+  this.vm.stepOut();
   cb();
 };
 Sandbox.startMiner = function() {
