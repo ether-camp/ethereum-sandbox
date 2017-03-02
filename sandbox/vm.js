@@ -54,7 +54,7 @@ var VM = {
     return this;
   },
 
-  clone: function() {
+  copy: function() {
 
     var cp = Object.create(VM).init(
       this.ethVm.copy(),
@@ -63,8 +63,8 @@ var VM = {
     );
 
     if (this.debugger) {
-      // copy debugger properties
-      cp.debugger.copy(this.debugger);
+      // copy tracer
+      cp.debugger.tracer = this.debugger.tracer.copy();
     }
 
     return cp;

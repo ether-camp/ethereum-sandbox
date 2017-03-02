@@ -84,11 +84,6 @@ var Debugger = {
     this.prevBreakpoint = null;
     this.resumeCb = null;
     this.ethVm = null;
-  },
-  copy: function(other) {
-
-    // tracer properties
-    this.tracer.copy(other.tracer);
   }
 };
 

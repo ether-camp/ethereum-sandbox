@@ -72,8 +72,12 @@ var Tracer = {
       })
       .sum();
   },
-  copy: function(other) {
-    this.breakpoints = other.breakpoints.slice()
+  copy: function() {
+    var cp = Object.create(Tracer);
+    cp.breakpoints = this.breakpoints.slice();
+    cp.prevBp = this.prevBp;
+    cp.state = this.state;
+    return cp;
   }
 };
 

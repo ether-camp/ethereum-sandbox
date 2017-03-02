@@ -475,7 +475,7 @@ Sandbox.call = util.synchronize(function(options, cb) {
   function run(cb) {
     this.blockchain.getHead((function(err, block) {
       if (err) cb(err);
-      else this.vm.clone().runTx({ tx: tx.getTx(), block: block }, cb);
+      else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
     }).bind(this));
   }
 });
