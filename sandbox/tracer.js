@@ -1,11 +1,11 @@
 var _ = require('lodash');
 
 var Tracer = {
-  breakpoints: [],
+  breakpoints: null,
   prevBp: null,
   state: 'running', // running, stepInto, stepOver, stepOut
-  init: function() {
-    this.breakpoints = [];
+  init: function(breakpoints) {
+    this.breakpoints = breakpoints;
     this.prevBp = null;
     this.state = 'running';
     return this;
@@ -74,7 +74,7 @@ var Tracer = {
   },
   copy: function() {
     var cp = Object.create(Tracer);
-    cp.breakpoints = this.breakpoints.slice();
+    cp.breakpoints = this.breakpoints;
     cp.prevBp = this.prevBp;
     cp.state = this.state;
     return cp;

@@ -37,6 +37,7 @@ var SHA3Hash = require('sha3').SHA3Hash;
 var Contract = require('./contract');
 var Debugger = require('./debugger');
 var Txs = require('./txs');
+var Breakpoints = require('./breakpoints');
 
 var dbDir = './db/';
 
@@ -67,6 +68,7 @@ Sandbox.init = function(id, config, cb) {
   this.keepTimestampConstant = false;
   this.minePeriod = 5000;
   this.minerEnabled = true;
+  this.breakpoints = Object.create(Breakpoints).init();
   
   this.createVM(config.debug, cb);
 };
@@ -156,6 +158,8 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.receipts = null;
     this.txs = null;
     this.logListeners = null;
+    this.breakpoints.destroy();
+    this.breakpoints = null;
     cb();
   }).bind(this));
 });
@@ -516,11 +520,11 @@ Sandbox.newLogs = function(logs) {
   });
 };
 Sandbox.setBreakpoints = function(breakpoints, cb) {
-  this.vm.setBreakpoints(breakpoints);
+  this.breakpoints.setBreakpoints(breakpoints);
   cb();
 };
 Sandbox.removeBreakpoints = function(breakpoints, cb) {
-  this.vm.removeBreakpoints(breakpoints);
+  this.breakpoints.removeBreakpoints(breakpoints);
   cb();
 };
 Sandbox.stepInto = function(cb) {

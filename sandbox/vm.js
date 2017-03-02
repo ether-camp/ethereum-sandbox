@@ -49,7 +49,11 @@ var VM = {
         cb();
       });
 
-      this.debugger = Object.create(Debugger).init(this.ethVm, this.sandbox, this.hashDict);
+      this.debugger = Object.create(Debugger).init(
+        this.ethVm, 
+        this.sandbox, 
+        this.hashDict
+      );
     }
 
     return this;
@@ -122,18 +126,6 @@ var VM = {
   resume: function() {
     if (this.debugger) { 
       this.debugger.resume();
-    }
-  },
-
-  setBreakpoints: function(breakpoints) {
-    if (this.debugger) {
-      _.each(breakpoints, this.debugger.addBreakpoint.bind(this.debugger));
-    }
-  },
-
-  removeBreakpoints: function(breakpoints) {
-    if (this.debugger) {
-      _.each(breakpoints, this.debugger.removeBreakpoint.bind(this.debugger));
     }
   },
 

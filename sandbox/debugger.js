@@ -11,7 +11,7 @@ var Debugger = {
     this.resumeCb = null;
     this.callStack = Object.create(CallStack)
       .init(this.sandbox.contracts, hashDict);
-    this.tracer = Object.create(Tracer).init();
+    this.tracer = Object.create(Tracer).init(sandbox.breakpoints.array);
     this.ethVm.on('beforeTx', function(tx) {
       self.setCallData(tx.data);
     });
@@ -37,12 +37,6 @@ var Debugger = {
   },
   setCallData: function(calldata) {
     this.callStack.calldata = calldata;
-  },
-  addBreakpoint: function(bp) {
-    this.tracer.addBreakpoint(bp);
-  },
-  removeBreakpoint: function(bp) {
-    this.tracer.removeBreakpoint(bp);
   },
   resume: function() {
     if (this.resumeCb) {
