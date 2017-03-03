@@ -90,6 +90,7 @@ module.exports = {
   },
   getDetails: function() {
     var result = {
+      hash: this.txHash,
       from: this.from,
       nonce: util.toHex(this.nonce),
       to: this.to,
