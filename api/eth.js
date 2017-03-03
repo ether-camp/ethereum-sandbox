@@ -197,7 +197,7 @@ module.exports = function(services) {
         options.gasLimit = options.gas;
         delete options.gas;
         sandbox.call(options, function(err, result) {
-          if (err) cb(err);
+          if (err) cb(err.message ? err.message : err);
           else cb(
             null,
             result.vm.hasOwnProperty('return') ? util.toHex(result.vm.return) : '0x0'
