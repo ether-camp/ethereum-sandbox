@@ -60,7 +60,12 @@ var Filters = {
                  details.toBlock.greaterThanOrEqualTo(this.currentBlockNum));
             }).bind(this))
             .map('logs')
-            .flatten();
+            .flatten()
+            .filter((function(log) {
+              return _.any(log.topics, function(topic) { 
+                return _.includes(details.topics, topic); 
+              });
+            }));
 
       this.filters[num].entries = entries.value();
     }
