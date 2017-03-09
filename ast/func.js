@@ -29,14 +29,12 @@ var Func = {
     this.variables = this.variables.concat(
       _.map(node.children[1].children, buildVar)
     );
-    this.argsStackSize = _.sum(this.variables, 'stackSize');
     if (blockNode) {
       var blockVars = parseVariables(typeCreator, contract.name, source, blockNode);
-      var lastMemoryVarIdx = _.findLastIndex(blockVars, { storageType: 'memory' });
-      if (lastMemoryVarIdx >= 0)
-        this.argsStackSize += _.sum(blockVars.slice(0, lastMemoryVarIdx + 1), 'stackSize');
       this.variables = this.variables.concat(blockVars);
     }
+
+    this.varsStackSize = _.sum(this.variables, 'stackSize');
 
     this.modifiers = _(node.children)
       .filter({ name: 'ModifierInvocation' })
@@ -46,6 +44,11 @@ var Func = {
       .value();
 
     return this;
+  },
+  pointsToFunc: function(position) {
+    return position.source == this.source &&
+      position.line == this.funcStart.line &&
+      position.column == this.funcStart.column;
   },
   inFunc: function(position) {
     return position.source == this.source &&

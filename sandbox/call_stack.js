@@ -9,96 +9,108 @@ var callStack = {
     this.hashDict = hashDict;
     this.contractsStack = [];
     this.calldata = null;
-    this.state = 'waitingForCall';
+    this.state = 'noContract';
     return this;
   },
   clean: function() {
-    this.state = 'waitingForCall',
+    this.state = 'noContract',
     this.contractsStack = [];
   },
   trace: function(data) {
+    return this._updateCall(this._updateContract(data), data);
+  },
+  _updateContract: function(data) {
     var contract;
-    
-    if (data.depth > this.contractsStack.length - 1) {
-      var address = this.state == 'waitingForLibCall' ?
-          this.libraryAddress :
-          '0x' + data.address.toString('hex');
+    if (this.contractsStack.length == 0) {
+      var address = '0x' + data.address.toString('hex');
       contract = {
         address: address,
-        baseAddress: '0x' + data.address.toString('hex'),
+        baseAddress: address,
         stack: data.stack,
         memory: data.memory,
         account: data.account,
+        obj: _.has(this.contracts, address) ? this.contracts[address] : null,
         calls: []
       };
       this.contractsStack.push(contract);
-      this.state = 'waitingForCall';
-    } else if (data.depth < this.contractsStack.length - 1) {
-      this.contractsStack.pop();
-      contract = _.last(this.contractsStack);
     } else {
       contract = _.last(this.contractsStack);
+      contract.stack = data.stack,
+      contract.memory = data.memory,
+      contract.account = data.account;
+      if (!_.has(contract, 'obj')) {
+        contract.obj = _.has(this.contracts, contract.address) ?
+          this.contracts[contract.address] : null;
+      }
     }
-
-    // update account to have the latest storage
-    contract.account = data.account;
-
-    if (contract && contract.calls.length == 1 &&
-        _.last(contract.calls).func && _.last(contract.calls).func.constructor) {
-      contract.calls = [];
-      this.state = 'waitingForCall';
-    }
+    return contract;
+  },
+  _updateCall: function(contract, data) {
+    if (!contract.obj || !contract.obj.srcmap || !contract.obj.details)
+      return null;
 
     var call;
-    if (_.has(this.contracts, contract.address) &&
-        this.contracts[contract.address].srcmap &&
-        this.contracts[contract.address].details) {
-      contract.obj = this.contracts[contract.address];
-      var srcmap = contract.obj.deployed ?
-          contract.obj.srcmapRuntime :
-          contract.obj.srcmap;
-      var mapping = _.find(srcmap, { pc: data.pc });
-      if (mapping) {
-        if (this.state == 'waitingForCall') {
+    var mapping = _.find(contract.obj.getActualSrcmap(), { pc: data.pc });
+
+    if (mapping) {
+      if (contract.calls.length == 0) {
+        if (data.opcode.name == 'JUMPDEST') {
           var func = contract.obj.details.getFunc(mapping);
           if (func) {
-            var stackPointer;
-            if (func.constructor) stackPointer = 0;
-            else if (func.isDefault()) stackPointer = 1;
-            else if (contract.calls.length == 0) stackPointer = 2;
-            else stackPointer = data.stack.length - func.argsStackSize;
-
             call = {
               func: func,
-              stackPointer: stackPointer
+              modifier: null,
+              stackPointer: null,
+              mapping: null
             };
             contract.calls.push(call);
-            this.state = 'running';
           }
         }
-        if (this.state == 'running') {
-          call = _.last(contract.calls);
-          if (call) {
-            if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
-              call.modifier = null;
-              call.mapping = mapping;
-            } else {
-              var modifier = call.func.getModifier(mapping);
-              if (modifier) {
+      } else {
+        call = _.last(contract.calls);
+        call.mapping = null;
+        if (call.func) {
+          if (call.func.inBlock(mapping) &&
+              !call.func.isVarDeclaration(mapping)) {
+            call.modifier = null;
+            call.mapping = mapping;
+            if (call.stackPointer == null)
+              call.stackPointer = data.stack.length - call.func.varsStackSize;
+          } else {
+            var modifier = call.func.getModifier(mapping);
+            if (modifier) {
+              if (!call.modifier ||
+                  call.modifier.modifier.name != modifier.modifier.name) {
                 call.modifier = {
                   modifier: modifier.modifier,
-                  stackPointer: call.stackPointer + modifier.stackOffset
+                  stackPointer: data.stack.length - modifier.modifier.varsStackSize
                 };
-                call.mapping = mapping;
-              } else {
-                call.mapping = null;
               }
+              
+              if (call.stackPointer == null)
+                call.stackPointer = data.stack.length - modifier.modifier.varsStackSize - modifier.stackOffset;
+              
+              call.mapping = mapping;
+            } else {
+              call.mapping = null;
             }
           }
         }
-        
+
         if (mapping.type == 'i') {
-          this.state = 'waitingForCall';
+          call = {
+            func: null,
+            stackPointer: null,
+            mapping: null
+          };
+          var targetPc = _.last(data.stack).readUIntBE(0, 32);
+          var targetMapping = _.find(contract.obj.getActualSrcmap(),
+                                     { pc: targetPc });
+          if (targetMapping) {
+            func = contract.obj.details.getFunc(targetMapping);
+            if (func) call.func = func;
+          }
+          contract.calls.push(call);
         } else if (mapping.type == 'o') {
           contract.calls.pop();
           call = _.last(contract.calls);
@@ -107,11 +119,27 @@ var callStack = {
       }
     }
 
-    if (data.opcode.name == 'DELEGATECALL') {
-      this.libraryAddress = '0x' + data.stack[data.stack.length - 2].toString('hex', 12);
-      this.state = 'waitingForLibCall';
-    }
-
+    if (data.opcode.name == 'CALL') {
+      var address = '0x' + data.stack[data.stack.length - 2].toString('hex', 12);
+      this.contractsStack.push({
+        address: address,
+        baseAddress: address,
+        calls: []
+      });
+      call = null;
+    } else if (data.opcode.name == 'DELEGATECALL') {
+      address = '0x' + data.stack[data.stack.length - 2].toString('hex', 12);
+      this.contractsStack.push({
+        address: address,
+        baseAddress: contract.address,
+        calls: []
+      });
+      call = null;
+    } else if (data.opcode.name == 'STOP' || data.opcode.name == 'RETURN') {
+      this.contractsStack.pop();
+      call = null;
+    };
+    
     return call;
   },
   details: function(trie, cb) {

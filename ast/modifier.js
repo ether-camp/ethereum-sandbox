@@ -30,6 +30,8 @@ var Modifier = {
       );
     }
 
+    this.varsStackSize = _.sum(this.variables, 'stackSize');
+
     return this;
   },
   inFunc: function(position) {

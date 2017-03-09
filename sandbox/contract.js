@@ -53,6 +53,9 @@ var Contract = {
       root: this.root,
       sources: this.sourceList
     };
+  },
+  getActualSrcmap: function() {
+    return this.deployed ? this.srcmapRuntime : this.srcmap;
   }
 };
 

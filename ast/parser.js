@@ -54,7 +54,7 @@ function parse(details, root, cb) {
     });
     _.each(contracts, function(contract) {
       _.each(contract.funcs, function(func) {
-        var stackOffset = func.variables.length;
+        var stackOffset = func.varsStackSize;
         func.modifiers = _(func.modifiers)
           .map(function(shortName) {
             // it might be a call of a parent constructor
@@ -64,7 +64,7 @@ function parse(details, root, cb) {
                 modifier: modifier,
                 stackOffset: stackOffset
               };
-              stackOffset += details.modifier.variables.length;
+              stackOffset += details.modifier.varStackSize;
               return details;
             } else {
               return null;
@@ -170,7 +170,7 @@ Contract.prototype.getStorageVars = function(storage, hashDict, position) {
 
 Contract.prototype.getFunc = function(position) {
   var func = _.find(this.funcs, function(func) {
-    return func.inFunc(position);
+    return func.pointsToFunc(position);
   });
   for (var i = 0; i < this.parents.length && !func; i++) {
     func = this.parents[i].getFunc(position);
