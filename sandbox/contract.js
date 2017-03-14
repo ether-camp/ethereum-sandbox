@@ -2,12 +2,13 @@ var fs = require('fs');
 var _ = require('lodash');
 var async = require('async');
 var parseContracts = require('../ast/parser');
+var util = require('../util.js');
 
 var Contract = {
   init: function(tx, withDebug, cb) {
     var self = this;
     _.assign(this, tx.contract);
-    this.data = tx.data;
+    this.data = _.isString(tx.data) ? util.toBuffer(tx.data) : tx.data;
     this.breakpoints = [];
     this.deployed = false;
     this.withDebug = withDebug;
