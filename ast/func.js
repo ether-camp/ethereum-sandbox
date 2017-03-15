@@ -31,8 +31,10 @@ Func.allVariables = function() {
 };
 
 Func.readModifiers = function() {
-  this.modifiers = _.map(this.modifiers,
-                         this.contract.findModifier.bind(this.contract));
+  this.modifiers = _(this.modifiers)
+    .map(this.contract.findModifier.bind(this.contract))
+    .compact()
+    .value();
   this.varsStackSize += _.sum(this.modifiers, 'varsStackSize');
 };
 
