@@ -160,7 +160,9 @@ module.exports = function(services) {
           value: { type: 'number', defaultVal: new BigNumber(0) },
           data: { type: 'hex', defaultVal: null },
           nonce: { type: 'number', defaultVal: null },
-          contract: { type: 'contract', defaultVal: null }
+          contract: { type: 'contract', defaultVal: null },
+          call: { type: 'string', defaultVal: null },
+          args: { type: 'args', defaultVal: [] }
         }
       }],
       handler: function(options, cb) {
@@ -195,7 +197,7 @@ module.exports = function(services) {
         options.gasLimit = options.gas;
         delete options.gas;
         sandbox.call(options, function(err, result) {
-          if (err) cb(err);
+          if (err) cb(err.message ? err.message : err);
           else cb(
             null,
             result.vm.hasOwnProperty('return') ? util.toHex(result.vm.return) : '0x0'

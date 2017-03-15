@@ -139,9 +139,31 @@ module.exports = function(services) {
         }
       }
     },
-    transactions: { args: [], handler: function(cb) {
-      cb(null, _.invoke(sandbox.receipts, 'getDetails'));
-    }},
+    transactions: {
+      args: [{
+        type: 'bool',
+        defaultVal: false
+      }],
+      handler: function(withContracts, cb) {
+        var receipts = _.invoke(sandbox.receipts, 'getDetails');
+        if (withContracts) {
+          _.each(receipts, function(receipt) {
+            if (receipt.createdAddress) {
+              var contract = sandbox.contracts[receipt.createdAddress];
+              if (contract) {
+                receipt.contract = {
+                  name: contract.name,
+                  dir: contract.root,
+                  sources: contract.sourceList,
+                  args: _.has(contract, 'args') ? contract.args : []
+                };
+              }
+            }
+          });
+        }
+        cb(null, receipts);
+      }
+    },
     receipt: {
       args: [{ type: 'hex64' }],
       handler: function(txHash, cb) {
@@ -150,8 +172,26 @@ module.exports = function(services) {
       }
     },
     contracts: { args: [], handler: function(cb) {
-      cb(null, sandbox.contracts);
+      cb(
+        null,
+        _(sandbox.contracts)
+          .map(function(contract, address) {
+            return [address, contract.getDetails()];
+          })
+          .object()
+          .value()
+      );
     }},
+    contract: {
+      args: [{ type: 'address' }],
+      handler: function(address, cb) {
+        var contract = null;
+        if (_.has(sandbox.contracts, address)) {
+          contract = sandbox.contracts[address].getDetails();
+        }
+        cb(null, contract);
+      }
+    },
     gasLimit: {
       args: [],
       handler: function(cb) { cb(null, '0x' + sandbox.gasLimit.toString(16)); }
@@ -167,6 +207,19 @@ module.exports = function(services) {
       args: [],
       handler: function(cb) {
         cb(null, sandbox.projectName);
+      }
+    },
+    setProjectDir: {
+      args: [{ type: 'string' }],
+      handler: function(projectDir, cb) {
+        sandbox.projectDir = projectDir;
+        cb();
+      }
+    },
+    projectDir: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.projectDir);
       }
     },
     setTimestamp: {
@@ -204,6 +257,25 @@ module.exports = function(services) {
             if (err) console.error(err);
           }
         );
+        cb();
+      }
+    },
+    newMessageFilter: {
+      args: [],
+      handler: function(cb) {
+        cb(null, sandbox.filters.addMessageFilter());
+      }
+    },
+    getFilterChanges: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        cb(null, sandbox.filters.getChanges(filterId));
+      }
+    },
+    uninstallFilter: {
+      args: [{ type: 'hex' }],
+      handler: function(filterId, cb) {
+        sandbox.filters.removeFilter(filterId);
         cb();
       }
     }

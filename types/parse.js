@@ -20,16 +20,24 @@ var BigNumber = require('bignumber.js');
 
 var types = {
   address: function(val, errors) {
-    if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]{40}$/))
+    if (typeof val !== 'string' || !val.toLowerCase().match(/^0x[\dabcdef]{40}$/))
       errors.push('Address must contain 0x and 40 hex digits;');
     return val;
   },
   number: function(val, errors) {
-    if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]+$/)) {
-      errors.push('Number must contain 0x and at least one hex digit;');
+    var msg = 'Number must contain dec digits or 0x and at least one hex digit;';
+    if (typeof val == 'number') {
+      return new BigNumber(val);
+    } else if (typeof val !== 'string') {
+      errors.push(msg);
       return null;
-    } else {
+    } else if (val.match(/^0x[\dabcdef]+$/)) {
       return new BigNumber(val.substr(2), 16);
+    } else if (val.match(/^\d+$/)) {
+      return new BigNumber(val);
+    } else {
+      errors.push(msg);
+      return null;
     }
   },
   hex: function(val, errors) {
@@ -48,6 +56,12 @@ var types = {
         !val.hasOwnProperty('binary') ||
         !val.hasOwnProperty('abi'))
       errors.push('Contract must be an object with properties name, binary, abi;');
+    return val;
+  },
+  args: function(val, errors) {
+    if (!_.isArray(val)) {
+      errors.push('Args must be an array;');
+    }
     return val;
   },
   bool: function(val, errors) {

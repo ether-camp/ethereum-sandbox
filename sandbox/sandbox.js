@@ -17,7 +17,7 @@
  
 var fs = require('fs');
 var EventEmitter = require('events').EventEmitter;
-var VM = require('ethereumjs-vm');
+var VM = require('./vm');
 var EthAccount = require('ethereumjs-account');
 var Block = require('ethereumjs-block');
 var Blockchain = require('ethereumjs-blockchain');
@@ -33,15 +33,20 @@ var Tx = require('../ethereum/tx');
 var Receipt = require('../ethereum/receipt');
 var Filters = require('./filters');
 var Account = require('../ethereum/account');
+var SHA3Hash = require('sha3').SHA3Hash;
+var Contract = require('./contract');
+var Debugger = require('./debugger');
+var Txs = require('./txs');
+var Breakpoints = require('./breakpoints');
 
 var dbDir = './db/';
 
 var Sandbox = Object.create(new EventEmitter());
 
-Sandbox.DEFAULT_TX_GAS_PRICE = new BigNumber(50000000000),
-Sandbox.DEFAULT_TX_GAS_LIMIT = new BigNumber(3141592),
+Sandbox.DEFAULT_TX_GAS_PRICE = new BigNumber(50000000000);
+Sandbox.DEFAULT_TX_GAS_LIMIT = new BigNumber(3141592);
 
-Sandbox.init = function(id, cb) {
+Sandbox.init = function(id, config, cb) {
   this.id = id;
   this.coinbase = '0x1337133713371337133713371337133713371337';
   this.defaultAccount = null;
@@ -54,7 +59,7 @@ Sandbox.init = function(id, cb) {
   this.gasPrice = this.DEFAULT_TX_GAS_PRICE;
   this.difficulty = new BigNumber(1000);
   this.miningBlock = false;
-  this.pendingTransactions = [];
+  this.txs = Object.create(Txs).init();
   this.receipts = {};
   this.logListeners = [];
   this.projectName = null;
@@ -63,8 +68,9 @@ Sandbox.init = function(id, cb) {
   this.keepTimestampConstant = false;
   this.minePeriod = 5000;
   this.minerEnabled = true;
+  this.breakpoints = Object.create(Breakpoints).init();
   
-  this.createVM(cb);
+  this.createVM(config.debug, cb);
 };
 Sandbox.getCoinbase = function() {
   return this.coinbase;
@@ -78,7 +84,7 @@ Sandbox.getGasLimit = function() {
 Sandbox.getGasPrice = function() {
   return this.gasPrice;
 };
-Sandbox.createVM = function(cb) {
+Sandbox.createVM = function(debug, cb) {
   var self = this;
   
   async.series([
@@ -86,7 +92,7 @@ Sandbox.createVM = function(cb) {
     createVM,
     startMiner
   ], cb);
-
+  
   function createBlockchain(cb) {
     createIfNotExists(dbDir);
     var blockDB = levelup(dbDir + self.id);
@@ -110,16 +116,24 @@ Sandbox.createVM = function(cb) {
     }
   }
   function createVM(cb) {
-    self.vm = new VM(new Trie(), self.blockchain, {
+
+    self.vm = Object.create(VM).init({
+      state: new Trie(),
+      blockchain: self.blockchain,
       activatePrecompiles: true,
       enableHomestead: true
-    });
+    }, self, debug);
+
     cb();
   }
   function startMiner(cb) {
     setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
     cb();
   }
+};
+Sandbox.resume = function(cb) {
+  this.vm.resume();
+  cb();
 };
 Sandbox.stop = util.synchronize(function(cb) {
   this.emit('stop', this);
@@ -130,6 +144,7 @@ Sandbox.stop = util.synchronize(function(cb) {
   ], (function(err) {
     if (err) return cb(err);
     this.removeAllListeners();
+    this.vm.destroy();
     this.vm = null;
     this.blockchain = null;
     this.block = null;
@@ -141,8 +156,10 @@ Sandbox.stop = util.synchronize(function(cb) {
     this.filters.destroy();
     this.filters = null;
     this.receipts = null;
-    this.pendingTransactions = null;
+    this.txs = null;
     this.logListeners = null;
+    this.breakpoints.destroy();
+    this.breakpoints = null;
     cb();
   }).bind(this));
 });
@@ -150,58 +167,72 @@ Sandbox.addAccount = function(address, pkey) {
   this.accounts[address] = pkey;
 };
 Sandbox.createAccount = util.synchronize(function(details, address, cb) {
+  var self = this;
   var account = Object.create(Account).init(details, address);
   var raw = account.raw();
 
-  if (details.name) this.accountNames[address] = details.name;
+  if (details.name) self.accountNames[address] = details.name;
   
   async.series([
-    storeCode.bind(this),
-    saveStorage.bind(this),
-    (function(cb) {
-      this.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
-    }).bind(this),
-    runCode.bind(this)
+    storeCode,
+    saveStorage,
+    function(cb) {
+      self.vm.trie.put(util.toBuffer(account.address), raw.serialize(), cb);
+    },
+    runCode
   ], cb);
 
   function runCode(cb) {
     if (!account.runCode) return cb();
-    var address = util.toBuffer(account.address);
-    this.createNextBlock([], (function(err, block) {
-      if (err) return cb(err);
-      this.vm.runCode({
-        code: util.toBuffer(account.runCode.binary),
-        data: util.toBuffer(account.runCode.binary),
-        gasLimit: util.toBuffer(this.gasLimit),
-        address: address,
-        caller: util.toBuffer(this.coinbase),
-        block: block
-      }, (function(err, result) {
-        if (err) return cb(err);
-        
-        this.contracts[account.address] = account.runCode;
-        this.contracts[account.address].gasUsed = util.toHex(result.gasUsed);
-        this.contracts[account.address].data = '0x' + account.runCode.binary;
 
-        this.vm.trie.get(address, (function(err, data) {
+    Object.create(Contract).init(
+      {
+        data: account.runCode.binary,
+        contract: account.runCode
+      },
+      self.vm.withDebug,
+      function(err, contract) {
+        if (err) return cb(err);
+        self.contracts[account.address] = contract;
+    
+        var address = util.toBuffer(account.address);
+        self.createNextBlock([], function(err, block) {
           if (err) return cb(err);
-          var acc = new EthAccount(data);
-          acc.setCode(this.vm.trie, result.return, (function(err) {
-            if (err) cb(err);
-            else this.vm.trie.put(address, acc.serialize(), cb);
-          }).bind(this));
-        }).bind(this));
-        
-      }).bind(this));
-    }).bind(this));
+          var data = util.toBuffer(account.runCode.binary);
+          self.vm.runCode({
+            code: data,
+            data: data,
+            gasLimit: util.toBuffer(self.gasLimit),
+            address: address,
+            caller: util.toBuffer(self.coinbase),
+            block: block
+          }, function(err, result) {
+            if (err) return cb(err);
+
+            self.contracts[account.address].deploy(util.toHex(result.gasUsed), result.return, function(err) {
+              if (err) return cb(err);
+            
+              self.vm.trie.get(address, function(err, data) {
+                if (err) return cb(err);
+                var acc = new EthAccount(data);
+                acc.setCode(self.vm.trie, result.return, function(err) {
+                  if (err) cb(err);
+                  else self.vm.trie.put(address, acc.serialize(), cb);
+                });
+              });
+            });
+          });
+        });
+      }
+    );
   }
   function storeCode(cb) {
     if (!account.code) cb();
-    else raw.setCode(this.vm.trie, util.toBuffer(account.code), cb);
+    else raw.setCode(self.vm.trie, util.toBuffer(account.code), cb);
   }
   function saveStorage(cb) {
     if (!account.storage || _.size(account.storage) === 0) return cb();
-    var strie = this.vm.trie.copy();
+    var strie = self.vm.trie.copy();
     strie.root = account.stateRoot;
     async.forEachOfSeries(
       account.storage,
@@ -216,6 +247,7 @@ Sandbox.createAccount = util.synchronize(function(details, address, cb) {
   }
 });
 Sandbox.sendTx = util.synchronize(function(options, cb) {
+  var self = this;
   if (!_.isString(options)) {
     if (!this.accounts.hasOwnProperty(options.from))
       return cb('Could not find a private key for ' + options.from);
@@ -224,20 +256,33 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
   
   var tx = Object.create(Tx).init(options);
 
-  check.call(this, tx, (function(err) {
+  check.call(this, tx, function(err) {
     if (err) return cb(err);
-    this.pendingTransactions.push(tx);
-    this.filters.newPendingTx(tx);
-    cb(null, util.toHex(tx.getTx().hash()));
-    this.mineBlock(util.showError);
-  }).bind(this));
+    if (tx.contract) {
+      Object.create(Contract).init(tx, self.vm.withDebug, function(err, contract) {
+        if (err) return cb(err);
+        var address = util.toHex(ethUtils.generateAddress(tx.from, tx.nonce.toNumber()));
+        self.contracts[address] = contract;
+        finish();
+      });
+    } else finish();
+    
+    function finish() {
+      checkIfTargetAddressIsEmpty(tx, function() {
+        self.txs.add(tx);
+        self.filters.newPendingTx(tx);
+        cb(null, util.toHex(tx.getTx().hash()));
+        self.mineBlock(util.showError);
+      });
+    }
+  });
 
   function check(tx, cb) {
-    this.vm.trie.get(util.toBuffer(tx.from), (function(err, data) {
+    readAccount(util.toBuffer(tx.from), (function(err, data) {
       if (err) return cb(err);
-      
-      var account = new EthAccount(data);
 
+      var account = new EthAccount(data);
+      
       cb(checkGasLimit.call(this) || checkBalance.call(this) || checkNonce.call(this));
       
       function checkGasLimit() {
@@ -258,7 +303,7 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
         return null;
       }
       function checkNonce() {
-        var prevTx = _.findLast(this.pendingTransactions, { from: tx.from });
+        var prevTx = this.txs.getLatest(tx.from);
         if (prevTx) {
           var prevNonce = util.toBigNumber(prevTx.nonce);
           if (tx.nonce) {
@@ -286,6 +331,41 @@ Sandbox.sendTx = util.synchronize(function(options, cb) {
       }
     }).bind(this));
   }
+  function checkIfTargetAddressIsEmpty(tx, cb) {
+    if (tx.to) return cb();
+    var target = ethUtils.generateAddress(tx.from, tx.nonce.toNumber());
+    readAccount(target, function(err, data) {
+      if (err) console.error(err);
+      else if (data != null) {
+        var hexTarget = '0x' + target.toString('hex');
+        self.filters.newMessage({
+          id: 'NEW_CONTRACT_AT_NOT_EMPTY_ACCOUNT',
+          address: hexTarget,
+          text: 'You are creating a contract at address ' + hexTarget +
+            ' but it is not empty already. You probably created this account ' +
+            'using web3.sandbox.createAccount().'
+        });
+      }
+      cb();
+    });
+  }
+  // workaround for https://github.com/ether-camp/ethereum-sandbox/issues/18
+  function readAccount(address, cb) {
+    var tries = 5;
+    var data;
+    async.whilst(
+      function() { return tries-- > 0 && !data; },
+      function(cb) {
+        self.vm.trie.get(address, function(err, d) {
+          data = d;
+          cb(err);
+        });
+      },
+      function(err) {
+        cb(err, data);
+      }
+    );
+  }
 });
 Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   if (_.isFunction(withRunNext)) {
@@ -297,14 +377,9 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   var self = this;
   if (withRunNext) clearTimeout(this.nextMinerRun);
 
-  var txs = [];
   var blockGasLimit = this.gasLimit;
-  while (this.pendingTransactions.length > 0) {
-    blockGasLimit = blockGasLimit.sub(this.pendingTransactions[0].gasLimit);
-    if (blockGasLimit.isNegative()) break;
-    txs.push(this.pendingTransactions.shift());
-  }
-
+  var txs = this.txs.getPendingTxs(blockGasLimit);
+  this.txs.mining(txs);
   var block;
 
   async.series([
@@ -317,17 +392,26 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
       return cb(err);
     }
 
+    self.txs.mined(txs);
+
     _.each(txs, function(tx, index) {
       var receipt = Object.create(Receipt)
             .init(tx, block, results[1].receipts[index], results[1].results[index]);
       self.receipts[util.toHex(tx.getTx().hash())] = receipt;
       
-      if (tx.contract && receipt.contractAddress) {
-        self.contracts[receipt.contractAddress] = tx.contract;
-        self.contracts[receipt.contractAddress].gasUsed = util.toHex(receipt.gasUsed);
-        self.contracts[receipt.contractAddress].data = tx.data;
+      if (tx.contract) {
+        if (receipt.contractAddress) {
+          self.vm.trie.get(util.toBuffer(receipt.contractAddress), function(err, data) {
+            if (err) return console.error(err);
+            new EthAccount(data).getCode(self.vm.trie, function(err, code) {
+              if (err) return console.error(err);
+              self.contracts[receipt.contractAddress].deploy(util.toHex(receipt.gasUsed), code, util.showError);
+            });
+          });
+        } else {
+          delete self.contracts[receipt.contractAddress];
+        }
       }
-
       self.newLogs(receipt.logs);
       self.filters.newLogs(receipt.logs);
     });
@@ -358,20 +442,20 @@ Sandbox.mineBlock = util.synchronize(function(withRunNext, cb) {
   }
 
   function nextRun() {
-    if (self.pendingTransactions.length > 0) {
+    if (self.txs.hasPending()) {
       self.mineBlock(util.showError);
     } else {
       self.nextMinerRun = setTimeout(self.mineBlock.bind(self, util.showError), self.minePeriod);
     }
   }
-});
+}, '_minerLock');
 Sandbox.call = util.synchronize(function(options, cb) {
   if (!this.accounts.hasOwnProperty(options.from))
     return cb('Could not find a private key for ' + options.from);
   options.pkey = this.accounts[options.from];
 
   var tx = Object.create(Tx).init(options);
-  
+
   async.series([
     setNonce.bind(this),
     run.bind(this)
@@ -385,7 +469,7 @@ Sandbox.call = util.synchronize(function(options, cb) {
       if (err) return cb(err);
       
       var account = new EthAccount(data);
-      var prevTx = _.find(this.pendingTransactions, { from: tx.from });
+      var prevTx = this.txs.getLatest(tx.from);
       tx.nonce = prevTx ? prevTx.nonce.plus(1) : util.toBigNumber(account.nonce);
       cb();
     }).bind(this));
@@ -393,10 +477,10 @@ Sandbox.call = util.synchronize(function(options, cb) {
   function run(cb) {
     this.blockchain.getHead((function(err, block) {
       if (err) cb(err);
-      else this.vm.copy().runTx({ tx: tx.getTx(), block: block }, cb);
+      else this.vm.call({ tx: tx.getTx(), block: block }, cb);
     }).bind(this));
   }
-});
+}, '_minerLock');
 Sandbox.createNextBlock = function(transactions, cb) {
   this.blockchain.getHead((function(err, lastBlock) {
     if (err) return cb(err);
@@ -434,6 +518,26 @@ Sandbox.newLogs = function(logs) {
       })
       .value();
   });
+};
+Sandbox.setBreakpoints = function(breakpoints, cb) {
+  this.breakpoints.setBreakpoints(breakpoints);
+  cb();
+};
+Sandbox.removeBreakpoints = function(breakpoints, cb) {
+  this.breakpoints.removeBreakpoints(breakpoints);
+  cb();
+};
+Sandbox.stepInto = function(cb) {
+  this.vm.stepInto();
+  cb();
+};
+Sandbox.stepOver = function(cb) {
+  this.vm.stepOver();
+  cb();
+};
+Sandbox.stepOut = function(cb) {
+  this.vm.stepOut();
+  cb();
 };
 Sandbox.startMiner = function() {
   this.minerEnabled = true;

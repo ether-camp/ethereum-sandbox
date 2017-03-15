@@ -60,7 +60,12 @@ var Filters = {
                  details.toBlock.greaterThanOrEqualTo(this.currentBlockNum));
             }).bind(this))
             .map('logs')
-            .flatten();
+            .flatten()
+            .filter((function(log) {
+              return _.any(log.topics, function(topic) { 
+                return _.includes(details.topics, topic); 
+              });
+            }));
 
       this.filters[num].entries = entries.value();
     }
@@ -79,6 +84,24 @@ var Filters = {
     var num = this.nextNum();
     this.filters[num] = {
       type: 'block',
+      entries: [],
+      sent: []
+    };
+    return num;
+  },
+  addBreakpointFilter: function() {
+    var num = this.nextNum();
+    this.filters[num] = {
+      type: 'breakpoint',
+      entries: [],
+      sent: []
+    };
+    return num;
+  },
+  addMessageFilter: function() {
+    var num = this.nextNum();
+    this.filters[num] = {
+      type: 'message',
       entries: [],
       sent: []
     };
@@ -127,6 +150,23 @@ var Filters = {
       .filter({type: 'pending'})
       .each(function(filter) {
         filter.entries.push(hash);
+      })
+      .value();
+  },
+  newBreakpoint: function(bp, callStack) {
+    bp.callStack = callStack;
+    _(this.filters)
+      .filter({ type: 'breakpoint' })
+      .each(function(filter) {
+        filter.entries.push(bp);
+      })
+      .value();
+  },
+  newMessage: function(message) {
+    _(this.filters)
+      .filter({ type: 'message' })
+      .each(function(filter) {
+        filter.entries.push(message);
       })
       .value();
   },
