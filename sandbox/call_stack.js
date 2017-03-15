@@ -46,89 +46,88 @@ var callStack = {
     return contract;
   },
   _updateCall: function(contract, data) {
-    if (!contract.obj || !contract.obj.srcmap || !contract.obj.details)
-      return null;
+    if (contract.obj && contract.obj.srcmap && contract.obj.details) {
+      var call = _.last(contract.calls);
+      var mapping = _.find(contract.obj.getActualSrcmap(), { pc: data.pc });
 
-    var call = _.last(contract.calls);
-    var mapping = _.find(contract.obj.getActualSrcmap(), { pc: data.pc });
+      if (mapping) {
+        if (!call) {
+          var func = contract.obj.details.findFunc(mapping);
+          if (func) {
+            call = {
+              func: func,
+              stackPointer: -1,
+              mapping: null,
+              activeModifier: -1,
+              modifiers: _.map(func.modifiers, function(modifier) {
+                return {
+                  modifier: modifier,
+                  stackPointer: -1
+                };
+              })
+            };
+            contract.calls.push(call);
+          }
+        } else if (call.func) {
+          if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
+            call.mapping = mapping;
+            call.activeModifier = -1;
+            calcStackPointers(call, data.stack.length);
+          } else {
+            call.mapping = null;
+            call.activeModifier = call.func.findModifierIndex(mapping);
+            if (call.activeModifier != -1) {
+              call.mapping = mapping;
+              calcStackPointers(call, data.stack.length);
+            } else {
+              func = contract.obj.details.findFunc(mapping);
+              if (func && call.func.name != func.name) {
+                call.func = func;
+                call.stackPointer = -1;
+                call.activeModifier = -1;
+                call.modifiers = _.map(func.modifiers, function(modifier) {
+                  return {
+                    modifier: modifier,
+                    stackPointer: -1
+                  };
+                });
+                if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
+                  call.mapping = mapping;
+                  calcStackPointers(call, data.stack.length);
+                }
+              }
+            }
+          }
+        }
 
-    if (mapping) {
-      if (!call) {
-        var func = contract.obj.details.findFunc(mapping);
-        if (func) {
+        if (mapping.type == 'i') {
           call = {
-            func: func,
+            func: null,
             stackPointer: -1,
             mapping: null,
             activeModifier: -1,
-            modifiers: _.map(func.modifiers, function(modifier) {
-              return {
-                modifier: modifier,
-                stackPointer: -1
-              };
-            })
+            modifiers: []
           };
-          contract.calls.push(call);
-        }
-      } else if (call.func) {
-        if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
-          call.mapping = mapping;
-          call.activeModifier = -1;
-          calcStackPointers(call, data.stack.length);
-        } else {
-          call.mapping = null;
-          call.activeModifier = call.func.findModifierIndex(mapping);
-          if (call.activeModifier != -1) {
-            call.mapping = mapping;
-            calcStackPointers(call, data.stack.length);
-          } else {
-            func = contract.obj.details.findFunc(mapping);
-            if (func && call.func.name != func.name) {
-              call.func = func;
-              call.stackPointer = -1;
-              call.activeModifier = -1;
-              call.modifiers = _.map(func.modifiers, function(modifier) {
+          var targetPc = _.last(data.stack).readUIntBE(0, 32);
+          var targetMapping = _.find(contract.obj.getActualSrcmap(),
+                                     { pc: targetPc });
+          if (targetMapping) {
+            call.func = contract.obj.details.findFunc(targetMapping);
+            if (call.func) {
+              call.modifiers = _.map(call.func.modifiers, function(modifier) {
                 return {
                   modifier: modifier,
                   stackPointer: -1
                 };
               });
-              if (call.func.inBlock(mapping) && !call.func.isVarDeclaration(mapping)) {
-                call.mapping = mapping;
-                calcStackPointers(call, data.stack.length);
-              }
             }
           }
+          contract.calls.push(call);
+        } else if (mapping.type == 'o') {
+          contract.calls.pop();
+          call = _.last(contract.calls);
+          if (call) call.mapping = null;
         }
-      }
-
-      if (mapping.type == 'i') {
-        call = {
-          func: null,
-          stackPointer: -1,
-          mapping: null,
-          activeModifier: -1,
-          modifiers: []
-        };
-        var targetPc = _.last(data.stack).readUIntBE(0, 32);
-        var targetMapping = _.find(contract.obj.getActualSrcmap(),
-                                   { pc: targetPc });
-        if (targetMapping) {
-          call.func = contract.obj.details.findFunc(targetMapping);
-          if (call.func) {
-            call.modifiers = _.map(call.func.modifiers, function(modifier) {
-              return {
-                modifier: modifier,
-                stackPointer: -1
-              };
-            });
-          }
-        }
-        contract.calls.push(call);
-      } else if (mapping.type == 'o') {
-        contract.calls.pop();
-        call = _.last(contract.calls);
-        if (call) call.mapping = null;
       }
     }
 
@@ -158,37 +157,46 @@ var callStack = {
   details: function(trie, cb) {
     var self = this;
     async.map(this.contractsStack, function(contract, cb) {
-      var account = Object.create(Account).init(contract.account);
-      account.readStorage1(trie, function(err, storage) {
-        if (err) return cb(err);
+      if (!contract.obj) {
+        cb(null, [{
+          name: contract.address,
+          mapping: null,
+          storage: [],
+          vars: []
+        }]);
+      } else {
+        var account = Object.create(Account).init(contract.account);
+        account.readStorage1(trie, function(err, storage) {
+          if (err) return cb(err);
 
-        var storageVars = [];
-        if (_.has(self.contracts, contract.baseAddress)) {
-          storageVars = self.contracts[contract.baseAddress].details
-            .getStorageVars(storage, self.hashDict);
-        }
-        cb(null, _.map(contract.calls, function(call, idx) {
-          if (call.activeModifier == -1) {
-            var method = call.func;
-            var stackPointer = call.stackPointer;
-          } else {
-            method = call.modifiers[call.activeModifier].modifier;
-            stackPointer = call.modifiers[call.activeModifier].stackPointer;
+          var storageVars = [];
+          if (_.has(self.contracts, contract.baseAddress)) {
+            storageVars = self.contracts[contract.baseAddress].details
+              .getStorageVars(storage, self.hashDict);
           }
+          cb(null, _.map(contract.calls, function(call, idx) {
+            if (call.activeModifier == -1) {
+              var method = call.func;
+              var stackPointer = call.stackPointer;
+            } else {
+              method = call.modifiers[call.activeModifier].modifier;
+              stackPointer = call.modifiers[call.activeModifier].stackPointer;
+            }
 
-          return {
-            name: method ? method.name : contract.address,
-            mapping: call.mapping,
-            storage: storageVars,
-            vars: method ?
-              method.parseVariables(
-                stackPointer, self.calldata, contract.stack,
-                contract.memory, storage, self.hashDict
-              ) :
-              []
-          };
-        }));
-      });
+            return {
+              name: method ? method.name : contract.address,
+              mapping: call.mapping,
+              storage: storageVars,
+              vars: method ?
+                method.parseVariables(
+                  stackPointer, self.calldata, contract.stack,
+                  contract.memory, storage, self.hashDict
+                ) :
+                []
+            };
+          }));
+        });
+      }
     }, function(err, callStack) {
       if (err) cb(err);
       cb(null, _.flatten(callStack));
